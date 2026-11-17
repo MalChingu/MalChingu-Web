@@ -7,6 +7,7 @@ import { Button, Card, Page, SectionTitle, Toggle, copyText } from "../component
 import { avatarSrc, squareJPEGBase64 } from "../lib/avatar";
 import { initials } from "../lib/settings";
 import { speak, useKoreanVoice } from "../lib/speech";
+import { useAppearance, type Appearance } from "../lib/theme";
 import { useStore } from "../lib/store";
 
 export function Profile() {
@@ -17,6 +18,7 @@ export function Profile() {
   const [working, setWorking] = useState(false);
   const file = useRef<HTMLInputElement>(null);
   const voice = useKoreanVoice();
+  const [appearance, setAppearance] = useAppearance();
 
   useEffect(() => setName(settings.profile.name), [settings.profile.name]);
 
@@ -60,6 +62,18 @@ export function Profile() {
             onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }} />
           <span className="level-tag"><Icon name="cap" size={16} /> {levelLabel[store.level]}</span>
           {store.error && <p className="error small" role="alert">{store.error}</p>}
+        </div>
+      </Card>
+
+      <Card>
+        <SectionTitle>Appearance</SectionTitle>
+        <div className="segmented" role="radiogroup" aria-label="Appearance">
+          {(["system", "light", "dark"] as Appearance[]).map((option) => (
+            <button key={option} type="button" role="radio" aria-checked={appearance === option}
+              className={appearance === option ? "on" : ""} onClick={() => setAppearance(option)}>
+              {option[0].toUpperCase() + option.slice(1)}
+            </button>
+          ))}
         </div>
       </Card>
 

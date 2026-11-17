@@ -190,6 +190,36 @@ try {
     await context.close();
   }
 
+  // Appearance: follows the system, and Light / Dark in Profile override it and survive a reload.
+  {
+    const context = await browser.newContext({ viewport: { width: 390, height: 844 }, colorScheme: "dark" });
+    await context.route("https://nxlsnpzfbazwlccxtwpt.supabase.co/**", fakeSupabase);
+    await context.addInitScript((value) => localStorage.setItem("sb-nxlsnpzfbazwlccxtwpt-auth-token", value), JSON.stringify(session));
+    const page = await context.newPage();
+    const base = () => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--base").trim());
+    await page.goto("http://localhost:4173/#profile");
+    await page.getByRole("radio", { name: "System" }).waitFor({ timeout: 15000 });
+    check(await base() === "#0e0d1c", "System follows a dark device");
+    await page.screenshot({ path: "screenshots/profile-dark-system.png" });
+    await page.getByRole("radio", { name: "Light" }).click();
+    check(await base() === "#f4f3fb", "Light overrides a dark device");
+    await page.reload();
+    await page.getByRole("radio", { name: "Light" }).waitFor({ timeout: 15000 });
+    check(await base() === "#f4f3fb" && await page.getByRole("radio", { name: "Light" }).getAttribute("aria-checked") === "true",
+      "Light is kept after a reload");
+    await page.screenshot({ path: "screenshots/profile-light-override.png" });
+    await page.getByRole("radio", { name: "Dark" }).click();
+    await page.goto("http://localhost:4173/#today");
+    await page.getByRole("heading", { name: "Welcome Back, Test" }).waitFor({ timeout: 15000 });
+    check(await base() === "#0e0d1c", "Dark applies across pages");
+    await page.screenshot({ path: "screenshots/today-dark.png" });
+    await page.goto("http://localhost:4173/#profile");
+    await page.getByRole("radio", { name: "System" }).click();
+    check(await page.evaluate(() => localStorage.getItem("malchingu.theme")) === null, "System clears the override");
+    await page.waitForLoadState("networkidle");
+    await context.close();
+  }
+
   // What the app wrote to the database.
   const progress = db.word_progress;
   const days = db.study_days;
