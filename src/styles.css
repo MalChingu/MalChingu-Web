@@ -295,9 +295,9 @@ progress::-moz-progress-bar { background: var(--accent); }
 .connector-url { display: block; font-size: 0.8rem; word-break: break-all; padding: 10px 12px; border-radius: 12px; background: var(--field); user-select: all; }
 
 /* Sign in */
-.sign-in { min-height: 100dvh; display: flex; flex-direction: column; justify-content: space-between; align-items: center; padding: 48px 24px 32px; text-align: center; }
+/* The intro and the sign-in button sit together as one group in the middle of the screen. */
+.sign-in { min-height: 100dvh; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 56px; padding: 48px 24px 32px; text-align: center; }
 .sign-in-top, .sign-in-bottom { display: flex; flex-direction: column; align-items: center; gap: 14px; }
-.sign-in-top { margin-top: 8vh; }
 .logo { border-radius: 30px; box-shadow: 0 16px 32px rgba(40, 30, 120, 0.25); }
 .brand { font-size: 2.6rem; font-weight: 800; font-family: ui-rounded, inherit; }
 .lead { font-size: 1.2rem; color: var(--text-2); }
