@@ -1,1 +1,65 @@
-# MalChingu-Web
+# MalChingu Web
+
+Malchingu (말친구, "talking buddy") in the browser: the same Korean study app as the iPhone, iPad and Mac version ([MalChingu-Swift](https://github.com/MalChingu/MalChingu-Swift)), on the same accounts and data.
+
+- **Today**: a greeting, your streak, and the word of the day with its quiz (red X to give up, green ✓ to check, three tap-to-reveal hints). It's the same word the app shows that day.
+- **Flashcards**: built-in words, your own words or a mix; drag or swipe the card (or use the arrow keys), segmented progress, and every card turns over after you answer.
+- **Guides**: study guides that Claude writes from your notes, day by day, with checkable tasks and vocabulary practice. Create Guide hands Claude a one-sentence request.
+- **Stats** and **Profile**: picture, name, level, word-of-the-day settings, the Claude connector link, and a listen button using the browser's Korean voice.
+
+Not on the web: widgets, the lock screen and notifications. Those stay in the app.
+
+## Run it
+
+Requires Node 20 or later.
+
+```bash
+npm install
+```
+
+```bash
+npm run dev
+```
+
+Then open http://localhost:5173. Signing in needs the Apple setup below.
+
+## Tests
+
+```bash
+npm test
+```
+
+The tests in `src/core/__tests__/golden.test.ts` compare the web logic with outputs produced by the Swift app's own code (word of the day for every day of 2026–2027, 1,553 romanizations, answer checking, quizzes, streaks, levels), so both versions behave the same.
+
+```bash
+npm run build && npm run e2e
+```
+
+Runs the built site in a headless browser against an in-memory stand-in for Supabase (no account needed, no real data touched) and saves screenshots to `screenshots/`. Needs Playwright with Chromium installed.
+
+## How it's put together
+
+| Path | What |
+| --- | --- |
+| `src/core` | Word list and app logic ported from the Swift app, with tests |
+| `src/lib` | Supabase client, the data store, settings, speech, picture resizing |
+| `src/components` | Shared pieces: cards, buttons, the quiz panel, icons |
+| `src/pages` | The screens |
+| `scripts/e2e.mjs` | Browser test |
+
+There is no server of its own. The site talks to the Supabase project directly; row-level security limits every query to the signed-in user, exactly as for the app. Settings are the same `profiles.settings` record the app uses, and edits only change the fields the web knows about, so app-only settings (notification times, widget options) are left alone.
+
+## Deploying
+
+The site is a static build (`npm run build` → `dist/`). On Vercel, import this repo with the defaults (Vite is detected); `vercel.json` sends every page to `index.html`.
+
+## One-time setup for Sign in with Apple on the web
+
+The app's native sign-in already works. The web needs a few more pieces, done once:
+
+1. **Apple Developer → Certificates, Identifiers & Profiles → Identifiers → +** → **Services IDs**. Description `Malchingu Web`, identifier e.g. `com.rezpoint.ktalk.web`. Enable **Sign in with Apple** → **Configure**: primary App ID `com.rezpoint.ktalk`; **Domains** `nxlsnpzfbazwlccxtwpt.supabase.co`; **Return URLs** `https://nxlsnpzfbazwlccxtwpt.supabase.co/auth/v1/callback`. Save.
+2. **Keys → +**: enable **Sign in with Apple** (configure it with the same primary App ID), download the `.p8` file, and note the Key ID and your Team ID.
+3. **Supabase → Authentication → Sign In / Providers → Apple**: in **Client IDs** add the Services ID next to the app's bundle ID, e.g. `com.rezpoint.ktalk,com.rezpoint.ktalk.web`. In **Secret Key (for OAuth)** paste a client secret generated from the `.p8` key, Key ID, Team ID and Services ID (Supabase's Apple guide links a generator). Save.
+4. **Supabase → Authentication → URL Configuration**: set **Site URL** to the web address, and add it plus `http://localhost:5173` under **Redirect URLs**.
+
+The client secret expires after at most 6 months. Make a new one from the same `.p8` key and paste it into Supabase before then, or web sign-in stops working (the app is unaffected).

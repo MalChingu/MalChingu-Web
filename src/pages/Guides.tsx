@@ -1,0 +1,184 @@
+import { useMemo, useState } from "react";
+import { claudeLink, guideRequest } from "../core/guideRequest";
+import type { StudyGuideRow, Word } from "../core/models";
+import { customToWord } from "../core/wordBank";
+import { addDays, dayString } from "../core/wordOfDay";
+import { Icon } from "../components/Icon";
+import { Button, Card, Page, RoundButton, SectionTitle, Sheet, WordRow, copyText } from "../components/ui";
+import { useStore } from "../lib/store";
+import { formatDay, guideDate, guideDayNumber } from "./guideDates";
+import { TaskList } from "./Today";
+
+export function Guides({ openGuideID, setOpenGuideID, practice }: {
+  openGuideID: string | null; setOpenGuideID: (id: string | null) => void; practice: (words: Word[]) => void;
+}) {
+  const store = useStore();
+  const [creating, setCreating] = useState(false);
+  const guides = store.data.guides.filter((g) => !g.deleted_at).sort((a, b) => b.created_at.localeCompare(a.created_at));
+  const open = guides.find((g) => g.id === openGuideID);
+
+  if (open) return <GuideDetail guide={open} onBack={() => setOpenGuideID(null)} practice={practice} />;
+
+  return (
+    <Page title="Study Guides" actions={guides.length > 0
+      ? <RoundButton icon="plus" tint="glass" label="Create Guide" onClick={() => setCreating(true)} size={38} /> : undefined}>
+      {guides.length === 0 && (
+        <Card padding={22}>
+          <div className="stack">
+            <Icon name="bulb" size={32} className="accent" />
+            <h3>Turn Your Notes Into a Plan</h3>
+            <p className="muted">Give Claude your tutor's notes, PDFs, screenshots or anything you found online, plus a timeframe. Claude builds a day-by-day study guide and saves it here, with the vocabulary ready as flashcards.</p>
+            <Button kind="prominent" icon="plus" full large onClick={() => setCreating(true)}>Create Guide</Button>
+          </div>
+        </Card>
+      )}
+      {guides.map((guide) => {
+        const tasks = store.data.tasks.filter((t) => t.guide_id === guide.id);
+        const done = tasks.filter((t) => t.done).length;
+        return (
+          <button key={guide.id} type="button" className="glass card guide-card" onClick={() => setOpenGuideID(guide.id)}>
+            <div className="row"><h3 className="grow">{guide.title}</h3><Icon name="chevron" size={16} className="muted" /></div>
+            <div className="muted">{guideStatus(guide)}</div>
+            <progress value={done} max={Math.max(tasks.length, 1)} />
+            <div className="small muted">{done} of {tasks.length} tasks done</div>
+          </button>
+        );
+      })}
+      {creating && <CreateGuide onClose={() => setCreating(false)} />}
+    </Page>
+  );
+}
+
+function guideStatus(guide: StudyGuideRow): string {
+  const day = guideDayNumber(guide);
+  if (day) return `Day ${day} of ${guide.total_days}`;
+  if (guide.start_date > dayString()) return `Starts ${formatDay(guide.start_date, { month: "short", day: "numeric", year: "numeric" })} · ${guide.total_days} days`;
+  return `${guide.total_days} days · finished`;
+}
+
+function GuideDetail({ guide, onBack, practice }: { guide: StudyGuideRow; onBack: () => void; practice: (words: Word[]) => void }) {
+  const store = useStore();
+  const today = guideDayNumber(guide);
+  const sessions = store.data.sessions.filter((s) => s.guide_id === guide.id).sort((a, b) => a.day_number - b.day_number);
+  const vocabulary = store.data.customWords.filter((w) => !w.deleted_at && w.guide_id === guide.id);
+  const tasks = store.data.tasks.filter((t) => t.guide_id === guide.id);
+  const done = tasks.filter((t) => t.done).length;
+  const shuffled = (words: Word[]) => [...words].sort(() => Math.random() - 0.5);
+
+  return (
+    <Page title={guide.title} actions={
+      <RoundButton icon="trash" tint="glass" label="Delete Guide" size={38} onClick={() => {
+        if (confirm("Delete this guide? Its vocabulary stays in My Words.")) { store.deleteGuide(guide); onBack(); }
+      }} />
+    }>
+      <button type="button" className="back-link" onClick={onBack}><Icon name="chevron" size={14} className="flip" /> Study Guides</button>
+      <Card>
+        <div className="stack">
+          {guide.overview && <p>{guide.overview}</p>}
+          <progress value={done} max={Math.max(tasks.length, 1)} />
+          <div className="small muted">{done} of {tasks.length} tasks · {vocabulary.length} words</div>
+          {vocabulary.length > 0 && (
+            <Button icon="cards" onClick={() => practice(shuffled(vocabulary.map(customToWord)))}>Practice All Vocabulary</Button>
+          )}
+        </div>
+      </Card>
+      {sessions.map((session) => {
+        const words = vocabulary.filter((w) => w.day_number === session.day_number).map(customToWord);
+        return (
+          <Card key={session.id}>
+            <div className="row">
+              <SectionTitle>Day {session.day_number} · {formatDay(guideDate(guide, session.day_number))}</SectionTitle>
+              {session.day_number === today && <span className="today-badge">TODAY</span>}
+            </div>
+            <h3>{session.title}</h3>
+            {session.goals.length > 0 && (
+              <ul className="goals">{session.goals.map((g, i) => <li key={i}><Icon name="target" size={14} /> {g}</li>)}</ul>
+            )}
+            <TaskList tasks={store.data.tasks.filter((t) => t.session_id === session.id)} />
+            {session.grammar_notes && (
+              <details className="notes"><summary>Notes</summary><div className="notes-body">{session.grammar_notes}</div></details>
+            )}
+            {words.length > 0 && (
+              <>
+                <div className="row top-rule">
+                  <strong className="grow">Vocabulary · {words.length}</strong>
+                  <Button onClick={() => practice(shuffled(words))}>Practice</Button>
+                </div>
+                <div className="divided">
+                  {words.map((w) => <WordRow key={w.id} word={w} progress={store.progressFor(w.id)} onClick={() => store.openWord(w)} />)}
+                </div>
+              </>
+            )}
+          </Card>
+        );
+      })}
+    </Page>
+  );
+}
+
+const PRESETS = [{ label: "1 week", days: 7 }, { label: "2 weeks", days: 14 }, { label: "1 month", days: 30 }, { label: "2 months", days: 60 }];
+
+/** Builds the one-sentence request for Claude, which writes the guide and saves it through the connector. */
+function CreateGuide({ onClose }: { onClose: () => void }) {
+  const store = useStore();
+  const [days, setDays] = useState(7);
+  const [minutes, setMinutes] = useState(30);
+  const [start, setStart] = useState(dayString());
+  const [focus, setFocus] = useState("");
+  const [copied, setCopied] = useState(false);
+  const request = useMemo(() => guideRequest(days, minutes, start, focus.trim()), [days, minutes, start, focus]);
+  const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
+
+  return (
+    <Sheet title="Create Guide" onClose={onClose}>
+      {!store.data.hasConnectorToken && (
+        <Card>
+          <div className="stack">
+            <strong><Icon name="link" size={16} /> Connect Claude First</strong>
+            <p className="muted small">Guides are written by Claude and saved to Malchingu through a connector. Set it up once in Profile → Claude Connector.</p>
+          </div>
+        </Card>
+      )}
+      <Card>
+        <SectionTitle>Timeframe</SectionTitle>
+        <div className="segmented">
+          {PRESETS.map((p) => (
+            <button key={p.days} type="button" className={days === p.days ? "on" : ""} onClick={() => setDays(p.days)}>{p.label}</button>
+          ))}
+        </div>
+        <div className="form-row"><span>{days} days</span>
+          <div className="stepper">
+            <button type="button" aria-label="Fewer days" onClick={() => setDays(clamp(days - 1, 1, 180))}>−</button>
+            <button type="button" aria-label="More days" onClick={() => setDays(clamp(days + 1, 1, 180))}>+</button>
+          </div>
+        </div>
+        <label className="form-row"><span>Start</span>
+          <input type="date" value={start} min={dayString()} max={addDays(dayString(), 365)} onChange={(e) => e.target.value && setStart(e.target.value)} />
+        </label>
+        <div className="form-row"><span>{minutes} minutes a day</span>
+          <div className="stepper">
+            <button type="button" aria-label="Fewer minutes" onClick={() => setMinutes(clamp(minutes - 5, 10, 180))}>−</button>
+            <button type="button" aria-label="More minutes" onClick={() => setMinutes(clamp(minutes + 5, 10, 180))}>+</button>
+          </div>
+        </div>
+      </Card>
+      <Card>
+        <SectionTitle>Focus</SectionTitle>
+        <input className="text-input" value={focus} placeholder="Optional, e.g. past tense, travel phrases" onChange={(e) => setFocus(e.target.value)} />
+      </Card>
+      <Card>
+        <SectionTitle>Request</SectionTitle>
+        <p>{request}</p>
+        <div className="stack">
+          <Button kind="prominent" icon="external" full large onClick={() => { copyText(request); setCopied(true); window.open(claudeLink(request), "_blank"); }}>
+            Continue in Claude
+          </Button>
+          <Button icon={copied ? "check" : "copy"} full large onClick={() => { copyText(request); setCopied(true); }}>
+            {copied ? "Request Copied" : "Copy Request"}
+          </Button>
+        </div>
+        <p className="small muted">In Claude, attach your PDFs, screenshots or pasted notes if you have any, then send. Claude sets the level from your stats. When it says the guide is saved, come back here.</p>
+      </Card>
+    </Sheet>
+  );
+}
