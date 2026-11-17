@@ -2,10 +2,10 @@
 
 Malchingu (말친구, "talking buddy") in the browser: the same Korean study app as the iPhone, iPad and Mac version ([MalChingu-Swift](https://github.com/MalChingu/MalChingu-Swift)), on the same accounts and data.
 
-- **Today**: a greeting, your streak, and the word of the day with its quiz (red X to give up, green ✓ to check, three tap-to-reveal hints). It's the same word the app shows that day.
+- **Today**: a greeting, your streak, and the word of the day with its quiz (red X to give up, green ✓ to check, three tap-to-reveal hints). It's the same word the app shows that day, and the quiz itself is shared: hints and the result carry over between the web and the app.
 - **Flashcards**: built-in words, your own words or a mix; drag or swipe the card (or use the arrow keys), segmented progress, and every card turns over after you answer.
-- **Guides**: study guides that Claude writes from your notes, day by day, with checkable tasks and vocabulary practice. Create Guide hands Claude a one-sentence request.
-- **Stats** and **Profile**: picture, name, level, word-of-the-day settings, the Claude connector link, and a listen button using the browser's Korean voice.
+- **Guides**: study guides that Claude writes from your notes, day by day, with checkable tasks and vocabulary practice. Create Guide gives you a one-sentence request to paste into Claude.
+- **Stats** and **Profile**: picture, name, level, appearance (System / Light / Dark), word-of-the-day settings, the Claude connector link, and a listen button using the browser's Korean voice.
 
 Not on the web: widgets, the lock screen and notifications. Those stay in the app.
 
@@ -35,7 +35,13 @@ The tests in `src/core/__tests__/golden.test.ts` compare the web logic with outp
 npm run build && npm run e2e
 ```
 
-Runs the built site in a headless browser against an in-memory stand-in for Supabase (no account needed, no real data touched) and saves screenshots to `screenshots/`. Needs Playwright with Chromium installed.
+Runs the built site in a headless browser against an in-memory stand-in for Supabase (no account needed, no real data touched) and saves screenshots to `screenshots/`. It also checks both themes on every screen: text contrast (with axe-core), the look of the chosen option in tab controls, and that no native select menus are used. Needs Playwright with Chromium installed.
+
+```bash
+E2E_EMAIL=... E2E_PASSWORD=... npm run e2e:live
+```
+
+The same kind of run against the real Supabase project, signed in as an email test account (email sign-in must be enabled). It seeds words and a guide through the Claude connector, plays through the screens, checks what reached the database, and checks that today's quiz syncs both ways.
 
 ## How it's put together
 
@@ -51,7 +57,7 @@ There is no server of its own. The site talks to the Supabase project directly; 
 
 ## Deploying
 
-The site is a static build (`npm run build` → `dist/`). On Vercel, import this repo with the defaults (Vite is detected); `vercel.json` sends every page to `index.html`.
+The site is a static build (`npm run build` → `dist/`). On Vercel, import this repo with the defaults (Vite is detected); `vercel.json` sends every page to `index.html`. Page views go to Vercel Web Analytics once it's enabled on the project's Analytics tab.
 
 ## One-time setup for Sign in with Apple on the web
 

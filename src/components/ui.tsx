@@ -127,17 +127,26 @@ export function Sheet({ title, onClose, children, trailing }: {
   title: string; onClose: () => void; children: ReactNode; trailing?: ReactNode;
 }) {
   const panel = useRef<HTMLDivElement>(null);
+  const close = useRef(onClose);
+  close.current = onClose;
+  // Runs once per opening (not on every re-render), so typing in the sheet doesn't replay its setup.
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") close.current(); };
     window.addEventListener("keydown", onKey);
-    panel.current?.focus();
-    const previous = document.body.style.overflow;
+    panel.current?.focus({ preventScroll: true });
+    const { overflow, paddingRight } = document.body.style;
+    const scrollbar = window.innerWidth - document.documentElement.clientWidth;
     document.body.style.overflow = "hidden";
-    return () => { window.removeEventListener("keydown", onKey); document.body.style.overflow = previous; };
-  }, [onClose]);
+    if (scrollbar > 0) document.body.style.paddingRight = `${scrollbar}px`;   // no jump when the scrollbar hides
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = overflow;
+      document.body.style.paddingRight = paddingRight;
+    };
+  }, []);
   return (
     <div className="sheet-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="sheet app-background" role="dialog" aria-modal="true" aria-label={title} tabIndex={-1} ref={panel}>
+      <div className="sheet" role="dialog" aria-modal="true" aria-label={title} tabIndex={-1} ref={panel}>
         <div className="sheet-header">
           <RoundButton icon="x" tint="glass" label="Close" onClick={onClose} size={36} />
           <h2>{title}</h2>
@@ -145,6 +154,31 @@ export function Sheet({ title, onClose, children, trailing }: {
         </div>
         <div className="sheet-body">{children}</div>
       </div>
+    </div>
+  );
+}
+
+/** A row of options where one is chosen (the selected one is light with dark text in both themes). */
+export function Segmented<T extends string>({ options, value, onChange, label }: {
+  options: { value: T; label: string }[]; value: T; onChange: (value: T) => void; label: string;
+}) {
+  return (
+    <div className="segmented" role="radiogroup" aria-label={label}>
+      {options.map((o) => (
+        <button key={o.value} type="button" role="radio" aria-checked={value === o.value} className={value === o.value ? "on" : ""}
+          onClick={() => onChange(o.value)}>{o.label}</button>
+      ))}
+    </div>
+  );
+}
+
+export function Stepper({ onMinus, onPlus, minusLabel, plusLabel, minusDisabled, plusDisabled }: {
+  onMinus: () => void; onPlus: () => void; minusLabel: string; plusLabel: string; minusDisabled?: boolean; plusDisabled?: boolean;
+}) {
+  return (
+    <div className="stepper">
+      <button type="button" aria-label={minusLabel} disabled={minusDisabled} onClick={onMinus}><Icon name="minus" size={18} /></button>
+      <button type="button" aria-label={plusLabel} disabled={plusDisabled} onClick={onPlus}><Icon name="plus" size={18} /></button>
     </div>
   );
 }

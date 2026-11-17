@@ -1,5 +1,5 @@
 import type { Session } from "@supabase/supabase-js";
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { CustomWordRow, GuideSessionRow, GuideTaskRow, StudyGuideRow, Word } from "../core/models";
 import { computeStats, emptyDay, emptyProgress, estimateLevel, recordOnDay, recordOnWord,
   type Answer, type StudyDay, type WordProgress } from "../core/progress";
@@ -21,10 +21,23 @@ interface Data {
   sessions: GuideSessionRow[];
   tasks: GuideTaskRow[];
   hasConnectorToken: boolean;
+  /** Today's word-of-the-day quiz, shared with the app so hints and the result match on every device. */
+  dailyQuiz: DailyQuizRow | null;
+}
+
+/** A row of `daily_quiz`. */
+interface DailyQuizRow {
+  day: string;
+  word_id: string;
+  state: QuizSession["state"];
+  mistakes: number;
+  revealed_hints: number[];
+  recorded: boolean;
+  updated_at: string;
 }
 
 const EMPTY: Data = { settingsRaw: {}, customWords: [], progress: [], studyDays: [], guides: [], sessions: [], tasks: [],
-  hasConnectorToken: false };
+  hasConnectorToken: false, dailyQuiz: null };
 
 async function selectAll<T>(table: string, order: string): Promise<T[]> {
   const rows: T[] = [];
@@ -37,10 +50,6 @@ async function selectAll<T>(table: string, order: string): Promise<T[]> {
 }
 
 const now = () => new Date().toISOString();
-
-function quizKey(userID: string, day: string) {
-  return `malchingu.dailyQuiz.${userID}.${day}`;
-}
 
 interface Store {
   session: Session | null;
@@ -93,10 +102,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<Data>(EMPTY);
   const [today, setToday] = useState(dayString());
-  const [quiz, setQuiz] = useState<QuizSession | null>(null);
   const [openedWord, setOpenedWord] = useState<{ word: Word; quiz: boolean } | null>(null);
   const [connectorKey, setConnectorKey] = useState<string | null>(null);
   const userID = session?.user.id ?? null;
+  /** When each part of the data was last changed on this page, so a load already in flight can't undo it. */
+  const editedAt = useRef<Partial<Record<keyof Data, number>>>({});
+  const edit = (...keys: (keyof Data)[]) => { const t = performance.now(); keys.forEach((k) => { editedAt.current[k] = t; }); };
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => { setSession(session); setReady(true); });
@@ -109,8 +120,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const refresh = useCallback(async () => {
     if (!userID) return;
     setLoading(true);
+    const started = performance.now();
     try {
-      const [profiles, customWords, progress, studyDays, guides, sessions, tasks, tokens] = await Promise.all([
+      const [profiles, customWords, progress, studyDays, guides, sessions, tasks, tokens, quizzes] = await Promise.all([
         selectAll<{ settings: RawSettings }>("profiles", "user_id"),
         selectAll<CustomWordRow>("custom_words", "id"),
         selectAll<WordProgress>("word_progress", "word_id"),
@@ -119,9 +131,21 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         selectAll<GuideSessionRow>("guide_sessions", "id"),
         selectAll<GuideTaskRow>("guide_tasks", "id"),
         selectAll<{ user_id: string }>("connector_tokens", "user_id"),
+        supabase.from("daily_quiz").select("*").eq("day", dayString()).then(({ data, error }) => {
+          if (error) throw new Error(error.message);
+          return (data ?? []) as DailyQuizRow[];
+        }),
       ]);
-      setData({ settingsRaw: profiles[0]?.settings ?? {}, customWords, progress, studyDays, guides, sessions, tasks,
-        hasConnectorToken: tokens.length > 0 });
+      const loaded: Data = { settingsRaw: profiles[0]?.settings ?? {}, customWords, progress, studyDays, guides, sessions, tasks,
+        hasConnectorToken: tokens.length > 0, dailyQuiz: quizzes[0] ?? null };
+      // Keep anything edited here after this load started; the server copy is older than the edit.
+      setData((current) => {
+        const next = { ...loaded };
+        for (const key of Object.keys(editedAt.current) as (keyof Data)[]) {
+          if ((editedAt.current[key] ?? 0) > started) (next as Record<keyof Data, unknown>)[key] = current[key];
+        }
+        return next;
+      });
       setError(null);
     } catch (e) {
       setError(`Couldn't load your data: ${(e as Error).message}`);
@@ -155,19 +179,31 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return wordOfDay(today, pool, settings.wordTypes) ?? wordOfDay(today, BUILT_IN);
   }, [today, settings.includeMyWords, settings.wordTypes, myWordsList]);
 
-  // Today's quiz, kept in this browser so revealed hints and the result stay for the day.
-  useEffect(() => {
-    if (!userID || !wordOfTheDay) { setQuiz(null); return; }
-    try {
-      const saved = JSON.parse(localStorage.getItem(quizKey(userID, today)) ?? "null") as QuizSession | null;
-      setQuiz(saved && saved.word.id === wordOfTheDay.id ? saved : newQuiz(wordOfTheDay));
-    } catch {
-      setQuiz(newQuiz(wordOfTheDay));
-    }
-  }, [userID, today, wordOfTheDay]);
+  // Today's quiz comes from the shared daily_quiz row, so it matches the app.
+  const quiz = useMemo<QuizSession | null>(() => {
+    if (!wordOfTheDay) return null;
+    const row = data.dailyQuiz;
+    if (!row || row.day !== today || row.word_id !== wordOfTheDay.id) return newQuiz(wordOfTheDay);
+    return {
+      word: wordOfTheDay,
+      mistakes: Math.min(Math.max(row.mistakes, 0), 3),
+      state: row.state,
+      revealedHints: row.revealed_hints.filter((i) => i >= 0 && i < wordOfTheDay.examples.length).sort((x, y) => x - y),
+    };
+  }, [wordOfTheDay, data.dailyQuiz, today]);
+
+  /** Saves run one at a time: each re-reads the day's totals, so overlapping saves would lose counts. */
+  const saveQueue = useRef<Promise<void>>(Promise.resolve());
 
   /** Record one answer. The rows are re-read first so answers given on another device aren't overwritten. */
-  const record = useCallback(async (wordID: string, answer: Answer) => {
+  const record = useCallback((wordID: string, answer: Answer): Promise<void> => {
+    const next = saveQueue.current.then(() => saveAnswer(wordID, answer));
+    saveQueue.current = next.catch(() => undefined);
+    return next;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userID]);
+
+  async function saveAnswer(wordID: string, answer: Answer) {
     if (!userID) return;
     const stamp = now();
     const day = dayString();
@@ -178,6 +214,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       ]);
       const progress = recordOnWord((wp as WordProgress | null) ?? emptyProgress(wordID, stamp), answer, stamp);
       const studyDay = recordOnDay((sd as StudyDay | null) ?? emptyDay(day, stamp), answer, stamp);
+      edit("progress", "studyDays");
       setData((d) => ({
         ...d,
         progress: [...d.progress.filter((p) => p.word_id !== wordID), progress],
@@ -191,18 +228,28 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     } catch (e) {
       setError(`Couldn't save your answer: ${(e as Error).message}`);
     }
-  }, [userID]);
+  }
 
   const saveQuiz = useCallback((next: QuizSession, previous: QuizSession) => {
-    setQuiz(next);
-    if (userID) localStorage.setItem(quizKey(userID, today), JSON.stringify(next));
-    if (isFinished(next) && !isFinished(previous)) {
+    if (!userID) return;
+    const alreadyCounted = data.dailyQuiz?.day === today && data.dailyQuiz.word_id === next.word.id && data.dailyQuiz.recorded;
+    const justFinished = isFinished(next) && !isFinished(previous) && !alreadyCounted;
+    const row: DailyQuizRow = {
+      day: today, word_id: next.word.id, state: next.state, mistakes: next.mistakes,
+      revealed_hints: next.revealedHints, recorded: alreadyCounted || justFinished, updated_at: now(),
+    };
+    edit("dailyQuiz");
+    setData((d) => ({ ...d, dailyQuiz: row }));
+    supabase.from("daily_quiz").upsert({ ...row, user_id: userID }, { onConflict: "user_id,day" }).then(({ error }) => {
+      if (error) setError(`Couldn't save today's word: ${error.message}`);
+    });
+    if (justFinished) {
       record(next.word.id, {
         correct: next.state === "solved", source: "quiz",
         gaveUp: next.state === "failed" && next.mistakes < 3, hints: next.revealedHints.length,
       });
     }
-  }, [userID, today, record]);
+  }, [userID, today, record, data.dailyQuiz]);
 
   const submitDaily = useCallback((answer: string): Outcome => {
     if (!quiz) return { kind: "ignored" };
@@ -216,6 +263,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const updateSettings = useCallback(async (change: Partial<Settings>) => {
     if (!userID) return;
     const merged = { ...data.settingsRaw, ...settingsPatch(change, data.settingsRaw), updated_at: now() };
+    edit("settingsRaw");
     setData((d) => ({ ...d, settingsRaw: merged }));
     const { error } = await supabase.from("profiles")
       .upsert({ user_id: userID, settings: merged, updated_at: merged.updated_at }, { onConflict: "user_id" });
@@ -224,6 +272,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const deleteWord = useCallback(async (row: CustomWordRow) => {
     const stamp = now();
+    edit("customWords");
     setData((d) => ({ ...d, customWords: d.customWords.map((w) => w.id === row.id ? { ...w, deleted_at: stamp, updated_at: stamp } : w) }));
     const { error } = await supabase.from("custom_words").update({ deleted_at: stamp, updated_at: stamp }).eq("id", row.id);
     if (error) setError(`Couldn't delete the word: ${error.message}`);
@@ -231,6 +280,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const setTaskDone = useCallback(async (task: GuideTaskRow, done: boolean) => {
     const stamp = now();
+    edit("tasks");
     setData((d) => ({ ...d, tasks: d.tasks.map((t) => t.id === task.id ? { ...t, done, updated_at: stamp } : t) }));
     const { error } = await supabase.from("guide_tasks").update({ done, updated_at: stamp }).eq("id", task.id);
     if (error) setError(`Couldn't update the task: ${error.message}`);
@@ -238,6 +288,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const deleteGuide = useCallback(async (guide: StudyGuideRow) => {
     const stamp = now();
+    edit("guides");
     setData((d) => ({ ...d, guides: d.guides.map((g) => g.id === guide.id ? { ...g, deleted_at: stamp, updated_at: stamp } : g) }));
     const { error } = await supabase.from("study_guides").update({ deleted_at: stamp, updated_at: stamp }).eq("id", guide.id);
     if (error) setError(`Couldn't delete the guide: ${error.message}`);
@@ -249,6 +300,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (error || typeof key !== "string") { setError(`Couldn't create the connector link: ${error?.message ?? "no key"}`); return; }
     localStorage.setItem(`malchingu.connectorKey.${userID}`, key);
     setConnectorKey(key);
+    edit("hasConnectorToken");
     setData((d) => ({ ...d, hasConnectorToken: true }));
   }, [userID]);
 
@@ -258,6 +310,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (error) { setError(`Couldn't turn off the connector: ${error.message}`); return; }
     localStorage.removeItem(`malchingu.connectorKey.${userID}`);
     setConnectorKey(null);
+    edit("hasConnectorToken");
     setData((d) => ({ ...d, hasConnectorToken: false }));
   }, [userID]);
 

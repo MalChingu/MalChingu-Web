@@ -31,8 +31,11 @@ export function Stats() {
           {days.map((d) => {
             const reviews = byDay.get(d)?.reviews ?? 0;
             return (
-              <div key={d} className="bar-column" title={`${d}: ${reviews} answers, ${byDay.get(d)?.correct ?? 0} correct`}>
-                <div className={`bar ${reviews ? "filled" : ""}`} style={{ height: reviews ? Math.max(8, (90 * reviews) / peak) : 4 }} />
+              <div key={d} className="bar-column" tabIndex={0}
+                aria-label={`${new Date(d + "T00:00:00").toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" })}: ${reviews} ${reviews === 1 ? "word" : "words"} practiced`}>
+                <div className={`bar ${reviews ? "filled" : ""}`} style={{ height: reviews ? Math.max(8, (90 * reviews) / peak) : 4 }}>
+                  <span className="bar-tip" aria-hidden="true">{reviews} {reviews === 1 ? "word" : "words"}</span>
+                </div>
                 <span className="small muted">{new Date(d + "T00:00:00").toLocaleDateString(undefined, { weekday: "narrow" })}</span>
               </div>
             );

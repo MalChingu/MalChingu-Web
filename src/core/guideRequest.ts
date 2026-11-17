@@ -18,5 +18,3 @@ export function guideRequest(days: number, minutesPerDay: number, start: string,
   if (focus) text += ` Focus on ${focus}.`;
   return text;
 }
-
-export const claudeLink = (request: string) => `https://claude.ai/new?q=${encodeURIComponent(request)}`;

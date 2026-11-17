@@ -1,10 +1,10 @@
 import { useMemo, useState } from "react";
-import { claudeLink, guideRequest } from "../core/guideRequest";
+import { guideRequest } from "../core/guideRequest";
 import type { StudyGuideRow, Word } from "../core/models";
 import { customToWord } from "../core/wordBank";
 import { addDays, dayString } from "../core/wordOfDay";
 import { Icon } from "../components/Icon";
-import { Button, Card, Page, RoundButton, SectionTitle, Sheet, WordRow, copyText } from "../components/ui";
+import { Button, Card, Page, RoundButton, SectionTitle, Segmented, Sheet, Stepper, WordRow, copyText } from "../components/ui";
 import { useStore } from "../lib/store";
 import { formatDay, guideDate, guideDayNumber } from "./guideDates";
 import { TaskList } from "./Today";
@@ -141,25 +141,18 @@ function CreateGuide({ onClose }: { onClose: () => void }) {
       )}
       <Card>
         <SectionTitle>Timeframe</SectionTitle>
-        <div className="segmented">
-          {PRESETS.map((p) => (
-            <button key={p.days} type="button" className={days === p.days ? "on" : ""} onClick={() => setDays(p.days)}>{p.label}</button>
-          ))}
-        </div>
+        <Segmented label="Length" value={String(days)} onChange={(v) => setDays(Number(v))}
+          options={PRESETS.map((p) => ({ value: String(p.days), label: p.label }))} />
         <div className="form-row"><span>{days} days</span>
-          <div className="stepper">
-            <button type="button" aria-label="Fewer days" onClick={() => setDays(clamp(days - 1, 1, 180))}>−</button>
-            <button type="button" aria-label="More days" onClick={() => setDays(clamp(days + 1, 1, 180))}>+</button>
-          </div>
+          <Stepper minusLabel="Fewer days" plusLabel="More days" minusDisabled={days <= 1} plusDisabled={days >= 180}
+            onMinus={() => setDays(clamp(days - 1, 1, 180))} onPlus={() => setDays(clamp(days + 1, 1, 180))} />
         </div>
         <label className="form-row"><span>Start</span>
           <input type="date" value={start} min={dayString()} max={addDays(dayString(), 365)} onChange={(e) => e.target.value && setStart(e.target.value)} />
         </label>
         <div className="form-row"><span>{minutes} minutes a day</span>
-          <div className="stepper">
-            <button type="button" aria-label="Fewer minutes" onClick={() => setMinutes(clamp(minutes - 5, 10, 180))}>−</button>
-            <button type="button" aria-label="More minutes" onClick={() => setMinutes(clamp(minutes + 5, 10, 180))}>+</button>
-          </div>
+          <Stepper minusLabel="Fewer minutes" plusLabel="More minutes" minusDisabled={minutes <= 10} plusDisabled={minutes >= 180}
+            onMinus={() => setMinutes(clamp(minutes - 5, 10, 180))} onPlus={() => setMinutes(clamp(minutes + 5, 10, 180))} />
         </div>
       </Card>
       <Card>
@@ -169,15 +162,10 @@ function CreateGuide({ onClose }: { onClose: () => void }) {
       <Card>
         <SectionTitle>Request</SectionTitle>
         <p>{request}</p>
-        <div className="stack">
-          <Button kind="prominent" icon="external" full large onClick={() => { copyText(request); setCopied(true); window.open(claudeLink(request), "_blank"); }}>
-            Continue in Claude
-          </Button>
-          <Button icon={copied ? "check" : "copy"} full large onClick={() => { copyText(request); setCopied(true); }}>
-            {copied ? "Request Copied" : "Copy Request"}
-          </Button>
-        </div>
-        <p className="small muted">In Claude, attach your PDFs, screenshots or pasted notes if you have any, then send. Claude sets the level from your stats. When it says the guide is saved, come back here.</p>
+        <Button kind="prominent" icon={copied ? "check" : "copy"} full large onClick={() => { copyText(request); setCopied(true); }}>
+          {copied ? "Request Copied" : "Copy Request"}
+        </Button>
+        <p className="small muted">Paste it into a Claude chat, attach your PDFs, screenshots or notes if you have any, then send. Claude sets the level from your stats. When it says the guide is saved, come back here.</p>
       </Card>
     </Sheet>
   );

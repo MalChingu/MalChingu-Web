@@ -8,10 +8,12 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "e2e": "node scripts/e2e.mjs"
+    "e2e": "node scripts/e2e.mjs",
+    "e2e:live": "node scripts/e2e-live.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.119.0",
+    "@vercel/analytics": "1.6.1",
     "react": "19.3.1",
     "react-dom": "19.3.1"
   },
@@ -19,6 +21,7 @@
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
     "@vitejs/plugin-react": "5.2.0",
+    "axe-core": "4.11.0",
     "typescript": "5.9.3",
     "vite": "7.3.8",
     "vitest": "3.2.7"

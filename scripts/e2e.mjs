@@ -6,11 +6,12 @@
 // run needs no account and touches no real data. It checks the screens and exactly what the app
 // sends to the database; the real backend is exercised by signing in with Apple.
 import { spawn } from "node:child_process";
-import { mkdirSync } from "node:fs";
+import { mkdirSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
 const { chromium } = require("playwright");
+const AXE = readFileSync(require.resolve("axe-core/axe.min.js"), "utf8");
 
 const USER = "44444444-4444-4444-8444-444444444444";
 const GUIDE = "55555555-5555-4555-8555-555555555555";
@@ -41,8 +42,9 @@ const db = {
     { id: "88888888-8888-4888-8888-888888888883", session_id: "66666666-6666-4666-8666-666666666662", guide_id: GUIDE, user_id: USER, position: 0, text: "Ask for the station", done: false, updated_at: stamp },
   ],
   connector_tokens: [],
+  daily_quiz: [],
 };
-const KEYS = { profiles: ["user_id"], word_progress: ["user_id", "word_id"], study_days: ["user_id", "day"] };
+const KEYS = { profiles: ["user_id"], word_progress: ["user_id", "word_id"], study_days: ["user_id", "day"], daily_quiz: ["user_id", "day"] };
 
 /** Just enough of PostgREST for this app: eq filters, upserts, updates, deletes and one RPC. */
 async function fakeSupabase(route) {
@@ -220,6 +222,67 @@ try {
     await context.close();
   }
 
+  // Both themes on every screen: text contrast (axe-core), the chosen option in segmented controls,
+  // and no native select boxes (their pop-up menus ignore the app's theme).
+  for (const scheme of ["light", "dark"]) {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, colorScheme: scheme });
+    await context.route("https://nxlsnpzfbazwlccxtwpt.supabase.co/**", fakeSupabase);
+    await context.addInitScript((value) => localStorage.setItem("sb-nxlsnpzfbazwlccxtwpt-auth-token", value), JSON.stringify(session));
+    const page = await context.newPage();
+    const audit = async (where) => {
+      await page.waitForTimeout(350);   // let sheets finish animating in
+      await page.addScriptTag({ content: AXE });
+      const result = await page.evaluate(async () =>
+        (await window.axe.run(document, { runOnly: ["color-contrast"] })).violations.flatMap((v) =>
+          v.nodes.map((n) => `${n.target.join(" ")}: ${n.any.map((a) => a.message).join(" ")}`)));
+      check(result.length === 0, `${scheme} · ${where}: text contrast${result.length ? "\n    " + result.slice(0, 6).join("\n    ") : ""}`);
+    };
+    await page.goto("http://localhost:4173/#today");
+    await page.getByRole("heading", { name: /Welcome Back/ }).waitFor({ timeout: 15000 });
+    await audit("Today");
+    await page.screenshot({ path: `screenshots/theme-${scheme}-today.png` });
+    await page.getByRole("button", { name: "Flashcards", exact: true }).click();
+    await audit("Flashcards");
+    const chosen = await page.locator('.segmented [aria-checked="true"]').first().evaluate((el) => {
+      const s = getComputedStyle(el);
+      return [s.backgroundColor, s.color];
+    });
+    check(chosen[0] === "rgb(255, 255, 255)" && chosen[1] === "rgb(21, 19, 43)", `${scheme}: chosen tab is light with dark text (${chosen})`);
+    await page.screenshot({ path: `screenshots/theme-${scheme}-flashcards.png` });
+    await page.getByRole("button", { name: "Guides", exact: true }).click();
+    await audit("Guides");
+    await page.getByRole("button", { name: "Create Guide" }).click();
+    await audit("Create Guide sheet");
+    check(await page.getByRole("button", { name: "Continue in Claude" }).count() === 0, `${scheme}: no Continue in Claude button on the web`);
+    await page.screenshot({ path: `screenshots/theme-${scheme}-create-guide.png` });
+    await page.keyboard.press("Escape");
+    await page.getByRole("button", { name: "Stats", exact: true }).click();
+    await audit("Stats");
+    const tiles = await page.locator(".tiles > *").evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().top)));
+    check(new Set(tiles).size === 2 && tiles.filter((t) => t === tiles[0]).length === 3, `${scheme}: stats tiles are two even rows of three`);
+    await page.locator(".bar-column").last().hover();
+    await page.waitForTimeout(250);   // the tip fades in
+    check(await page.locator(".bar-column").last().locator(".bar-tip").evaluate((e) => getComputedStyle(e).opacity) === "1",
+      `${scheme}: hovering a bar shows its count`);
+    await page.screenshot({ path: `screenshots/theme-${scheme}-stats.png` });
+    await page.getByRole("button", { name: "Profile", exact: true }).click();
+    await audit("Profile");
+    check(await page.locator("select").count() === 0, `${scheme}: no native select boxes`);
+    await page.screenshot({ path: `screenshots/theme-${scheme}-profile.png`, fullPage: true });
+    await page.waitForLoadState("networkidle");
+    await context.close();
+  }
+  {
+    const page = await browser.newPage({ viewport: { width: 1280, height: 900 }, colorScheme: "dark" });
+    await page.route("https://nxlsnpzfbazwlccxtwpt.supabase.co/**", fakeSupabase);
+    await page.goto("http://localhost:4173/");
+    await page.getByRole("button", { name: "Sign in with Apple" }).waitFor();
+    await page.addScriptTag({ content: AXE });
+    const bad = await page.evaluate(async () => (await window.axe.run(document, { runOnly: ["color-contrast"] })).violations.length);
+    check(bad === 0, "dark · sign-in page: text contrast");
+    await page.close();
+  }
+
   // What the app wrote to the database.
   const progress = db.word_progress;
   const days = db.study_days;
@@ -229,6 +292,9 @@ try {
   check(progress.some((p) => p.dont_know > 0 && p.hints_used > 0), "don't-knows and hints recorded");
   check(db.guide_tasks.filter((t) => t.done).length === 1, "ticked task saved");
   check(db.profiles[0].settings.word_notification === true, "app-only settings kept intact");
+  const quiz = db.daily_quiz[0];
+  check(db.daily_quiz.length === 1 && quiz.day === today && quiz.state === "failed" && quiz.recorded === true
+    && quiz.revealed_hints.includes(2), `today's quiz saved to the shared table (${JSON.stringify(quiz ?? {})})`);
 } finally {
   await browser.close();
   server.kill();

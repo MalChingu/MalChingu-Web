@@ -3,7 +3,7 @@ import { PARTS_OF_SPEECH, displayLabel, posPlural, type DisplayMode, type PartOf
 import { levelLabel } from "../core/progress";
 import { BUILT_IN } from "../core/wordBank";
 import { Icon } from "../components/Icon";
-import { Button, Card, Page, SectionTitle, Toggle, copyText } from "../components/ui";
+import { Button, Card, Page, SectionTitle, Segmented, Toggle, copyText } from "../components/ui";
 import { avatarSrc, squareJPEGBase64 } from "../lib/avatar";
 import { initials } from "../lib/settings";
 import { speak, useKoreanVoice } from "../lib/speech";
@@ -67,24 +67,15 @@ export function Profile() {
 
       <Card>
         <SectionTitle>Appearance</SectionTitle>
-        <div className="segmented" role="radiogroup" aria-label="Appearance">
-          {(["system", "light", "dark"] as Appearance[]).map((option) => (
-            <button key={option} type="button" role="radio" aria-checked={appearance === option}
-              className={appearance === option ? "on" : ""} onClick={() => setAppearance(option)}>
-              {option[0].toUpperCase() + option.slice(1)}
-            </button>
-          ))}
-        </div>
+        <Segmented label="Appearance" value={appearance} onChange={setAppearance}
+          options={(["system", "light", "dark"] as Appearance[]).map((o) => ({ value: o, label: o[0].toUpperCase() + o.slice(1) }))} />
       </Card>
 
       <Card>
         <SectionTitle>Word of the Day</SectionTitle>
-        <label className="row toggle-row">
-          <span>Show Word In</span>
-          <select value={settings.display} onChange={(e) => store.updateSettings({ display: e.target.value as DisplayMode })}>
-            {(["korean", "romanization", "both"] as DisplayMode[]).map((m) => <option key={m} value={m}>{displayLabel[m]}</option>)}
-          </select>
-        </label>
+        <div className="small muted">Show Word In</div>
+        <Segmented label="Show Word In" value={settings.display} onChange={(display) => store.updateSettings({ display })}
+          options={(["korean", "romanization", "both"] as DisplayMode[]).map((m) => ({ value: m, label: displayLabel[m] }))} />
         {PARTS_OF_SPEECH.map((pos) => (
           <Toggle key={pos} label={posPlural(pos)} checked={settings.wordTypes.length === 0 || settings.wordTypes.includes(pos)}
             onChange={(on) => setType(pos, on)} />

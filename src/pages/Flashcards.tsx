@@ -4,7 +4,7 @@ import { PARTS_OF_SPEECH, posPlural, type PartOfSpeech, type Word } from "../cor
 import { buildDeck } from "../core/progress";
 import { BUILT_IN } from "../core/wordBank";
 import { Icon } from "../components/Icon";
-import { Button, Card, KoreanHeadline, Page, PosTag, RoundButton, SpeakButton, WordRow } from "../components/ui";
+import { Button, Card, KoreanHeadline, Page, PosTag, RoundButton, Segmented, SpeakButton, Stepper, WordRow } from "../components/ui";
 import { useStore } from "../lib/store";
 import { MyWords } from "./MyWords";
 
@@ -35,12 +35,8 @@ function Setup({ start, openMyWords }: { start: (words: Word[]) => void; openMyW
       <Card padding={20}>
         <div className="stack">
           <h3>New Round</h3>
-          <div className="segmented" role="radiogroup" aria-label="Words From">
-            {(["Built-in", "My Words", "Mix"] as Source[]).map((s) => (
-              <button key={s} type="button" role="radio" aria-checked={source === s} className={source === s ? "on" : ""}
-                onClick={() => setSource(s)}>{s}</button>
-            ))}
-          </div>
+          <Segmented label="Words From" value={source} onChange={setSource}
+            options={(["Built-in", "My Words", "Mix"] as Source[]).map((s) => ({ value: s, label: s }))} />
           <div className="small muted">Word Types</div>
           <div className="chips">
             <button type="button" className={`chip ${types.length === 0 ? "on" : ""}`} onClick={() => setTypes([])}>All</button>
@@ -51,12 +47,8 @@ function Setup({ start, openMyWords }: { start: (words: Word[]) => void; openMyW
           </div>
           <div className="row">
             <span className="grow">Cards per Round: {deckSize}</span>
-            <div className="stepper">
-              <button type="button" aria-label="Fewer cards" disabled={deckSize <= 5}
-                onClick={() => store.updateSettings({ deckSize: deckSize - 5 })}>−</button>
-              <button type="button" aria-label="More cards" disabled={deckSize >= 40}
-                onClick={() => store.updateSettings({ deckSize: deckSize + 5 })}>+</button>
-            </div>
+            <Stepper minusLabel="Fewer cards" plusLabel="More cards" minusDisabled={deckSize <= 5} plusDisabled={deckSize >= 40}
+              onMinus={() => store.updateSettings({ deckSize: deckSize - 5 })} onPlus={() => store.updateSettings({ deckSize: deckSize + 5 })} />
           </div>
           {pool.length === 0 && (
             <p className="small muted">{source === "My Words"

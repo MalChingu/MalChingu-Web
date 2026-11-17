@@ -30,6 +30,7 @@ const PATHS: Record<string, string> = {
   circle: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z",
   checkCircle: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM8 12l3 3 5-6",
   more: "M5 12h.01M12 12h.01M19 12h.01",
+  minus: "M5 12h14",
 };
 
 export type IconName = keyof typeof PATHS;

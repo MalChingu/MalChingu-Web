@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { customToWord } from "../core/wordBank";
-import { claudeLink } from "../core/guideRequest";
 import { Icon } from "../components/Icon";
 import { Button, Card, Page, RoundButton, Sheet, Steps, WordRow, copyText } from "../components/ui";
 import { useStore } from "../lib/store";
@@ -67,14 +66,9 @@ function AddWordsHelp({ onClose }: { onClose: () => void }) {
       <Card>
         <div className="section-title">Example Request</div>
         <p lang="ko">{REQUEST}</p>
-        <div className="stack">
-          <Button kind="prominent" icon="external" full large onClick={() => { copyText(REQUEST); setCopied(true); window.open(claudeLink(REQUEST), "_blank"); }}>
-            Continue in Claude
-          </Button>
-          <Button icon={copied ? "check" : "copy"} full large onClick={() => { copyText(REQUEST); setCopied(true); }}>
-            {copied ? "Request Copied" : "Copy Request"}
-          </Button>
-        </div>
+        <Button kind="prominent" icon={copied ? "check" : "copy"} full large onClick={() => { copyText(REQUEST); setCopied(true); }}>
+          {copied ? "Request Copied" : "Copy Request"}
+        </Button>
         <p className="small muted">Swap in your own words. The list can be in any form: separated by commas, in brackets, one per line, or a photo of your notes.</p>
       </Card>
     </Sheet>
