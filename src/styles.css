@@ -11,6 +11,9 @@
   --green: #15803d;
   --red: #c62828;
   --orange: #b45309;
+  --yellow: #a16207;
+  --teal: #0f766e;
+  --purple: #7e22ce;
   /* Filled buttons and badges carry white text, so they use deeper colours in both themes. */
   --accent-fill: #5b4fe9;
   --green-fill: #15803d;
@@ -39,6 +42,9 @@
   --green: #34d27b;
   --red: #ff7a7e;
   --orange: #ffa94d;
+  --yellow: #facc15;
+  --teal: #2dd4bf;
+  --purple: #c084fc;
   --glass: rgba(36, 34, 60, 0.55);
   --glass-border: rgba(255, 255, 255, 0.1);
   --glass-strong: rgba(44, 42, 72, 0.85);
@@ -59,6 +65,9 @@
       --green: #34d27b;
       --red: #ff7a7e;
       --orange: #ffa94d;
+      --yellow: #facc15;
+      --teal: #2dd4bf;
+      --purple: #c084fc;
       --glass: rgba(36, 34, 60, 0.55);
       --glass-border: rgba(255, 255, 255, 0.1);
       --glass-strong: rgba(44, 42, 72, 0.85);
@@ -389,8 +398,7 @@ progress::-moz-progress-bar { background: var(--accent-fill); }
 }
 
 /* Title line with a back button and actions; long titles (like guide names) are smaller. */
-.page-header h1.long { font-size: 1.6rem; line-height: 1.2; }
-@media (min-width: 900px) { .page-header h1.long { font-size: 2rem; } }
+
 
 /* Guide overview as points. */
 .points { margin: 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: 6px; }
@@ -429,3 +437,35 @@ progress::-moz-progress-bar { background: var(--accent-fill); }
 .confirm h2 { font-size: 1.2rem; }
 .confirm-buttons { display: flex; gap: 10px; margin-top: 10px; }
 .button.destructive { background: var(--red-fill); color: #fff; border-color: transparent; }
+
+/* Page titles: at most two lines, shrunk by FitTitle when needed, never cut off. */
+.page-header h1.fit-title { line-height: 1.15; min-width: 0; overflow-wrap: anywhere; }
+
+/* Stat icon colours. */
+.tone-accent { color: var(--accent); }
+.tone-orange { color: var(--orange); }
+.tone-red { color: var(--red); }
+.tone-green { color: var(--green); }
+.tone-yellow { color: var(--yellow); }
+.tone-text { color: var(--text); }
+
+/* Each level has its own colour: the badge icon and the Profile card's border. */
+.level-beginner { --level: var(--green); }
+.level-upperBeginner { --level: var(--teal); }
+.level-intermediate { --level: var(--purple); }
+.level-advanced { --level: var(--orange); }
+.profile-card { border: 2px solid var(--level) !important; }
+.level-tag { background: color-mix(in srgb, var(--level) 16%, transparent); }
+.level-tag .level-icon { color: var(--level); }
+.profile-title { font-weight: 500; margin-top: -6px; }
+
+/* Achievements: earned ones can be tapped to show their title. */
+.achievement { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; font: inherit; color: inherit;
+  background: none; border: 0; padding: 0; }
+.achievement:not(.earned) { opacity: 0.7; }
+button.achievement { cursor: pointer; }
+.achievement-text { display: flex; flex-direction: column; flex: 1; }
+
+/* The Profile tab shows the learner's picture when there is one. */
+.tab-avatar { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; flex: none; }
+.tab.on .tab-avatar { box-shadow: 0 0 0 2px currentColor; }

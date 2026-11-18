@@ -17,6 +17,8 @@ const USER = "44444444-4444-4444-8444-444444444444";
 const GUIDE = "55555555-5555-4555-8555-555555555555";
 const today = (() => { const d = new Date(); const p = (n) => String(n).padStart(2, "0"); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`; })();
 const stamp = new Date().toISOString();
+/** A 1×1 JPEG, base64, standing in for a profile picture. */
+const PIXEL = "/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA=";
 
 /** The stand-in database. */
 const db = {
@@ -30,7 +32,7 @@ const db = {
   ],
   word_progress: [],
   study_days: [],
-  study_guides: [{ id: GUIDE, user_id: USER, title: "Travel Basics", overview: "A short test guide for greetings and directions. Day 1 covers hello and goodbye. Day 2 asks for the station.", start_date: today, total_days: 2,
+  study_guides: [{ id: GUIDE, user_id: USER, title: "Travel Basics: Greetings, Directions and Asking for Help", overview: "A short test guide for greetings and directions. Day 1 covers hello and goodbye. Day 2 asks for the station.", start_date: today, total_days: 2,
     source_summary: "", created_at: stamp, updated_at: stamp, deleted_at: null }],
   guide_sessions: [
     { id: "66666666-6666-4666-8666-666666666661", guide_id: GUIDE, user_id: USER, day_number: 1, title: "Greetings", goals: ["Say hello"], grammar_notes: "Use 안녕하세요 with strangers.", updated_at: stamp },
@@ -53,7 +55,9 @@ async function fakeSupabase(route) {
   const json = (body, status = 200) => route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
   if (url.pathname.startsWith("/auth/v1/")) return json({});
   if (url.pathname === "/rest/v1/rpc/rotate_connector_token") {
-    db.connector_tokens = [{ user_id: USER }];
+    // Like the real function: one link per account, so a second one is refused.
+    if (db.connector_tokens.length) return json({ code: "P0001", message: "A connector link is already active. Turn it off first to create a new one." }, 400);
+    db.connector_tokens = [{ user_id: USER, token: "kt_e2etestkey" }];
     return json("kt_e2etestkey");
   }
   const table = url.pathname.replace("/rest/v1/", "");
@@ -126,7 +130,7 @@ try {
 
     await page.getByRole("heading", { name: "Welcome Back, Test" }).waitFor({ timeout: 15000 });
     check(true, `${label}: Today greets by name`);
-    await page.getByText("Travel Basics · Day 1 of 2").waitFor();
+    await page.getByText(/Travel Basics.* · Day 1 of 2/).waitFor();
     check(true, `${label}: today's guide session shows`);
 
     if (label === "phone") {
@@ -182,11 +186,15 @@ try {
     await page.getByRole("button", { name: /Travel Basics/ }).click();
     await page.getByText("Vocabulary · 1").first().waitFor();
     check(await page.locator(".guide-main .card h3").count() === 1, `${label}: guide shows one day at a time`);
+    const titleFit = await page.locator("h1.fit-title").evaluate((h1) => ({
+      lines: h1.scrollHeight / parseFloat(getComputedStyle(h1).lineHeight), cut: h1.scrollWidth > h1.clientWidth,
+      size: parseFloat(getComputedStyle(h1).fontSize) }));
+    check(titleFit.lines <= 2.1 && !titleFit.cut, `${label}: long guide title fits in two lines, not cut off (${JSON.stringify(titleFit)})`);
     check(await page.locator(".points li").count() === 3, `${label}: overview shows as points`);
     await page.getByRole("button", { name: "Next day" }).click();
-    check(await page.getByRole("heading", { name: "Directions" }).isVisible(), `${label}: next-day button switches day`);
+    check(await page.getByRole("heading", { name: "Directions", exact: true }).isVisible(), `${label}: next-day button switches day`);
     await page.locator(".day-item").first().click();
-    check(await page.getByRole("heading", { name: "Greetings" }).isVisible(), `${label}: day list switches day`);
+    check(await page.getByRole("heading", { name: "Greetings", exact: true }).isVisible(), `${label}: day list switches day`);
     await page.getByRole("button", { name: "Delete Guide" }).click();
     check(await page.getByRole("alertdialog", { name: "Delete This Guide?" }).isVisible(), `${label}: deleting a guide asks first`);
     await page.getByRole("button", { name: "Cancel" }).click();
@@ -196,6 +204,11 @@ try {
     await page.getByRole("button", { name: "Profile", exact: true }).click();
     check(await page.getByLabel("Your name").inputValue() === "Test Learner", `${label}: profile shows the name`);
     check(await page.getByText("Beginner").isVisible(), `${label}: profile shows the level`);
+    const borders = await page.evaluate(() => ({
+      card: getComputedStyle(document.querySelector(".profile-card")).borderTopColor,
+      badge: getComputedStyle(document.querySelector(".level-tag .level-icon")).color }));
+    check(borders.card === borders.badge, `${label}: profile card border matches the level badge (${JSON.stringify(borders)})`);
+    check(await page.getByRole("button", { name: "Create a New Link" }).count() === 0, `${label}: no way to replace an active link`);
     check(errors.length === 0, `${label}: no page errors${errors.length ? ": " + errors.join("; ") : ""}`);
     await page.waitForLoadState("networkidle");   // let the last saves finish before closing
     await context.close();
@@ -299,6 +312,16 @@ try {
     await page.waitForTimeout(250);
     check(await page.locator(".bar-column").last().locator(".bar-tip").evaluate((e) => getComputedStyle(e).opacity) === "1",
       `${scheme}: hovering a bar shows its count`);
+    const tones = await page.locator(".stat-tile").evaluateAll((els) => Object.fromEntries(els.map((e) =>
+      [e.querySelector(".muted").textContent, getComputedStyle(e.querySelector("svg")).color])));
+    const v = await page.evaluate(() => Object.fromEntries(["--orange", "--red", "--accent", "--green", "--yellow", "--text"].map((n) => {
+      const probe = document.createElement("span"); probe.style.color = `var(${n})`; document.body.append(probe);
+      const c = getComputedStyle(probe).color; probe.remove(); return [n, c];
+    })));
+    const wanted = { "Day Streak": "--orange", "Days Studied": "--red", "Words Practiced": "--accent", "Words Mastered": "--green",
+      "Accuracy": "--yellow", "Answers": "--text" };
+    const wrong = Object.entries(wanted).filter(([name, token]) => tones[name] !== v[token]);
+    check(wrong.length === 0, `${scheme}: stat icons are coloured${wrong.length ? " (" + wrong.map(([n]) => `${n}: ${tones[n]}`).join(", ") + ")" : ""}`);
 
     await tab("Profile");
     await audit("Profile", "profile"); await width("Profile");
@@ -306,6 +329,35 @@ try {
     await page.getByRole("button", { name: "Sign Out" }).click();
     await audit("Sign-out confirmation");
     await page.getByRole("button", { name: "Cancel" }).click();
+
+    // Connector: one link per account. Creating shows it; the only way to a new one is to turn it off first.
+    db.connector_tokens = [];
+    await page.reload();
+    await page.getByRole("button", { name: "Create Connector Link" }).click();
+    await page.getByRole("button", { name: "Copy Connector Link" }).waitFor();
+    check(await page.getByText("kt_e2etestkey").isVisible() && await page.getByRole("button", { name: /Create/ }).count() === 0,
+      `${scheme}: an active link shows, with no button to make another`);
+    await audit("Profile with a connector link");
+    await page.getByRole("button", { name: "Turn Off Connector" }).click();
+    check(await page.getByRole("alertdialog", { name: "Turn Off the Connector?" }).isVisible(), `${scheme}: turning off the link asks first`);
+    await page.getByRole("button", { name: "Turn Off", exact: true }).click();
+    await page.getByRole("button", { name: "Create Connector Link" }).waitFor();
+    check(db.connector_tokens.length === 0, `${scheme}: turning off removes the link`);
+    // A link made on another device shows here too.
+    db.connector_tokens = [{ user_id: USER, token: "kt_otherdevice" }];
+    await page.reload();
+    await page.getByText("kt_otherdevice").waitFor({ timeout: 10000 });
+    check(true, `${scheme}: a link made on another device shows here`);
+    db.connector_tokens = [];
+
+    // The Profile tab uses the learner's picture when there is one.
+    db.profiles[0].settings.profile.avatar = PIXEL;
+    await page.reload();
+    await page.locator("img.tab-avatar").first().waitFor({ timeout: 10000 });
+    check(await page.locator("img.tab-avatar").first().evaluate((img) => img.complete && img.naturalWidth > 0), `${scheme}: profile tab shows the picture`);
+    delete db.profiles[0].settings.profile.avatar;
+    await page.reload();
+    await page.getByRole("heading", { name: "Profile" }).waitFor();
 
     check(new Set(Object.values(widths)).size === 1, `${scheme}: every page has the same content width (${JSON.stringify(widths)})`);
 

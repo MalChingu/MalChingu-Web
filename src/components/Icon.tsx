@@ -32,6 +32,10 @@ const PATHS: Record<string, string> = {
   more: "M5 12h.01M12 12h.01M19 12h.01",
   minus: "M5 12h14",
   chevronLeft: "M15 6l-6 6 6 6",
+  calendar: "M4 7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7zM4 10h16M8 3v4M16 3v4",
+  keyboard: "M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7zM7 9.5h.01M11 9.5h.01M15 9.5h.01M17.5 9.5h.01M7 12.5h.01M11 12.5h.01M15 12.5h.01M8 15.5h8",
+  award: "M12 15a6 6 0 1 0 0-12 6 6 0 0 0 0 12zM8.5 14l-1.5 8 5-3 5 3-1.5-8",
+  lock: "M6 11h12v10H6zM8 11V7a4 4 0 0 1 8 0v4",
 };
 
 export type IconName = keyof typeof PATHS;

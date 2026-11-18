@@ -1,3 +1,4 @@
+import { achievementProgress, earnedAchievements, type Achievement } from "../core/achievements";
 import type { Session } from "@supabase/supabase-js";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { CustomWordRow, GuideSessionRow, GuideTaskRow, StudyGuideRow, Word } from "../core/models";
@@ -21,6 +22,8 @@ interface Data {
   sessions: GuideSessionRow[];
   tasks: GuideTaskRow[];
   hasConnectorToken: boolean;
+  /** The account's connector key, shared by every device. Null for links made before keys were shared. */
+  connectorToken: string | null;
   /** Today's word-of-the-day quiz, shared with the app so hints and the result match on every device. */
   dailyQuiz: DailyQuizRow | null;
 }
@@ -37,7 +40,7 @@ interface DailyQuizRow {
 }
 
 const EMPTY: Data = { settingsRaw: {}, customWords: [], progress: [], studyDays: [], guides: [], sessions: [], tasks: [],
-  hasConnectorToken: false, dailyQuiz: null };
+  hasConnectorToken: false, connectorToken: null, dailyQuiz: null };
 
 async function selectAll<T>(table: string, order: string): Promise<T[]> {
   const rows: T[] = [];
@@ -66,6 +69,8 @@ interface Store {
   progressMap: Map<string, WordProgress>;
   stats: ReturnType<typeof computeStats>;
   level: ReturnType<typeof estimateLevel>;
+  /** Titles earned so far (see core/achievements). */
+  earned: Achievement[];
   wordOfTheDay: Word | null;
   dailyQuiz: QuizSession | null;
   submitDaily: (answer: string) => Outcome;
@@ -130,14 +135,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         selectAll<StudyGuideRow>("study_guides", "id"),
         selectAll<GuideSessionRow>("guide_sessions", "id"),
         selectAll<GuideTaskRow>("guide_tasks", "id"),
-        selectAll<{ user_id: string }>("connector_tokens", "user_id"),
+        selectAll<{ user_id: string; token: string | null }>("connector_tokens", "user_id"),
         supabase.from("daily_quiz").select("*").eq("day", dayString()).then(({ data, error }) => {
           if (error) throw new Error(error.message);
           return (data ?? []) as DailyQuizRow[];
         }),
       ]);
       const loaded: Data = { settingsRaw: profiles[0]?.settings ?? {}, customWords, progress, studyDays, guides, sessions, tasks,
-        hasConnectorToken: tokens.length > 0, dailyQuiz: quizzes[0] ?? null };
+        hasConnectorToken: tokens.length > 0, connectorToken: tokens[0]?.token ?? null, dailyQuiz: quizzes[0] ?? null };
       // Keep anything edited here after this load started; the server copy is older than the edit.
       setData((current) => {
         const next = { ...loaded };
@@ -180,6 +185,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const findWord = useCallback((id: string) => builtInWord(id) ?? myWordsList.find((w) => w.id === id.toLowerCase()) ?? null,
     [myWordsList]);
   const progressMap = useMemo(() => new Map(data.progress.map((p) => [p.word_id, p])), [data.progress]);
+  const earned = useMemo(() => {
+    const guidesCompleted = data.guides.filter((g) => {
+      const tasks = data.tasks.filter((t) => t.guide_id === g.id);
+      return !g.deleted_at && tasks.length > 0 && tasks.every((t) => t.done);
+    }).length;
+    return earnedAchievements(achievementProgress({ progress: data.progress, days: data.studyDays, today,
+      myWords: data.customWords.filter((w) => !w.deleted_at).length, guidesCompleted,
+      tasksDone: data.tasks.filter((t) => t.done).length }));
+  }, [data.guides, data.tasks, data.progress, data.studyDays, data.customWords, today]);
   const stats = useMemo(() => computeStats(data.progress, data.studyDays, today), [data.progress, data.studyDays, today]);
   const level = useMemo(() => estimateLevel(data.progress), [data.progress]);
 
@@ -316,15 +330,20 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (error) setError(`Couldn't delete the guide: ${error.message}`);
   }, []);
 
+  // One link per account: a new one can only be made once the current one is turned off.
   const createConnectorLink = useCallback(async () => {
-    if (!userID) return;
+    if (!userID || data.hasConnectorToken) return;
     const { data: key, error } = await supabase.rpc("rotate_connector_token");
-    if (error || typeof key !== "string") { setError(`Couldn't create the connector link: ${error?.message ?? "no key"}`); return; }
+    if (error || typeof key !== "string") {
+      setError(`Couldn't create the connector link: ${error?.message ?? "no key"}`);
+      refresh();   // most likely another device made one meanwhile; show it
+      return;
+    }
     localStorage.setItem(`malchingu.connectorKey.${userID}`, key);
     setConnectorKey(key);
-    edit("hasConnectorToken");
-    setData((d) => ({ ...d, hasConnectorToken: true }));
-  }, [userID]);
+    edit("hasConnectorToken", "connectorToken");
+    setData((d) => ({ ...d, hasConnectorToken: true, connectorToken: key }));
+  }, [userID, data.hasConnectorToken, refresh]);
 
   const revokeConnectorLink = useCallback(async () => {
     if (!userID) return;
@@ -332,8 +351,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (error) { setError(`Couldn't turn off the connector: ${error.message}`); return; }
     localStorage.removeItem(`malchingu.connectorKey.${userID}`);
     setConnectorKey(null);
-    edit("hasConnectorToken");
-    setData((d) => ({ ...d, hasConnectorToken: false }));
+    edit("hasConnectorToken", "connectorToken");
+    setData((d) => ({ ...d, hasConnectorToken: false, connectorToken: null }));
   }, [userID]);
 
   const signInWithApple = useCallback(async () => {
@@ -350,12 +369,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setConnectorKey(null);
   }, []);
 
+  // The shared key if there is one; otherwise the copy this browser kept when it made the link.
+  const connectorShown = data.hasConnectorToken ? (data.connectorToken ?? connectorKey) : null;
+
   const store: Store = {
     session, ready, loading, error, setError, data, settings, myWords, allWords, findWord,
-    progressFor: (id) => progressMap.get(id), progressMap, stats, level, wordOfTheDay,
+    progressFor: (id) => progressMap.get(id), progressMap, stats, level, earned, wordOfTheDay,
     dailyQuiz: quiz, submitDaily, giveUpDaily, revealDailyHint, record, refresh, updateSettings, deleteWord,
     setTaskDone, deleteGuide,
-    connectorURL: connectorKey ? `${CONNECTOR_BASE_URL}?key=${connectorKey}` : null,
+    connectorURL: connectorShown ? `${CONNECTOR_BASE_URL}?key=${connectorShown}` : null,
     createConnectorLink, revokeConnectorLink, signInWithApple, signOut,
     openWord: (word, quizMode = false) => setOpenedWord({ word, quiz: quizMode }),
     openedWord, closeWord: () => setOpenedWord(null),

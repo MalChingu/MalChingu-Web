@@ -5,6 +5,7 @@ import { useStore } from "./lib/store";
 import { Flashcards, Round } from "./pages/Flashcards";
 import { Guides } from "./pages/Guides";
 import { Profile } from "./pages/Profile";
+import { avatarSrc } from "./lib/avatar";
 import { SignIn } from "./pages/SignIn";
 import { Stats } from "./pages/Stats";
 import { Today } from "./pages/Today";
@@ -54,7 +55,9 @@ export function App() {
         {TABS.map((t) => (
           <button key={t.id} type="button" className={`tab ${tab === t.id ? "on" : ""}`} aria-current={tab === t.id ? "page" : undefined}
             onClick={() => go(t.id)}>
-            <Icon name={t.icon} size={22} />
+            {t.id === "profile" && store.settings.profile.avatar
+              ? <img className="tab-avatar" src={avatarSrc(store.settings.profile.avatar)} alt="" width={24} height={24} />
+              : <Icon name={t.icon} size={22} />}
             <span>{t.label}</span>
           </button>
         ))}

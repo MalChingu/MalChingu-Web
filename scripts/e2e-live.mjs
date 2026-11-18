@@ -34,7 +34,13 @@ const userID = auth.user.id;
 await supabase.from("daily_quiz").delete().eq("day", today);
 
 // Seed through the Claude connector, as Claude would.
+// One link per account: turn off the old one (left by the last run) before making a new one.
+await supabase.from("connector_tokens").delete().eq("user_id", userID);
 const { data: connectorKey, error: keyError } = await supabase.rpc("rotate_connector_token");
+const { error: secondError } = await supabase.rpc("rotate_connector_token");
+check(Boolean(secondError), "a second connector link is refused while one is active");
+const { data: shared } = await supabase.from("connector_tokens").select("token").single();
+check(shared?.token === connectorKey, "the link is stored for the account's other devices");
 if (keyError) throw keyError;
 async function connector(name, args) {
   const response = await fetch(`${SUPABASE_URL}/functions/v1/mcp?key=${connectorKey}`, {

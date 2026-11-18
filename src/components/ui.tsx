@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode, useLayoutEffect } from "react";
 import { posLabel, type DisplayMode, type Example, type PartOfSpeech, type Word } from "../core/models";
 import { attempts, isMastered, type WordProgress } from "../core/progress";
 import { displayRomanization, romanize } from "../core/romanizer";
@@ -77,10 +77,11 @@ export function WordRow({ word, progress, onClick }: { word: Word; progress?: Wo
   );
 }
 
-export function StatTile({ title, value, icon }: { title: string; value: string; icon: IconName }) {
+/** `tone` colours the icon (e.g. "orange", "red"); the accent colour when left out. */
+export function StatTile({ title, value, icon, tone = "accent" }: { title: string; value: string; icon: IconName; tone?: string }) {
   return (
     <div className="glass card stat-tile">
-      <Icon name={icon} size={22} className="accent" />
+      <Icon name={icon} size={22} className={`tone-${tone}`} />
       <div className="stat-value">{value}</div>
       <div className="muted small">{title}</div>
     </div>
@@ -191,12 +192,32 @@ export function Page({ title, children, actions, centered, back }: {
     <div className="page">
       <header className={`page-header ${centered ? "centered" : ""}`}>
         {back && <RoundButton icon="chevronLeft" tint="glass" label={back.label} onClick={back.onClick} size={40} />}
-        <h1 className={title.length > 28 ? "long" : ""}>{title}</h1>
+        <FitTitle text={title} />
         {actions && <div className="page-actions">{actions}</div>}
       </header>
       <div className="page-content">{children}</div>
     </div>
   );
+}
+
+/** A page title that wraps onto at most two lines and shrinks (down to half size) rather than being cut off. */
+function FitTitle({ text }: { text: string }) {
+  const ref = useRef<HTMLHeadingElement>(null);
+  useLayoutEffect(() => {
+    const h1 = ref.current;
+    if (!h1) return;
+    const fit = () => {
+      h1.style.fontSize = "";
+      const base = parseFloat(getComputedStyle(h1).fontSize);
+      const twoLines = () => h1.scrollHeight <= parseFloat(getComputedStyle(h1).lineHeight) * 2 + 2 && h1.scrollWidth <= h1.clientWidth;
+      for (let step = 19; step >= 10 && !twoLines(); step--) h1.style.fontSize = `${(base * step) / 20}px`;
+    };
+    fit();
+    const observer = new ResizeObserver(fit);
+    observer.observe(h1.parentElement ?? h1);
+    return () => observer.disconnect();
+  }, [text]);
+  return <h1 ref={ref} className="fit-title">{text}</h1>;
 }
 
 /** A small centred question with Cancel and a confirm button, used before anything is deleted or replaced. */

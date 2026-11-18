@@ -5,7 +5,8 @@ import type { DisplayMode, PartOfSpeech } from "../core/models";
 // so nothing the app saved is lost.
 export type RawSettings = Record<string, unknown>;
 
-export interface Profile { name: string; avatar: string | null }
+/** `title` is the id of the earned achievement shown under the name (see core/achievements). */
+export interface Profile { name: string; avatar: string | null; title?: string | null }
 
 export interface Settings {
   display: DisplayMode;
@@ -22,7 +23,7 @@ export function readSettings(raw: RawSettings): Settings {
     wordTypes: (raw.word_types as PartOfSpeech[]) ?? [],
     includeMyWords: (raw.include_my_words as boolean) ?? true,
     deckSize: (raw.deck_size as number) ?? 10,
-    profile: { name: (profile.name as string) ?? "", avatar: (profile.avatar as string) ?? null },
+    profile: { name: (profile.name as string) ?? "", avatar: (profile.avatar as string) ?? null, title: (profile.title as string) ?? null },
   };
 }
 
@@ -34,7 +35,8 @@ export function settingsPatch(change: Partial<Settings>, raw: RawSettings): RawS
   if (change.includeMyWords !== undefined) patch.include_my_words = change.includeMyWords;
   if (change.deckSize !== undefined) patch.deck_size = change.deckSize;
   if (change.profile !== undefined) {
-    patch.profile = { ...((raw.profile ?? {}) as object), name: change.profile.name, avatar: change.profile.avatar };
+    patch.profile = { ...((raw.profile ?? {}) as object), name: change.profile.name, avatar: change.profile.avatar,
+      ...(change.profile.title !== undefined ? { title: change.profile.title } : {}) };
   }
   return patch;
 }

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { PARTS_OF_SPEECH, displayLabel, posPlural, type DisplayMode, type PartOfSpeech } from "../core/models";
+import { ACHIEVEMENTS, shownTitle } from "../core/achievements";
 import { levelLabel } from "../core/progress";
 import { BUILT_IN } from "../core/wordBank";
 import { Icon } from "../components/Icon";
@@ -16,7 +17,7 @@ export function Profile() {
   const [name, setName] = useState(settings.profile.name);
   const [copied, setCopied] = useState(false);
   const [working, setWorking] = useState(false);
-  const [confirming, setConfirming] = useState<"newLink" | "signOut" | null>(null);
+  const [confirming, setConfirming] = useState<"turnOff" | "signOut" | null>(null);
   const file = useRef<HTMLInputElement>(null);
   const voice = useKoreanVoice();
   const [appearance, setAppearance] = useAppearance();
@@ -36,9 +37,14 @@ export function Profile() {
 
   const run = async (action: () => Promise<void>) => { setWorking(true); setCopied(false); await action(); setWorking(false); };
 
+  const earnedIDs = new Set(store.earned.map((a) => a.id));
+  const title = shownTitle(settings.profile.title, store.earned);
+  const turnOff = <Button kind="danger" icon="x" full disabled={working} onClick={() => setConfirming("turnOff")}>Turn Off Connector</Button>;
+
   return (
     <Page title="Profile">
-      <Card padding={22}>
+      {/* The card's border takes the colour of the level badge. */}
+      <div className={`glass card profile-card level-${store.level}`} style={{ padding: 22 }}>
         <div className="center stack">
           <button type="button" className="avatar-button" aria-label="Change profile picture" onClick={() => file.current?.click()}>
             {settings.profile.avatar
@@ -61,10 +67,38 @@ export function Profile() {
           <input className="name-input" value={name} placeholder="Your Name" aria-label="Your name"
             onChange={(e) => setName(e.target.value)} onBlur={saveName}
             onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }} />
-          <span className="level-tag"><Icon name="cap" size={16} /> {levelLabel[store.level]}</span>
+          {title && <span className="profile-title muted">{title.title}</span>}
+          <span className={`level-tag level-${store.level}`}><Icon name="cap" size={16} className="level-icon" /> {levelLabel[store.level]}</span>
           {store.error && <p className="error small" role="alert">{store.error}</p>}
         </div>
-      </Card>
+      </div>
+
+      {/* Hidden until achievements exist (see core/achievements). */}
+      {ACHIEVEMENTS.length > 0 && (
+        <Card>
+          <SectionTitle>Achievements</SectionTitle>
+          {store.earned.length > 0 && <p className="small muted">Tap an earned title to show it under your name.</p>}
+          <div className="divided">
+            {ACHIEVEMENTS.map((a) => {
+              const done = earnedIDs.has(a.id);
+              const chosen = title?.id === a.id;
+              const body = (
+                <>
+                  <Icon name={done ? "award" : "lock"} size={22} className={done ? "accent" : "muted"} />
+                  <span className="achievement-text"><span className="strong">{a.title}</span><span className="small muted">{a.detail}</span></span>
+                  {chosen && <Icon name="check" size={18} className="accent" />}
+                </>
+              );
+              return done ? (
+                <button key={a.id} type="button" className="achievement earned" aria-pressed={chosen}
+                  onClick={() => store.updateSettings({ profile: { ...settings.profile, title: chosen ? null : a.id } })}>{body}</button>
+              ) : (
+                <div key={a.id} className="achievement" aria-label={`${a.title}, not earned yet`}>{body}</div>
+              );
+            })}
+          </div>
+        </Card>
+      )}
 
       <Card>
         <SectionTitle>Appearance</SectionTitle>
@@ -105,19 +139,15 @@ export function Profile() {
             <Button kind="prominent" icon={copied ? "check" : "copy"} full onClick={() => { copyText(store.connectorURL!); setCopied(true); }}>
               {copied ? "Copied" : "Copy Connector Link"}
             </Button>
-            <Button icon="refresh" full disabled={working} onClick={() => setConfirming("newLink")}>Create a New Link</Button>
-            <Button kind="danger" icon="x" full disabled={working} onClick={() => run(store.revokeConnectorLink)}>Turn Off Connector</Button>
+            {turnOff}
+          </div>
+        ) : store.data.hasConnectorToken ? (
+          <div className="stack">
+            <p className="small muted">A connector link is active, but it was made on another device before links were shared, so it can't be shown here. Turn it off, then create a new one to see it on every device.</p>
+            {turnOff}
           </div>
         ) : (
-          <div className="stack">
-            {store.data.hasConnectorToken && (
-              <p className="small muted">A connector link is already set up, but it was created on another device, so it can't be shown here. Create a new link to see one here (the old link then stops working).</p>
-            )}
-            <Button kind="prominent" icon="link" full disabled={working} onClick={() => run(store.createConnectorLink)}>
-              {store.data.hasConnectorToken ? "Create a New Link" : "Create Connector Link"}
-            </Button>
-            {store.data.hasConnectorToken && <Button kind="danger" icon="x" full disabled={working} onClick={() => run(store.revokeConnectorLink)}>Turn Off Connector</Button>}
-          </div>
+          <Button kind="prominent" icon="link" full disabled={working} onClick={() => run(store.createConnectorLink)}>Create Connector Link</Button>
         )}
         <p className="small muted">In Claude, open Settings → Connectors → Add custom connector, name it Malchingu and paste this link. Then share your notes, PDFs or screenshots in a chat and ask for a study guide or to add words. Treat the link like a password: anyone who has it can add to your Malchingu.</p>
       </Card>
@@ -131,10 +161,10 @@ export function Profile() {
 
       <button type="button" className="button sign-out full large" onClick={() => setConfirming("signOut")}>Sign Out</button>
 
-      {confirming === "newLink" && (
-        <ConfirmDialog title="Create a New Link?" message="The current link stops working, so you'll need to update the connector in Claude."
-          confirmLabel="Create New Link" onCancel={() => setConfirming(null)}
-          onConfirm={() => { setConfirming(null); run(store.createConnectorLink); }} />
+      {confirming === "turnOff" && (
+        <ConfirmDialog title="Turn Off the Connector?" message="The link stops working in Claude. You can create a new link afterwards and add it to Claude again."
+          confirmLabel="Turn Off" onCancel={() => setConfirming(null)}
+          onConfirm={() => { setConfirming(null); run(store.revokeConnectorLink); }} />
       )}
       {confirming === "signOut" && (
         <ConfirmDialog title="Sign Out?" message="Your words, stats and guides stay in your account and come back when you sign in again."

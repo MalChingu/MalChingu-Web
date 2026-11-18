@@ -18,12 +18,12 @@ export function Stats() {
   return (
     <Page title="Stats">
       <div className="tiles">
-        <StatTile title="Day Streak" value={String(stats.dailyStreak)} icon="flame" />
-        <StatTile title="Days Studied" value={String(stats.daysStudied)} icon="sun" />
+        <StatTile title="Day Streak" value={String(stats.dailyStreak)} icon="flame" tone="orange" />
+        <StatTile title="Days Studied" value={String(stats.daysStudied)} icon="calendar" tone="red" />
         <StatTile title="Words Practiced" value={String(stats.wordsPracticed)} icon="textBook" />
-        <StatTile title="Words Mastered" value={String(stats.wordsMastered)} icon="seal" />
-        <StatTile title="Accuracy" value={stats.accuracy === null ? "–" : `${Math.round(stats.accuracy * 100)}%`} icon="scope" />
-        <StatTile title="Answers" value={String(stats.totalCorrect + stats.totalWrong)} icon="check" />
+        <StatTile title="Words Mastered" value={String(stats.wordsMastered)} icon="seal" tone="green" />
+        <StatTile title="Accuracy" value={stats.accuracy === null ? "–" : `${Math.round(stats.accuracy * 100)}%`} icon="scope" tone="yellow" />
+        <StatTile title="Answers" value={String(stats.totalCorrect + stats.totalWrong)} icon="keyboard" tone="text" />
       </div>
       <Card>
         <SectionTitle>Last 14 Days</SectionTitle>

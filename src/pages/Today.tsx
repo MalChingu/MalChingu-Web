@@ -71,8 +71,8 @@ export function Today({ openGuide }: { openGuide: (id: string) => void }) {
         <div className="today-tiles">
           <div className="tiles three">
             <StatTile title="Words Practiced" value={String(stats.wordsPracticed)} icon="textBook" />
-            <StatTile title="Mastered" value={String(stats.wordsMastered)} icon="seal" />
-            <StatTile title="Accuracy" value={stats.accuracy === null ? "–" : `${Math.round(stats.accuracy * 100)}%`} icon="scope" />
+            <StatTile title="Mastered" value={String(stats.wordsMastered)} icon="seal" tone="green" />
+            <StatTile title="Accuracy" value={stats.accuracy === null ? "–" : `${Math.round(stats.accuracy * 100)}%`} icon="scope" tone="yellow" />
           </div>
         </div>
       </div>
