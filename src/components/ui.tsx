@@ -183,11 +183,12 @@ export function Stepper({ onMinus, onPlus, minusLabel, plusLabel, minusDisabled,
   );
 }
 
-export function Page({ title, children, actions, centered }: {
-  title: string; children: ReactNode; actions?: ReactNode; centered?: boolean;
+/** A screen. `narrow` keeps forms and lists at a comfortable reading width on wide screens. */
+export function Page({ title, children, actions, centered, narrow }: {
+  title: string; children: ReactNode; actions?: ReactNode; centered?: boolean; narrow?: boolean;
 }) {
   return (
-    <div className="page">
+    <div className={`page ${narrow ? "narrow" : ""}`}>
       <header className={`page-header ${centered ? "centered" : ""}`}>
         <h1>{title}</h1>
         {actions && <div className="page-actions">{actions}</div>}

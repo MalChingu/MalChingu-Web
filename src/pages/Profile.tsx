@@ -36,7 +36,7 @@ export function Profile() {
   const run = async (action: () => Promise<void>) => { setWorking(true); setCopied(false); await action(); setWorking(false); };
 
   return (
-    <Page title="Profile">
+    <Page title="Profile" narrow>
       <Card padding={22}>
         <div className="center stack">
           <button type="button" className="avatar-button" aria-label="Change profile picture" onClick={() => file.current?.click()}>

@@ -31,7 +31,7 @@ function Setup({ start, openMyWords }: { start: (words: Word[]) => void; openMyW
     setTypes((t) => (t.includes(pos) ? t.filter((p) => p !== pos) : [...t, pos]));
 
   return (
-    <Page title="Flashcards">
+    <Page title="Flashcards" narrow>
       <Card padding={20}>
         <div className="stack">
           <h3>New Round</h3>

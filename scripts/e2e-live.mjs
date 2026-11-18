@@ -94,7 +94,12 @@ try {
   await page.getByRole("button", { name: "Today", exact: true }).click();
   await page.getByRole("heading", { name: "Welcome Back, Web" }).waitFor();
   check(true, "Today greets by name");
-  check(await page.getByText("E2E Travel Basics · Day 1 of 2").isVisible(), "today's guide session shows");
+  // The test guide is created once and kept, so on later runs it may be past day 1, or finished.
+  const { data: guide } = await supabase.from("study_guides").select("start_date,total_days").eq("title", "E2E Travel Basics").is("deleted_at", null).single();
+  const day = Math.round((Date.parse(today) - Date.parse(guide.start_date)) / 86_400_000) + 1;
+  if (day >= 1 && day <= guide.total_days) {
+    check(await page.getByText(`E2E Travel Basics · Day ${day} of ${guide.total_days}`).isVisible(), "today's guide session shows");
+  }
 
   // Web → database: a wrong guess opens hint 1 and is saved to the shared quiz.
   await page.getByLabel("Meaning in English").fill("zzz not it");
@@ -113,12 +118,17 @@ try {
   check(true, "quiz finished on another device shows as finished here");
   check(await page.getByRole("button", { name: "Check answer" }).count() === 0, "no further guesses offered");
 
-  // Guide task.
-  await page.getByRole("button", { name: "Read the greetings list" }).click();
-  await page.waitForTimeout(800);
-  const { data: task } = await supabase.from("guide_tasks").select("done").eq("text", "Read the greetings list").limit(1).single();
-  check(task?.done === true, "ticked task saved");
-  await page.getByRole("button", { name: "Read the greetings list" }).click();   // untick, so the next run starts the same
+  // Guide task (whichever of today's tasks is shown).
+  const taskButton = page.locator(".today-side .task").first();
+  if (await taskButton.count()) {
+    const text = (await taskButton.textContent()).trim();
+    await taskButton.click();
+    await page.waitForTimeout(800);
+    const { data: task } = await supabase.from("guide_tasks").select("done").eq("text", text).limit(1).single();
+    check(task?.done === true, "ticked task saved");
+    await taskButton.click();   // untick, so the next run starts the same
+    await page.waitForTimeout(800);
+  }
 
   // Flashcards: a round of My Words.
   await page.getByRole("button", { name: "Flashcards", exact: true }).click();

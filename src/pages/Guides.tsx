@@ -32,7 +32,7 @@ export function Guides({ openGuideID, setOpenGuideID, practice }: {
           </div>
         </Card>
       )}
-      {guides.map((guide) => {
+      {guides.length > 0 && <div className="guide-grid">{guides.map((guide) => {
         const tasks = store.data.tasks.filter((t) => t.guide_id === guide.id);
         const done = tasks.filter((t) => t.done).length;
         return (
@@ -43,7 +43,7 @@ export function Guides({ openGuideID, setOpenGuideID, practice }: {
             <div className="small muted">{done} of {tasks.length} tasks done</div>
           </button>
         );
-      })}
+      })}</div>}
       {creating && <CreateGuide onClose={() => setCreating(false)} />}
     </Page>
   );
@@ -66,7 +66,7 @@ function GuideDetail({ guide, onBack, practice }: { guide: StudyGuideRow; onBack
   const shuffled = (words: Word[]) => [...words].sort(() => Math.random() - 0.5);
 
   return (
-    <Page title={guide.title} actions={
+    <Page title={guide.title} narrow actions={
       <RoundButton icon="trash" tint="glass" label="Delete Guide" size={38} onClick={() => {
         if (confirm("Delete this guide? Its vocabulary stays in My Words.")) { store.deleteGuide(guide); onBack(); }
       }} />

@@ -128,15 +128,6 @@ button:disabled { cursor: default; opacity: 0.45; }
 }
 .tab.on { color: var(--accent); background: var(--accent-soft); }
 
-@media (min-width: 900px) {
-  .app { padding: 0 0 0 250px; }
-  .tabs {
-    top: 16px; bottom: 16px; left: 16px; right: auto; width: 218px; flex-direction: column; justify-content: flex-start;
-    gap: 4px; padding: 14px 10px; border-radius: 28px;
-  }
-  .tabs-brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 1.15rem; padding: 4px 10px 16px; }
-  .tab { flex: none; flex-direction: row; gap: 12px; padding: 11px 14px; font-size: 1rem; }
-}
 
 /* Pages */
 .page { padding: 0 16px 24px; }
@@ -358,3 +349,43 @@ progress::-moz-progress-bar { background: var(--accent-fill); }
 
 /* Cards that are also buttons get the same padding as Card. */
 .guide-card, .nav-row { padding: 18px; font: inherit; color: inherit; }
+
+/* Today: one column on phones; on wide screens the word of the day leads, with today's guide and stats beside it. */
+.today-layout, .today-main, .today-side, .today-streak { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+@media (min-width: 1180px) {
+  .today-layout {
+    display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(300px, 1fr); gap: 20px; align-items: start;
+    grid-template-areas: "streak streak" "main side";
+  }
+  .today-streak { grid-area: streak; }
+  .today-main { grid-area: main; }
+  .today-side { grid-area: side; gap: 20px; }
+  .today-side .tiles.three { grid-template-columns: 1fr; }
+  .today-side .stat-tile { flex-direction: row; align-items: center; gap: 14px; }
+  .today-side .stat-tile .stat-value { order: 2; margin-left: auto; font-size: 1.6rem; }
+}
+
+/* Study guides: a grid of cards on wide screens. */
+.guide-grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
+@media (min-width: 1180px) { .guide-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; } }
+
+/* Wide screens: the sidebar and the content sit side by side as one centred group. */
+@media (min-width: 900px) {
+  .app {
+    display: grid; grid-template-columns: 236px minmax(0, 1fr); gap: 48px; align-items: start;
+    max-width: 1440px; margin: 0 auto; padding: 32px 40px 48px;
+  }
+  .tabs {
+    position: sticky; top: 32px; left: auto; right: auto; bottom: auto; width: auto; height: calc(100dvh - 64px);
+    flex-direction: column; justify-content: flex-start; gap: 4px; padding: 16px 12px; border-radius: 28px;
+  }
+  .tabs-brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 1.15rem; padding: 6px 10px 20px; }
+  .tab { flex: none; flex-direction: row; gap: 12px; padding: 11px 14px; font-size: 1rem; }
+  .main { max-width: none; margin: 0; min-width: 0; }
+  .page { padding: 0; }
+  .page.narrow { max-width: 760px; }
+  .page-header { padding: 28px 0 32px; }
+  .page-header h1 { font-size: 2.6rem; }
+  .page-content { gap: 20px; }
+  .toast { bottom: 32px; }
+}

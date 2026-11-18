@@ -9,7 +9,7 @@ export function MyWords({ onBack }: { onBack: () => void }) {
   const store = useStore();
   const [help, setHelp] = useState(false);
   return (
-    <Page title="My Words" actions={
+    <Page title="My Words" narrow actions={
       <>
         <RoundButton icon="question" tint="glass" label="How to Add Words" onClick={() => setHelp(true)} size={38} />
       </>
