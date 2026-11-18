@@ -58,3 +58,18 @@ describe("decks and custom words", () => {
     expect(words.map((w) => w.id)).toEqual(["a", "b"]);
   });
 });
+
+import { overviewPoints } from "../guideOverview";
+
+describe("guide overview points (same rules as the app)", () => {
+  it("uses one point per line, without bullet markers", () => {
+    expect(overviewPoints("- 5 days · 30 min a day\n\n• Days 1–2: past tense\n* Day 5: review"))
+      .toEqual(["5 days · 30 min a day", "Days 1–2: past tense", "Day 5: review"]);
+  });
+  it("splits a paragraph into sentences", () => {
+    const text = "A 5-day review of Lesson #12 (e.g. 갔어요). Days 1–2 lock in the past tense. 3 tasks a day! Every night, write 1–2 sentences.";
+    expect(overviewPoints(text)).toEqual(["A 5-day review of Lesson #12 (e.g. 갔어요).", "Days 1–2 lock in the past tense.",
+      "3 tasks a day!", "Every night, write 1–2 sentences."]);
+    expect(overviewPoints("")).toEqual([]);
+  });
+});

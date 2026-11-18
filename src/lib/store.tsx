@@ -158,9 +158,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (!userID) { setData(EMPTY); return; }
     setConnectorKey(localStorage.getItem(`malchingu.connectorKey.${userID}`));
     refresh();
+    // Pick up changes made on other devices (e.g. today's quiz on the phone): on return to the
+    // page, and every minute while it's visible.
     const onFocus = () => refresh();
+    const onVisible = () => { if (document.visibilityState === "visible") refresh(); };
     window.addEventListener("focus", onFocus);
-    return () => window.removeEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisible);
+    const timer = window.setInterval(() => { if (document.visibilityState === "visible") refresh(); }, 60_000);
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.clearInterval(timer);
+    };
   }, [userID, refresh]);
 
   const settings = useMemo(() => readSettings(data.settingsRaw), [data.settingsRaw]);
@@ -230,35 +239,48 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const saveQuiz = useCallback((next: QuizSession, previous: QuizSession) => {
+  const upsertQuiz = useCallback((row: DailyQuizRow) => {
     if (!userID) return;
-    const alreadyCounted = data.dailyQuiz?.day === today && data.dailyQuiz.word_id === next.word.id && data.dailyQuiz.recorded;
-    const justFinished = isFinished(next) && !isFinished(previous) && !alreadyCounted;
-    const row: DailyQuizRow = {
-      day: today, word_id: next.word.id, state: next.state, mistakes: next.mistakes,
-      revealed_hints: next.revealedHints, recorded: alreadyCounted || justFinished, updated_at: now(),
-    };
     edit("dailyQuiz");
     setData((d) => ({ ...d, dailyQuiz: row }));
     supabase.from("daily_quiz").upsert({ ...row, user_id: userID }, { onConflict: "user_id,day" }).then(({ error }) => {
       if (error) setError(`Couldn't save today's word: ${error.message}`);
     });
-    if (justFinished) {
-      record(next.word.id, {
-        correct: next.state === "solved", source: "quiz",
-        gaveUp: next.state === "failed" && next.mistakes < 3, hints: next.revealedHints.length,
-      });
-    }
-  }, [userID, today, record, data.dailyQuiz]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userID]);
+
+  const saveQuiz = useCallback((next: QuizSession) => {
+    const sameQuiz = data.dailyQuiz?.day === today && data.dailyQuiz.word_id === next.word.id;
+    upsertQuiz({
+      day: today, word_id: next.word.id, state: next.state, mistakes: next.mistakes,
+      revealed_hints: next.revealedHints, recorded: sameQuiz && data.dailyQuiz!.recorded, updated_at: now(),
+    });
+  }, [today, data.dailyQuiz, upsertQuiz]);
+
+  // A finished quiz is counted in the stats once, and only marked as counted after that has saved, so
+  // closing the page mid-save doesn't lose it: it's counted on the next load instead.
+  const counting = useRef<string | null>(null);
+  useEffect(() => {
+    const row = data.dailyQuiz;
+    if (!userID || !quiz || !row || row.day !== today || row.word_id !== quiz.word.id) return;
+    if (!isFinished(quiz) || row.recorded) return;
+    const key = `${row.day}:${row.word_id}`;
+    if (counting.current === key) return;
+    counting.current = key;
+    record(quiz.word.id, {
+      correct: quiz.state === "solved", source: "quiz",
+      gaveUp: quiz.state === "failed" && quiz.mistakes < 3, hints: quiz.revealedHints.length,
+    }).then(() => upsertQuiz({ ...row, recorded: true, updated_at: now() }));
+  }, [userID, quiz, data.dailyQuiz, today, record, upsertQuiz]);
 
   const submitDaily = useCallback((answer: string): Outcome => {
     if (!quiz) return { kind: "ignored" };
     const [next, outcome] = submit(quiz, answer);
-    saveQuiz(next, quiz);
+    saveQuiz(next);
     return outcome;
   }, [quiz, saveQuiz]);
-  const giveUpDaily = useCallback(() => { if (quiz) saveQuiz(giveUp(quiz), quiz); }, [quiz, saveQuiz]);
-  const revealDailyHint = useCallback((i: number) => { if (quiz) saveQuiz(revealHint(quiz, i), quiz); }, [quiz, saveQuiz]);
+  const giveUpDaily = useCallback(() => { if (quiz) saveQuiz(giveUp(quiz)); }, [quiz, saveQuiz]);
+  const revealDailyHint = useCallback((i: number) => { if (quiz) saveQuiz(revealHint(quiz, i)); }, [quiz, saveQuiz]);
 
   const updateSettings = useCallback(async (change: Partial<Settings>) => {
     if (!userID) return;

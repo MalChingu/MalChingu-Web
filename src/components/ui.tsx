@@ -183,17 +183,45 @@ export function Stepper({ onMinus, onPlus, minusLabel, plusLabel, minusDisabled,
   );
 }
 
-/** A screen. `narrow` keeps forms and lists at a comfortable reading width on wide screens. */
-export function Page({ title, children, actions, centered, narrow }: {
-  title: string; children: ReactNode; actions?: ReactNode; centered?: boolean; narrow?: boolean;
+/** A screen. `back` puts a round back button on the title line; long titles get a smaller size. */
+export function Page({ title, children, actions, centered, back }: {
+  title: string; children: ReactNode; actions?: ReactNode; centered?: boolean; back?: { label: string; onClick: () => void };
 }) {
   return (
-    <div className={`page ${narrow ? "narrow" : ""}`}>
+    <div className="page">
       <header className={`page-header ${centered ? "centered" : ""}`}>
-        <h1>{title}</h1>
+        {back && <RoundButton icon="chevronLeft" tint="glass" label={back.label} onClick={back.onClick} size={40} />}
+        <h1 className={title.length > 28 ? "long" : ""}>{title}</h1>
         {actions && <div className="page-actions">{actions}</div>}
       </header>
       <div className="page-content">{children}</div>
+    </div>
+  );
+}
+
+/** A small centred question with Cancel and a confirm button, used before anything is deleted or replaced. */
+export function ConfirmDialog({ title, message, confirmLabel, destructive = true, onConfirm, onCancel }: {
+  title: string; message: string; confirmLabel: string; destructive?: boolean; onConfirm: () => void; onCancel: () => void;
+}) {
+  const cancel = useRef<HTMLButtonElement>(null);
+  const close = useRef(onCancel);
+  close.current = onCancel;
+  useEffect(() => {
+    cancel.current?.focus();
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") close.current(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+  return (
+    <div className="sheet-backdrop confirm-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) onCancel(); }}>
+      <div className="confirm" role="alertdialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-message">
+        <h2 id="confirm-title">{title}</h2>
+        <p id="confirm-message" className="muted">{message}</p>
+        <div className="confirm-buttons">
+          <button ref={cancel} type="button" className="button full" onClick={onCancel}>Cancel</button>
+          <button type="button" className={`button full ${destructive ? "destructive" : "prominent"}`} onClick={onConfirm}>{confirmLabel}</button>
+        </div>
+      </div>
     </div>
   );
 }

@@ -30,7 +30,7 @@ const db = {
   ],
   word_progress: [],
   study_days: [],
-  study_guides: [{ id: GUIDE, user_id: USER, title: "Travel Basics", overview: "A short test guide.", start_date: today, total_days: 2,
+  study_guides: [{ id: GUIDE, user_id: USER, title: "Travel Basics", overview: "A short test guide for greetings and directions. Day 1 covers hello and goodbye. Day 2 asks for the station.", start_date: today, total_days: 2,
     source_summary: "", created_at: stamp, updated_at: stamp, deleted_at: null }],
   guide_sessions: [
     { id: "66666666-6666-4666-8666-666666666661", guide_id: GUIDE, user_id: USER, day_number: 1, title: "Greetings", goals: ["Say hello"], grammar_notes: "Use 안녕하세요 with strangers.", updated_at: stamp },
@@ -181,7 +181,16 @@ try {
     await page.getByRole("button", { name: "Guides", exact: true }).click();
     await page.getByRole("button", { name: /Travel Basics/ }).click();
     await page.getByText("Vocabulary · 1").first().waitFor();
-    check(true, `${label}: guide detail shows days and vocabulary`);
+    check(await page.locator(".guide-main .card h3").count() === 1, `${label}: guide shows one day at a time`);
+    check(await page.locator(".points li").count() === 3, `${label}: overview shows as points`);
+    await page.getByRole("button", { name: "Next day" }).click();
+    check(await page.getByRole("heading", { name: "Directions" }).isVisible(), `${label}: next-day button switches day`);
+    await page.locator(".day-item").first().click();
+    check(await page.getByRole("heading", { name: "Greetings" }).isVisible(), `${label}: day list switches day`);
+    await page.getByRole("button", { name: "Delete Guide" }).click();
+    check(await page.getByRole("alertdialog", { name: "Delete This Guide?" }).isVisible(), `${label}: deleting a guide asks first`);
+    await page.getByRole("button", { name: "Cancel" }).click();
+    check(await page.getByRole("alertdialog").count() === 0 && db.study_guides[0].deleted_at === null, `${label}: cancel keeps the guide`);
     await page.screenshot({ path: `screenshots/guide-${label}.png`, fullPage: true });
 
     await page.getByRole("button", { name: "Profile", exact: true }).click();
@@ -222,66 +231,106 @@ try {
     await context.close();
   }
 
-  // Both themes on every screen: text contrast (axe-core), the chosen option in segmented controls,
-  // and no native select boxes (their pop-up menus ignore the app's theme).
+  // Both themes on every screen and dialog: text contrast (axe-core), the chosen tab's colours,
+  // equal content widths across pages, and nothing spilling sideways on a phone.
+  const expectedTab = { light: ["rgb(21, 19, 43)", "rgb(244, 243, 251)"], dark: ["rgb(242, 241, 250)", "rgb(14, 13, 28)"] };
   for (const scheme of ["light", "dark"]) {
-    const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, colorScheme: scheme });
+    const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, colorScheme: scheme });
     await context.route("https://nxlsnpzfbazwlccxtwpt.supabase.co/**", fakeSupabase);
     await context.addInitScript((value) => localStorage.setItem("sb-nxlsnpzfbazwlccxtwpt-auth-token", value), JSON.stringify(session));
     const page = await context.newPage();
-    const audit = async (where) => {
-      await page.waitForTimeout(350);   // let sheets finish animating in
+    const audit = async (where, shot) => {
+      await page.waitForTimeout(350);   // let sheets and dialogs finish animating in
       await page.addScriptTag({ content: AXE });
       const result = await page.evaluate(async () =>
         (await window.axe.run(document, { runOnly: ["color-contrast"] })).violations.flatMap((v) =>
           v.nodes.map((n) => `${n.target.join(" ")}: ${n.any.map((a) => a.message).join(" ")}`)));
       check(result.length === 0, `${scheme} · ${where}: text contrast${result.length ? "\n    " + result.slice(0, 6).join("\n    ") : ""}`);
+      if (shot) await page.screenshot({ path: `screenshots/theme-${scheme}-${shot}.png` });
     };
+    const tab = (name) => page.getByRole("button", { name, exact: true }).click();
+    const widths = {};
+    const width = async (name) => { widths[name] = Math.round((await page.locator(".page-content").first().boundingBox()).width); };
+
     await page.goto("http://localhost:4173/#today");
     await page.getByRole("heading", { name: /Welcome Back/ }).waitFor({ timeout: 15000 });
-    await audit("Today");
-    await page.screenshot({ path: `screenshots/theme-${scheme}-today.png` });
-    await page.getByRole("button", { name: "Flashcards", exact: true }).click();
-    await audit("Flashcards");
+    await audit("Today", "today"); await width("Today");
+
+    await tab("Flashcards");
+    await audit("Flashcards", "flashcards"); await width("Flashcards");
     const chosen = await page.locator('.segmented [aria-checked="true"]').first().evaluate((el) => {
-      const s = getComputedStyle(el);
-      return [s.backgroundColor, s.color];
+      const st = getComputedStyle(el);
+      return [st.backgroundColor, st.color];
     });
-    check(chosen[0] === "rgb(255, 255, 255)" && chosen[1] === "rgb(21, 19, 43)", `${scheme}: chosen tab is light with dark text (${chosen})`);
-    await page.screenshot({ path: `screenshots/theme-${scheme}-flashcards.png` });
-    await page.getByRole("button", { name: "Guides", exact: true }).click();
-    await audit("Guides");
-    await page.getByRole("button", { name: "Create Guide" }).click();
-    await audit("Create Guide sheet");
-    check(await page.getByRole("button", { name: "Continue in Claude" }).count() === 0, `${scheme}: no Continue in Claude button on the web`);
-    await page.screenshot({ path: `screenshots/theme-${scheme}-create-guide.png` });
+    check(chosen[0] === expectedTab[scheme][0] && chosen[1] === expectedTab[scheme][1],
+      `${scheme}: chosen tab is ${scheme === "light" ? "dark with light" : "light with dark"} text (${chosen})`);
+    await page.getByRole("button", { name: "Start" }).click();
+    await audit("Flashcard card", "flashcard");
+    await page.getByRole("button", { name: "I don't know" }).click();
+    await audit("Flashcard answer");
+    await page.getByRole("button", { name: "Close" }).click();
+    await page.getByRole("button", { name: /My Words/ }).click();
+    await audit("My Words", "my-words");
+    await page.getByRole("button", { name: "How to Add Words" }).click();
+    await audit("How to Add Words sheet", "help");
     await page.keyboard.press("Escape");
-    await page.getByRole("button", { name: "Stats", exact: true }).click();
-    await audit("Stats");
+
+    await tab("Guides");
+    await audit("Guides", "guides"); await width("Guides");
+    await page.getByRole("button", { name: "Create Guide" }).click();
+    await audit("Create Guide sheet", "create-guide");
+    check(await page.getByRole("button", { name: "Continue in Claude" }).count() === 0, `${scheme}: no Continue in Claude button on the web`);
+    check(await page.locator("textarea[aria-label='Focus']").getAttribute("rows") === "3", `${scheme}: focus box is three lines`);
+    await page.keyboard.press("Escape");
+    await page.getByRole("button", { name: /Travel Basics/ }).click();
+    await audit("Guide detail", "guide"); await width("Guide detail");
+    await page.getByRole("button", { name: "Delete Guide" }).click();
+    await audit("Delete confirmation", "confirm");
+    await page.getByRole("button", { name: "Cancel" }).click();
+    await page.locator(".guide-main .word-row").first().click();
+    await audit("Word page", "word");
+    await page.keyboard.press("Escape");
+
+    await tab("Stats");
+    await audit("Stats", "stats"); await width("Stats");
     const tiles = await page.locator(".tiles > *").evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().top)));
     check(new Set(tiles).size === 2 && tiles.filter((t) => t === tiles[0]).length === 3, `${scheme}: stats tiles are two even rows of three`);
     await page.locator(".bar-column").last().hover();
-    await page.waitForTimeout(250);   // the tip fades in
+    await page.waitForTimeout(250);
     check(await page.locator(".bar-column").last().locator(".bar-tip").evaluate((e) => getComputedStyle(e).opacity) === "1",
       `${scheme}: hovering a bar shows its count`);
-    await page.screenshot({ path: `screenshots/theme-${scheme}-stats.png` });
-    await page.getByRole("button", { name: "Profile", exact: true }).click();
-    await audit("Profile");
+
+    await tab("Profile");
+    await audit("Profile", "profile"); await width("Profile");
     check(await page.locator("select").count() === 0, `${scheme}: no native select boxes`);
-    await page.screenshot({ path: `screenshots/theme-${scheme}-profile.png`, fullPage: true });
+    await page.getByRole("button", { name: "Sign Out" }).click();
+    await audit("Sign-out confirmation");
+    await page.getByRole("button", { name: "Cancel" }).click();
+
+    check(new Set(Object.values(widths)).size === 1, `${scheme}: every page has the same content width (${JSON.stringify(widths)})`);
+
+    // Phone: nothing should spill off the side of any page.
+    await page.setViewportSize({ width: 375, height: 812 });
+    for (const name of ["Today", "Flashcards", "Guides", "Stats", "Profile"]) {
+      await tab(name);
+      await page.waitForTimeout(200);
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+      check(overflow <= 0, `${scheme} · phone ${name}: no sideways scrolling${overflow > 0 ? ` (${overflow}px too wide)` : ""}`);
+    }
     await page.waitForLoadState("networkidle");
     await context.close();
   }
-  {
-    const page = await browser.newPage({ viewport: { width: 1280, height: 900 }, colorScheme: "dark" });
+  for (const scheme of ["light", "dark"]) {
+    const page = await browser.newPage({ viewport: { width: 1280, height: 900 }, colorScheme: scheme });
     await page.route("https://nxlsnpzfbazwlccxtwpt.supabase.co/**", fakeSupabase);
     await page.goto("http://localhost:4173/");
     await page.getByRole("button", { name: "Sign in with Apple" }).waitFor();
     await page.addScriptTag({ content: AXE });
     const bad = await page.evaluate(async () => (await window.axe.run(document, { runOnly: ["color-contrast"] })).violations.length);
-    check(bad === 0, "dark · sign-in page: text contrast");
+    check(bad === 0, `${scheme} · sign-in page: text contrast`);
     await page.close();
   }
+
 
   // What the app wrote to the database.
   const progress = db.word_progress;

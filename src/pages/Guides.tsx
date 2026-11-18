@@ -1,10 +1,11 @@
 import { useMemo, useState } from "react";
 import { guideRequest } from "../core/guideRequest";
-import type { StudyGuideRow, Word } from "../core/models";
+import type { GuideSessionRow, StudyGuideRow, Word } from "../core/models";
 import { customToWord } from "../core/wordBank";
 import { addDays, dayString } from "../core/wordOfDay";
 import { Icon } from "../components/Icon";
-import { Button, Card, Page, RoundButton, SectionTitle, Segmented, Sheet, Stepper, WordRow, copyText } from "../components/ui";
+import { Button, Card, ConfirmDialog, Page, RoundButton, SectionTitle, Segmented, Sheet, Stepper, WordRow, copyText } from "../components/ui";
+import { overviewPoints } from "../core/guideOverview";
 import { useStore } from "../lib/store";
 import { formatDay, guideDate, guideDayNumber } from "./guideDates";
 import { TaskList } from "./Today";
@@ -56,63 +57,127 @@ function guideStatus(guide: StudyGuideRow): string {
   return `${guide.total_days} days · finished`;
 }
 
+/** The day to open on: today if the guide is running, the first day if it hasn't started, the last if it's over. */
+function startingDay(guide: StudyGuideRow, days: number[]): number {
+  const today = guideDayNumber(guide);
+  if (today && days.includes(today)) return today;
+  if (guide.start_date > dayString()) return days[0];
+  return days[days.length - 1];
+}
+
 function GuideDetail({ guide, onBack, practice }: { guide: StudyGuideRow; onBack: () => void; practice: (words: Word[]) => void }) {
   const store = useStore();
   const today = guideDayNumber(guide);
   const sessions = store.data.sessions.filter((s) => s.guide_id === guide.id).sort((a, b) => a.day_number - b.day_number);
+  const dayNumbers = sessions.map((s) => s.day_number);
+  const [selected, setSelected] = useState(() => startingDay(guide, dayNumbers));
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const vocabulary = store.data.customWords.filter((w) => !w.deleted_at && w.guide_id === guide.id);
   const tasks = store.data.tasks.filter((t) => t.guide_id === guide.id);
   const done = tasks.filter((t) => t.done).length;
   const shuffled = (words: Word[]) => [...words].sort(() => Math.random() - 0.5);
+  const index = Math.max(0, dayNumbers.indexOf(selected));
+  const session = sessions[index];
+  const points = overviewPoints(guide.overview);
 
   return (
-    <Page title={guide.title} narrow actions={
-      <RoundButton icon="trash" tint="glass" label="Delete Guide" size={38} onClick={() => {
-        if (confirm("Delete this guide? Its vocabulary stays in My Words.")) { store.deleteGuide(guide); onBack(); }
-      }} />
+    <Page title={guide.title} back={{ label: "Back to Study Guides", onClick: onBack }} actions={
+      <RoundButton icon="trash" tint="glass" label="Delete Guide" size={40} onClick={() => setConfirmingDelete(true)} />
     }>
-      <button type="button" className="back-link" onClick={onBack}><Icon name="chevron" size={14} className="flip" /> Study Guides</button>
-      <Card>
-        <div className="stack">
-          {guide.overview && <p>{guide.overview}</p>}
-          <progress value={done} max={Math.max(tasks.length, 1)} />
-          <div className="small muted">{done} of {tasks.length} tasks · {vocabulary.length} words</div>
-          {vocabulary.length > 0 && (
-            <Button icon="cards" onClick={() => practice(shuffled(vocabulary.map(customToWord)))}>Practice All Vocabulary</Button>
+      <div className="guide-layout">
+        <div className="guide-main">
+          <Card>
+            {points.length > 0 && <ul className="points">{points.map((p, i) => <li key={i}>{p}</li>)}</ul>}
+            <progress value={done} max={Math.max(tasks.length, 1)} />
+            <div className="row">
+              <span className="small muted grow">{done} of {tasks.length} tasks · {vocabulary.length} words</span>
+              {vocabulary.length > 0 && (
+                <Button icon="cards" onClick={() => practice(shuffled(vocabulary.map(customToWord)))}>Practice All Vocabulary</Button>
+              )}
+            </div>
+          </Card>
+
+          {session && (
+            <>
+              <div className="day-switcher">
+                <RoundButton icon="chevronLeft" tint="glass" label="Previous day" size={40} disabled={index === 0}
+                  onClick={() => setSelected(dayNumbers[index - 1])} />
+                <div className="day-switcher-label">
+                  <strong>Day {session.day_number} of {guide.total_days}</strong>
+                  <span className="small muted">{formatDay(guideDate(guide, session.day_number))}</span>
+                </div>
+                <RoundButton icon="chevron" tint="glass" label="Next day" size={40} disabled={index === sessions.length - 1}
+                  onClick={() => setSelected(dayNumbers[index + 1])} />
+              </div>
+              <DayCard key={session.id} guide={guide} session={session} isToday={session.day_number === today}
+                words={vocabulary.filter((w) => w.day_number === session.day_number).map(customToWord)}
+                practice={(words) => practice(shuffled(words))} />
+            </>
           )}
         </div>
-      </Card>
-      {sessions.map((session) => {
-        const words = vocabulary.filter((w) => w.day_number === session.day_number).map(customToWord);
-        return (
-          <Card key={session.id}>
-            <div className="row">
-              <SectionTitle>Day {session.day_number} · {formatDay(guideDate(guide, session.day_number))}</SectionTitle>
-              {session.day_number === today && <span className="today-badge">TODAY</span>}
-            </div>
-            <h3>{session.title}</h3>
-            {session.goals.length > 0 && (
-              <ul className="goals">{session.goals.map((g, i) => <li key={i}><Icon name="target" size={14} /> {g}</li>)}</ul>
-            )}
-            <TaskList tasks={store.data.tasks.filter((t) => t.session_id === session.id)} />
-            {session.grammar_notes && (
-              <details className="notes"><summary>Notes</summary><div className="notes-body">{session.grammar_notes}</div></details>
-            )}
-            {words.length > 0 && (
-              <>
-                <div className="row top-rule">
-                  <strong className="grow">Vocabulary · {words.length}</strong>
-                  <Button onClick={() => practice(shuffled(words))}>Practice</Button>
-                </div>
-                <div className="divided">
-                  {words.map((w) => <WordRow key={w.id} word={w} progress={store.progressFor(w.id)} onClick={() => store.openWord(w)} />)}
-                </div>
-              </>
-            )}
-          </Card>
-        );
-      })}
+
+        <nav className="glass card day-list" aria-label="Days">
+          <div className="section-title">Days</div>
+          {sessions.map((s) => {
+            const dayTasks = tasks.filter((t) => t.session_id === s.id);
+            const finished = dayTasks.length > 0 && dayTasks.every((t) => t.done);
+            return (
+              <button key={s.id} type="button" className={`day-item ${s.day_number === selected ? "on" : ""}`}
+                aria-current={s.day_number === selected ? "true" : undefined} onClick={() => setSelected(s.day_number)}>
+                <span className={`day-number ${finished ? "finished" : ""}`}>
+                  {finished ? <Icon name="check" size={14} strokeWidth={3} /> : s.day_number}
+                </span>
+                <span className="day-item-text">
+                  <span className="day-item-title">{s.title}</span>
+                  <span className="small muted">
+                    {formatDay(guideDate(guide, s.day_number))}{s.day_number === today ? " · Today" : ""}
+                  </span>
+                </span>
+              </button>
+            );
+          })}
+        </nav>
+      </div>
+
+      {confirmingDelete && (
+        <ConfirmDialog title="Delete This Guide?" message="Its days and tasks are removed on all your devices. Its vocabulary stays in My Words."
+          confirmLabel="Delete Guide" onCancel={() => setConfirmingDelete(false)}
+          onConfirm={() => { setConfirmingDelete(false); store.deleteGuide(guide); onBack(); }} />
+      )}
     </Page>
+  );
+}
+
+function DayCard({ guide, session, isToday, words, practice }: {
+  guide: StudyGuideRow; session: GuideSessionRow; isToday: boolean; words: Word[]; practice: (words: Word[]) => void;
+}) {
+  const store = useStore();
+  void guide;
+  return (
+    <Card>
+      <div className="row">
+        <h3 className="grow">{session.title}</h3>
+        {isToday && <span className="today-badge">TODAY</span>}
+      </div>
+      {session.goals.length > 0 && (
+        <ul className="goals">{session.goals.map((g, i) => <li key={i}><Icon name="target" size={14} /> {g}</li>)}</ul>
+      )}
+      <TaskList tasks={store.data.tasks.filter((t) => t.session_id === session.id)} />
+      {session.grammar_notes && (
+        <details className="notes"><summary>Notes</summary><div className="notes-body">{session.grammar_notes}</div></details>
+      )}
+      {words.length > 0 && (
+        <>
+          <div className="row top-rule">
+            <strong className="grow">Vocabulary · {words.length}</strong>
+            <Button onClick={() => practice(words)}>Practice</Button>
+          </div>
+          <div className="divided">
+            {words.map((w) => <WordRow key={w.id} word={w} progress={store.progressFor(w.id)} onClick={() => store.openWord(w)} />)}
+          </div>
+        </>
+      )}
+    </Card>
   );
 }
 
@@ -157,7 +222,8 @@ function CreateGuide({ onClose }: { onClose: () => void }) {
       </Card>
       <Card>
         <SectionTitle>Focus</SectionTitle>
-        <input className="text-input" value={focus} placeholder="Optional, e.g. past tense, travel phrases" onChange={(e) => setFocus(e.target.value)} />
+        <textarea className="text-input text-area" rows={3} value={focus} aria-label="Focus"
+          placeholder="Optional, e.g. past tense, travel phrases" onChange={(e) => setFocus(e.target.value)} />
       </Card>
       <Card>
         <SectionTitle>Request</SectionTitle>

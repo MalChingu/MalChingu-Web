@@ -3,7 +3,7 @@ import { PARTS_OF_SPEECH, displayLabel, posPlural, type DisplayMode, type PartOf
 import { levelLabel } from "../core/progress";
 import { BUILT_IN } from "../core/wordBank";
 import { Icon } from "../components/Icon";
-import { Button, Card, Page, SectionTitle, Segmented, Toggle, copyText } from "../components/ui";
+import { Button, Card, ConfirmDialog, Page, SectionTitle, Segmented, Toggle, copyText } from "../components/ui";
 import { avatarSrc, squareJPEGBase64 } from "../lib/avatar";
 import { initials } from "../lib/settings";
 import { speak, useKoreanVoice } from "../lib/speech";
@@ -16,6 +16,7 @@ export function Profile() {
   const [name, setName] = useState(settings.profile.name);
   const [copied, setCopied] = useState(false);
   const [working, setWorking] = useState(false);
+  const [confirming, setConfirming] = useState<"newLink" | "signOut" | null>(null);
   const file = useRef<HTMLInputElement>(null);
   const voice = useKoreanVoice();
   const [appearance, setAppearance] = useAppearance();
@@ -36,7 +37,7 @@ export function Profile() {
   const run = async (action: () => Promise<void>) => { setWorking(true); setCopied(false); await action(); setWorking(false); };
 
   return (
-    <Page title="Profile" narrow>
+    <Page title="Profile">
       <Card padding={22}>
         <div className="center stack">
           <button type="button" className="avatar-button" aria-label="Change profile picture" onClick={() => file.current?.click()}>
@@ -104,9 +105,7 @@ export function Profile() {
             <Button kind="prominent" icon={copied ? "check" : "copy"} full onClick={() => { copyText(store.connectorURL!); setCopied(true); }}>
               {copied ? "Copied" : "Copy Connector Link"}
             </Button>
-            <Button icon="refresh" full disabled={working} onClick={() => {
-              if (confirm("Create a new link? The current link stops working and you'll need to update the connector in Claude.")) run(store.createConnectorLink);
-            }}>Create a New Link</Button>
+            <Button icon="refresh" full disabled={working} onClick={() => setConfirming("newLink")}>Create a New Link</Button>
             <Button kind="danger" icon="x" full disabled={working} onClick={() => run(store.revokeConnectorLink)}>Turn Off Connector</Button>
           </div>
         ) : (
@@ -130,9 +129,17 @@ export function Profile() {
         <div className="row toggle-row"><span>My Words</span><span className="muted">{store.myWords.length}</span></div>
       </Card>
 
-      <button type="button" className="button sign-out full large" onClick={() => {
-        if (confirm("Sign out? Your words, stats and guides stay in your account and come back when you sign in again.")) store.signOut();
-      }}>Sign Out</button>
+      <button type="button" className="button sign-out full large" onClick={() => setConfirming("signOut")}>Sign Out</button>
+
+      {confirming === "newLink" && (
+        <ConfirmDialog title="Create a New Link?" message="The current link stops working, so you'll need to update the connector in Claude."
+          confirmLabel="Create New Link" onCancel={() => setConfirming(null)}
+          onConfirm={() => { setConfirming(null); run(store.createConnectorLink); }} />
+      )}
+      {confirming === "signOut" && (
+        <ConfirmDialog title="Sign Out?" message="Your words, stats and guides stay in your account and come back when you sign in again."
+          confirmLabel="Sign Out" onCancel={() => setConfirming(null)} onConfirm={() => { setConfirming(null); store.signOut(); }} />
+      )}
     </Page>
   );
 }

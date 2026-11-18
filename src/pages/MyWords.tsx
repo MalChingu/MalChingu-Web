@@ -1,20 +1,21 @@
 import { useState } from "react";
 import { customToWord } from "../core/wordBank";
 import { Icon } from "../components/Icon";
-import { Button, Card, Page, RoundButton, Sheet, Steps, WordRow, copyText } from "../components/ui";
+import { Button, Card, ConfirmDialog, Page, RoundButton, Sheet, Steps, WordRow, copyText } from "../components/ui";
+import type { CustomWordRow } from "../core/models";
 import { useStore } from "../lib/store";
 
 /** Words and phrases the learner added through Claude. */
 export function MyWords({ onBack }: { onBack: () => void }) {
   const store = useStore();
   const [help, setHelp] = useState(false);
+  const [deleting, setDeleting] = useState<CustomWordRow | null>(null);
   return (
-    <Page title="My Words" narrow actions={
+    <Page title="My Words" back={{ label: "Back to Flashcards", onClick: onBack }} actions={
       <>
         <RoundButton icon="question" tint="glass" label="How to Add Words" onClick={() => setHelp(true)} size={38} />
       </>
     }>
-      <button type="button" className="back-link" onClick={onBack}><Icon name="chevron" size={14} className="flip" /> Flashcards</button>
       {store.myWords.length === 0 ? (
         <Card padding={28}>
           <div className="center stack">
@@ -32,7 +33,7 @@ export function MyWords({ onBack }: { onBack: () => void }) {
                 <div key={row.id} className="row">
                   <WordRow word={word} progress={store.progressFor(word.id)} onClick={() => store.openWord(word)} />
                   <button type="button" className="icon-button bad" aria-label={`Delete ${row.hangul}`}
-                    onClick={() => { if (confirm(`Delete ${row.hangul}?`)) store.deleteWord(row); }}>
+                    onClick={() => setDeleting(row)}>
                     <Icon name="trash" size={18} />
                   </button>
                 </div>
@@ -42,6 +43,10 @@ export function MyWords({ onBack }: { onBack: () => void }) {
         </Card>
       )}
       {help && <AddWordsHelp onClose={() => setHelp(false)} />}
+      {deleting && (
+        <ConfirmDialog title={`Delete ${deleting.hangul}?`} message="It's removed from My Words, flashcards and the word of the day on all your devices."
+          confirmLabel="Delete" onCancel={() => setDeleting(null)} onConfirm={() => { store.deleteWord(deleting); setDeleting(null); }} />
+      )}
     </Page>
   );
 }

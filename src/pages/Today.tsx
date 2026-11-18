@@ -22,7 +22,7 @@ export function Today({ openGuide }: { openGuide: (id: string) => void }) {
 
   return (
     <Page title={first ? `Welcome Back, ${first}` : "Welcome Back"}>
-      <div className="today-layout">
+      <div className={`today-layout ${todays.length ? "with-side" : ""}`}>
         <div className="today-streak">
           <Card padding={16}>
             <div className="row">
@@ -56,15 +56,19 @@ export function Today({ openGuide }: { openGuide: (id: string) => void }) {
             </div>
           )}
         </div>
-        <div className="today-side">
-          {todays.map(({ guide, session }) => (
-            <Card key={session.id}>
-              <SectionTitle>{guide.title} · Day {session.day_number} of {guide.total_days}</SectionTitle>
-              <h3>{session.title}</h3>
-              <TaskList tasks={store.data.tasks.filter((t) => t.session_id === session.id)} />
-              <Button icon="book" onClick={() => openGuide(guide.id)}>Open Guide</Button>
-            </Card>
-          ))}
+        {todays.length > 0 && (
+          <div className="today-side">
+            {todays.map(({ guide, session }) => (
+              <Card key={session.id}>
+                <SectionTitle>{guide.title} · Day {session.day_number} of {guide.total_days}</SectionTitle>
+                <h3>{session.title}</h3>
+                <TaskList tasks={store.data.tasks.filter((t) => t.session_id === session.id)} />
+                <Button icon="book" onClick={() => openGuide(guide.id)}>Open Guide</Button>
+              </Card>
+            ))}
+          </div>
+        )}
+        <div className="today-tiles">
           <div className="tiles three">
             <StatTile title="Words Practiced" value={String(stats.wordsPracticed)} icon="textBook" />
             <StatTile title="Mastered" value={String(stats.wordsMastered)} icon="seal" />

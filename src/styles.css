@@ -214,6 +214,7 @@ button:disabled { cursor: default; opacity: 0.45; }
   background: var(--field); font-size: 1.1rem; outline: none;
 }
 .text-input { width: 100%; border-radius: 14px; border: 1px solid var(--divider); }
+.text-area { height: auto; padding: 12px 16px; resize: vertical; line-height: 1.4; font-size: 1rem; font-family: inherit; min-height: 88px; }
 .answer-input:focus, .text-input:focus { border-color: var(--accent-soft); }
 .answer-input.wrong { border-color: var(--red); animation: shake 0.35s; }
 @keyframes shake { 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
@@ -245,8 +246,8 @@ progress::-moz-progress-bar { background: var(--accent-fill); }
 /* Flashcards */
 .segmented { display: flex; padding: 3px; border-radius: 999px; background: var(--field); }
 .segmented button { flex: 1; border: 0; background: none; border-radius: 999px; padding: 8px 6px; font-weight: 500; }
-/* The chosen option is always light with dark text, in both themes. */
-.segmented button.on { background: #ffffff; color: #15132b; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18); font-weight: 650; }
+/* The chosen option stands out against the theme: dark with light text in Light, light with dark text in Dark. */
+.segmented button.on { background: var(--text); color: var(--base); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18); font-weight: 650; }
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .chip { border: 0; border-radius: 999px; padding: 8px 14px; background: var(--field); font-weight: 500; }
 .chip.on { background: var(--accent-fill); color: #fff; }
@@ -350,19 +351,17 @@ progress::-moz-progress-bar { background: var(--accent-fill); }
 /* Cards that are also buttons get the same padding as Card. */
 .guide-card, .nav-row { padding: 18px; font: inherit; color: inherit; }
 
-/* Today: one column on phones; on wide screens the word of the day leads, with today's guide and stats beside it. */
-.today-layout, .today-main, .today-side, .today-streak { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+/* Today: streak, the word of the day (with today's guide session beside it on wide screens), then the stat cards. */
+.today-layout, .today-main, .today-side, .today-streak, .today-tiles { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 @media (min-width: 1180px) {
-  .today-layout {
-    display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(300px, 1fr); gap: 20px; align-items: start;
-    grid-template-areas: "streak streak" "main side";
-  }
+  .today-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; align-items: start;
+    grid-template-areas: "streak" "main" "tiles"; }
+  .today-layout.with-side { grid-template-columns: minmax(0, 1.55fr) minmax(300px, 1fr);
+    grid-template-areas: "streak streak" "main side" "tiles tiles"; }
   .today-streak { grid-area: streak; }
   .today-main { grid-area: main; }
   .today-side { grid-area: side; gap: 20px; }
-  .today-side .tiles.three { grid-template-columns: 1fr; }
-  .today-side .stat-tile { flex-direction: row; align-items: center; gap: 14px; }
-  .today-side .stat-tile .stat-value { order: 2; margin-left: auto; font-size: 1.6rem; }
+  .today-tiles { grid-area: tiles; }
 }
 
 /* Study guides: a grid of cards on wide screens. */
@@ -383,9 +382,50 @@ progress::-moz-progress-bar { background: var(--accent-fill); }
   .tab { flex: none; flex-direction: row; gap: 12px; padding: 11px 14px; font-size: 1rem; }
   .main { max-width: none; margin: 0; min-width: 0; }
   .page { padding: 0; }
-  .page.narrow { max-width: 760px; }
   .page-header { padding: 28px 0 32px; }
   .page-header h1 { font-size: 2.6rem; }
   .page-content { gap: 20px; }
   .toast { bottom: 32px; }
 }
+
+/* Title line with a back button and actions; long titles (like guide names) are smaller. */
+.page-header h1.long { font-size: 1.6rem; line-height: 1.2; }
+@media (min-width: 900px) { .page-header h1.long { font-size: 2rem; } }
+
+/* Guide overview as points. */
+.points { margin: 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: 6px; }
+.points li::marker { color: var(--accent); }
+
+/* Guide detail: one day at a time, with the list of days beside it on wide screens. */
+.guide-layout { display: flex; flex-direction: column; gap: 16px; }
+.guide-main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.day-switcher { display: flex; align-items: center; gap: 12px; }
+.day-switcher-label { flex: 1; display: flex; flex-direction: column; align-items: center; text-align: center; }
+.day-list { gap: 4px; padding: 14px; }
+.day-list .section-title { padding: 4px 6px 8px; }
+.day-item { display: flex; align-items: center; gap: 12px; border: 0; background: none; padding: 10px; border-radius: 14px; text-align: left; width: 100%; }
+.day-item:hover { background: var(--field); }
+.day-item.on { background: var(--accent-soft); }
+.day-item.on .muted { color: var(--text); }
+.day-number {
+  flex: none; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 0.85rem; background: var(--field);
+}
+.day-number.finished { background: var(--green-fill); color: #fff; }
+.day-item.on .day-number:not(.finished) { background: var(--accent-fill); color: #fff; }
+.day-item-text { display: flex; flex-direction: column; min-width: 0; }
+.day-item-title { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (min-width: 1180px) {
+  .guide-layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 20px; align-items: start; }
+  .day-list { position: sticky; top: 32px; max-height: calc(100dvh - 64px); overflow-y: auto; }
+}
+
+/* Confirmation dialog. */
+.confirm-backdrop { align-items: center; padding: 16px; z-index: 60; }
+.confirm {
+  width: min(400px, 100%); border-radius: 24px; padding: 22px; display: flex; flex-direction: column; gap: 10px;
+  background: var(--base); color: var(--text); box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35); animation: rise 0.18s ease-out;
+}
+.confirm h2 { font-size: 1.2rem; }
+.confirm-buttons { display: flex; gap: 10px; margin-top: 10px; }
+.button.destructive { background: var(--red-fill); color: #fff; border-color: transparent; }
