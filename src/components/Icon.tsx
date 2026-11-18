@@ -36,6 +36,7 @@ const PATHS: Record<string, string> = {
   keyboard: "M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7zM7 9.5h.01M11 9.5h.01M15 9.5h.01M17.5 9.5h.01M7 12.5h.01M11 12.5h.01M15 12.5h.01M8 15.5h8",
   award: "M12 15a6 6 0 1 0 0-12 6 6 0 0 0 0 12zM8.5 14l-1.5 8 5-3 5 3-1.5-8",
   lock: "M6 11h12v10H6zM8 11V7a4 4 0 0 1 8 0v4",
+  select: "M4 6l1.5 1.5L8 5M4 12l1.5 1.5L8 11M4 18l1.5 1.5L8 17M11 6.5h9M11 12.5h9M11 18.5h9",
 };
 
 export type IconName = keyof typeof PATHS;

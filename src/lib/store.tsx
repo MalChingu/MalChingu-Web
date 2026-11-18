@@ -80,6 +80,8 @@ interface Store {
   refresh: () => Promise<void>;
   updateSettings: (change: Partial<Settings>) => Promise<void>;
   deleteWord: (row: CustomWordRow) => Promise<void>;
+  /** Deletes several words at once. */
+  deleteWords: (ids: string[]) => Promise<void>;
   setTaskDone: (task: GuideTaskRow, done: boolean) => Promise<void>;
   deleteGuide: (guide: StudyGuideRow) => Promise<void>;
   connectorURL: string | null;
@@ -306,13 +308,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (error) setError(`Couldn't save settings: ${error.message}`);
   }, [userID, data.settingsRaw]);
 
-  const deleteWord = useCallback(async (row: CustomWordRow) => {
+  const deleteWords = useCallback(async (ids: string[]) => {
+    if (ids.length === 0) return;
     const stamp = now();
+    const doomed = new Set(ids);
     edit("customWords");
-    setData((d) => ({ ...d, customWords: d.customWords.map((w) => w.id === row.id ? { ...w, deleted_at: stamp, updated_at: stamp } : w) }));
-    const { error } = await supabase.from("custom_words").update({ deleted_at: stamp, updated_at: stamp }).eq("id", row.id);
-    if (error) setError(`Couldn't delete the word: ${error.message}`);
+    setData((d) => ({ ...d, customWords: d.customWords.map((w) => doomed.has(w.id) ? { ...w, deleted_at: stamp, updated_at: stamp } : w) }));
+    const { error } = await supabase.from("custom_words").update({ deleted_at: stamp, updated_at: stamp }).in("id", ids);
+    if (error) setError(`Couldn't delete ${ids.length === 1 ? "the word" : "the words"}: ${error.message}`);
   }, []);
+  const deleteWord = useCallback((row: CustomWordRow) => deleteWords([row.id]), [deleteWords]);
 
   const setTaskDone = useCallback(async (task: GuideTaskRow, done: boolean) => {
     const stamp = now();
@@ -375,7 +380,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const store: Store = {
     session, ready, loading, error, setError, data, settings, myWords, allWords, findWord,
     progressFor: (id) => progressMap.get(id), progressMap, stats, level, earned, wordOfTheDay,
-    dailyQuiz: quiz, submitDaily, giveUpDaily, revealDailyHint, record, refresh, updateSettings, deleteWord,
+    dailyQuiz: quiz, submitDaily, giveUpDaily, revealDailyHint, record, refresh, updateSettings, deleteWord, deleteWords,
     setTaskDone, deleteGuide,
     connectorURL: connectorShown ? `${CONNECTOR_BASE_URL}?key=${connectorShown}` : null,
     createConnectorLink, revokeConnectorLink, signInWithApple, signOut,

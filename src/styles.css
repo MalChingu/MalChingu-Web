@@ -469,3 +469,10 @@ button.achievement { cursor: pointer; }
 /* The Profile tab shows the learner's picture when there is one. */
 .tab-avatar { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; flex: none; }
 .tab.on .tab-avatar { box-shadow: 0 0 0 2px currentColor; }
+
+/* My Words: selecting several words to delete. */
+.select-mark { display: grid; place-items: center; border: 0; background: none; padding: 4px; color: var(--text-3); cursor: pointer; flex: none; }
+.select-mark.on { color: var(--accent); }
+.row.picked .word-row-hangul { color: var(--accent); }
+.selection-bar { position: sticky; bottom: 96px; z-index: 5; }
+@media (min-width: 900px) { .selection-bar { bottom: 24px; } }

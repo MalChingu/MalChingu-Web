@@ -64,7 +64,8 @@ async function fakeSupabase(route) {
   const rows = db[table];
   if (!rows) return json({ message: `unknown table ${table}` }, 404);
   const filters = [...url.searchParams].filter(([k, v]) => v.startsWith("eq.")).map(([k, v]) => [k, v.slice(3)]);
-  const matches = (row) => filters.every(([k, v]) => String(row[k]) === v);
+  const lists = [...url.searchParams].filter(([k, v]) => v.startsWith("in.(")).map(([k, v]) => [k, v.slice(4, -1).split(",").map((x) => x.replace(/^"|"$/g, ""))]);
+  const matches = (row) => filters.every(([k, v]) => String(row[k]) === v) && lists.every(([k, vs]) => vs.includes(String(row[k])));
   const method = request.method();
   if (method === "GET") {
     const offset = Number(url.searchParams.get("offset") ?? 0);
@@ -287,6 +288,11 @@ try {
     await page.getByRole("button", { name: "How to Add Words" }).click();
     await audit("How to Add Words sheet", "help");
     await page.keyboard.press("Escape");
+    await page.getByRole("button", { name: "Select Words" }).click();
+    await page.getByRole("checkbox", { name: "Select 바다" }).click();
+    check(await page.getByRole("heading", { name: "1 Selected" }).isVisible(), `${scheme}: selecting a word counts it`);
+    await audit("My Words selecting", "my-words-select");
+    await page.getByRole("button", { name: "Done Selecting" }).click();
 
     await tab("Guides");
     await audit("Guides", "guides"); await width("Guides");
@@ -383,6 +389,35 @@ try {
     await page.close();
   }
 
+
+  // My Words: select several words and delete them together.
+  {
+    const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    await context.route("https://nxlsnpzfbazwlccxtwpt.supabase.co/**", fakeSupabase);
+    await context.addInitScript((value) => localStorage.setItem("sb-nxlsnpzfbazwlccxtwpt-auth-token", value), JSON.stringify(session));
+    const page = await context.newPage();
+    await page.goto("http://localhost:4173/#flashcards");
+    await page.getByRole("button", { name: /My Words/ }).click();
+    await page.getByRole("button", { name: "Select Words" }).click();
+    check(await page.getByRole("button", { name: "Delete", exact: true }).isDisabled(), "delete is off until a word is selected");
+    await page.getByRole("button", { name: "Select All" }).click();
+    check(await page.getByRole("heading", { name: "2 Selected" }).isVisible(), "Select All picks every word");
+    await page.getByRole("button", { name: "Delete 2 Words" }).click();
+    check(await page.getByRole("alertdialog", { name: "Delete 2 Words?" }).isVisible(), "deleting several words asks first");
+    await page.getByRole("button", { name: "Cancel" }).click();
+    check(db.custom_words.every((w) => w.deleted_at === null), "cancel keeps the words");
+    await page.getByRole("checkbox", { name: "Select 역" }).click();   // untick one
+    await page.getByRole("button", { name: "Delete 1 Word" }).click();
+    await page.getByRole("button", { name: "Delete", exact: true }).click();
+    await page.getByRole("heading", { name: "My Words" }).waitFor();
+    await page.waitForLoadState("networkidle");
+    const gone = db.custom_words.filter((w) => w.deleted_at).map((w) => w.hangul);
+    check(gone.length === 1 && gone[0] === "바다", `only the selected word is deleted (${gone})`);
+    check(await page.getByText("역").first().isVisible() && await page.getByRole("checkbox").count() === 0,
+      "the rest stay, and selecting ends");
+    await page.screenshot({ path: "screenshots/my-words-after-delete.png" });
+    await context.close();
+  }
 
   // What the app wrote to the database.
   const progress = db.word_progress;
