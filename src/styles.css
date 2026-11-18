@@ -476,3 +476,14 @@ button.achievement { cursor: pointer; }
 .row.picked .word-row-hangul { color: var(--accent); }
 .selection-bar { position: sticky; bottom: 96px; z-index: 5; }
 @media (min-width: 900px) { .selection-bar { bottom: 24px; } }
+
+/* Loading: three dots light up one after another until the content arrives. */
+.loading-dots { display: flex !important; flex-direction: row !important; justify-content: center; align-items: center; gap: 10px; padding: 36px !important; }
+.loading-dots span { width: 10px; height: 10px; border-radius: 50%; background: var(--text-3); animation: loading-dot 1.05s infinite; }
+.loading-dots span:nth-child(2) { animation-delay: 0.35s; }
+.loading-dots span:nth-child(3) { animation-delay: 0.7s; }
+@keyframes loading-dot {
+  0%, 33% { background: var(--accent); transform: scale(1.25); }
+  34%, 100% { background: var(--text-3); transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) { .loading-dots span { animation-duration: 2.1s; transform: none !important; } }

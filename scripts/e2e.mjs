@@ -60,6 +60,20 @@ async function fakeSupabase(route) {
     db.connector_tokens = [{ user_id: USER, token: "kt_e2etestkey" }];
     return json("kt_e2etestkey");
   }
+  if (url.pathname === "/rest/v1/rpc/record_daily_quiz") {
+    // Like the real function: claim today's quiz and save the count together, or do nothing.
+    const { p_day, p_word_id, p_progress, p_study_day } = request.postDataJSON();
+    const quiz = db.daily_quiz.find((q) => q.day === p_day && q.word_id === p_word_id && !q.recorded);
+    if (!quiz) return json(false);
+    quiz.recorded = true;
+    const upsert = (rows, item, keys) => {
+      const existing = rows.find((r) => keys.every((k) => r[k] === item[k]));
+      if (existing) Object.assign(existing, item); else rows.push({ ...item });
+    };
+    upsert(db.word_progress, { ...p_progress, user_id: USER }, ["user_id", "word_id"]);
+    upsert(db.study_days, { ...p_study_day, user_id: USER }, ["user_id", "day"]);
+    return json(true);
+  }
   const table = url.pathname.replace("/rest/v1/", "");
   const rows = db[table];
   if (!rows) return json({ message: `unknown table ${table}` }, 404);
@@ -82,7 +96,10 @@ async function fakeSupabase(route) {
     return route.fulfill({ status: 201, body: "" });
   }
   if (method === "PATCH") {
-    rows.filter(matches).forEach((r) => Object.assign(r, request.postDataJSON()));
+    // Like Postgres: rows are matched and changed in one step, so two claims can't both win.
+    const changed = rows.filter(matches);
+    changed.forEach((r) => Object.assign(r, request.postDataJSON()));
+    if ((request.headers()["prefer"] ?? "").includes("return=representation")) return json(changed);
     return route.fulfill({ status: 204, body: "" });
   }
   if (method === "DELETE") {
@@ -390,6 +407,37 @@ try {
   }
 
 
+  // Loading: while the data is on its way, pages show the three dots instead of half-loaded content.
+  {
+    const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    let slow = true;
+    await context.route("https://nxlsnpzfbazwlccxtwpt.supabase.co/**", async (route) => {
+      if (slow && route.request().url().includes("/rest/v1/")) await new Promise((r) => setTimeout(r, 1500));
+      return fakeSupabase(route);
+    });
+    await context.addInitScript((value) => localStorage.setItem("sb-nxlsnpzfbazwlccxtwpt-auth-token", value), JSON.stringify(session));
+    const page = await context.newPage();
+    await page.goto("http://localhost:4173/#today");
+    await page.locator(".loading-dots").waitFor({ timeout: 5000 });
+    check(await page.getByRole("status", { name: "Loading" }).isVisible() && await page.getByText("Word of the Day").count() === 0,
+      "Today shows loading dots, not the word, until the data arrives");
+    const lit = await page.locator(".loading-dots span").evaluateAll((dots) => dots.map((d) => getComputedStyle(d).animationDelay));
+    check(lit.join() === "0s,0.35s,0.7s", `the dots light up one after another (${lit})`);
+    await page.getByText("Word of the Day").waitFor({ timeout: 10000 });
+    check(await page.locator(".loading-dots").count() === 0, "the dots go once the word of the day has loaded");
+    slow = false;
+    for (const name of ["Flashcards", "Guides", "Stats", "Profile"]) {
+      await page.getByRole("button", { name, exact: true }).click();
+      check(await page.locator(".loading-dots").count() === 0, `${name}: no dots once loaded`);
+    }
+    slow = true;
+    await page.reload();
+    await page.getByRole("heading", { name: "Profile" }).waitFor();
+    check(await page.locator(".loading-dots").isVisible(), "Profile also waits with dots while loading");
+    await page.getByLabel("Your name").waitFor({ timeout: 10000 });
+    await context.close();
+  }
+
   // My Words: select several words and delete them together.
   {
     const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
@@ -431,6 +479,24 @@ try {
   const quiz = db.daily_quiz[0];
   check(db.daily_quiz.length === 1 && quiz.day === today && quiz.state === "failed" && quiz.recorded === true
     && quiz.revealed_hints.includes(2), `today's quiz saved to the shared table (${JSON.stringify(quiz ?? {})})`);
+
+  // A finished quiz is counted once, even with the site open in two tabs (or reloaded mid-save).
+  {
+    quiz.recorded = false;
+    // Deleting a word above changed the word pool (and so today's word); put it back.
+    db.custom_words.forEach((w) => { w.deleted_at = null; });
+    const before = db.study_days[0].quiz_answers;
+    const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    await context.route("https://nxlsnpzfbazwlccxtwpt.supabase.co/**", fakeSupabase);
+    await context.addInitScript((value) => localStorage.setItem("sb-nxlsnpzfbazwlccxtwpt-auth-token", value), JSON.stringify(session));
+    const [a, b] = await Promise.all([context.newPage(), context.newPage()]);
+    await Promise.all([a.goto("http://localhost:4173/#today"), b.goto("http://localhost:4173/#today")]);
+    await Promise.all([a.getByText(/The answer is/).waitFor(), b.getByText(/The answer is/).waitFor()]);
+    await a.waitForTimeout(1500);
+    check(db.study_days[0].quiz_answers === before + 1 && quiz.recorded === true,
+      `two open tabs count the finished quiz once (${before} → ${db.study_days[0].quiz_answers})`);
+    await context.close();
+  }
 } finally {
   await browser.close();
   server.kill();

@@ -21,7 +21,7 @@ export function Today({ openGuide }: { openGuide: (id: string) => void }) {
     .filter((x): x is { guide: StudyGuideRow; session: GuideSessionRow } => x !== null);
 
   return (
-    <Page title={first ? `Welcome Back, ${first}` : "Welcome Back"}>
+    <Page title={first ? `Welcome Back, ${first}` : "Welcome Back"} waiting={!store.todayLoaded}>
       <div className={`today-layout ${todays.length ? "with-side" : ""}`}>
         <div className="today-streak">
           <Card padding={16}>

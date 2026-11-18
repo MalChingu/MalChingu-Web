@@ -3,6 +3,7 @@ import { posLabel, type DisplayMode, type Example, type PartOfSpeech, type Word 
 import { attempts, isMastered, type WordProgress } from "../core/progress";
 import { displayRomanization, romanize } from "../core/romanizer";
 import { speak, useKoreanVoice } from "../lib/speech";
+import { useStore } from "../lib/store";
 import { Icon, type IconName } from "./Icon";
 
 
@@ -185,9 +186,22 @@ export function Stepper({ onMinus, onPlus, minusLabel, plusLabel, minusDisabled,
 }
 
 /** A screen. `back` puts a round back button on the title line; long titles get a smaller size. */
-export function Page({ title, children, actions, centered, back }: {
+/** Three dots that light up one at a time, shown while content loads from the server. */
+export function LoadingDots() {
+  return (
+    <div className="glass card loading-dots" role="status" aria-label="Loading">
+      <span /><span /><span />
+    </div>
+  );
+}
+
+/** `waiting` replaces the content with loading dots; by default, until the account's data has first loaded. */
+export function Page({ title, children, actions, centered, back, waiting }: {
   title: string; children: ReactNode; actions?: ReactNode; centered?: boolean; back?: { label: string; onClick: () => void };
+  waiting?: boolean;
 }) {
+  const store = useStore();
+  const showDots = waiting ?? !store.loaded;
   return (
     <div className="page">
       <header className={`page-header ${centered ? "centered" : ""}`}>
@@ -195,7 +209,7 @@ export function Page({ title, children, actions, centered, back }: {
         <FitTitle text={title} />
         {actions && <div className="page-actions">{actions}</div>}
       </header>
-      <div className="page-content">{children}</div>
+      <div className="page-content">{showDots ? <LoadingDots /> : children}</div>
     </div>
   );
 }

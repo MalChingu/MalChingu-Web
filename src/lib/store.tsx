@@ -58,6 +58,10 @@ interface Store {
   session: Session | null;
   ready: boolean;
   loading: boolean;
+  /** The account's data has been loaded at least once since the page opened. */
+  loaded: boolean;
+  /** Today's quiz has been loaded, so it shows its real state instead of changing a moment later. */
+  todayLoaded: boolean;
   error: string | null;
   setError: (message: string | null) => void;
   data: Data;
@@ -76,7 +80,8 @@ interface Store {
   submitDaily: (answer: string) => Outcome;
   giveUpDaily: () => void;
   revealDailyHint: (index: number) => void;
-  record: (wordID: string, answer: Answer) => Promise<void>;
+  /** Resolves to whether the answer was saved. */
+  record: (wordID: string, answer: Answer, quiz?: { day: string; word_id: string }) => Promise<boolean>;
   refresh: () => Promise<void>;
   updateSettings: (change: Partial<Settings>) => Promise<void>;
   deleteWord: (row: CustomWordRow) => Promise<void>;
@@ -106,6 +111,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [ready, setReady] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [loadedFor, setLoadedFor] = useState<{ user: string; day: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<Data>(EMPTY);
   const [today, setToday] = useState(dayString());
@@ -127,6 +133,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const refresh = useCallback(async () => {
     if (!userID) return;
     setLoading(true);
+    const day = dayString();
     const started = performance.now();
     try {
       const [profiles, customWords, progress, studyDays, guides, sessions, tasks, tokens, quizzes] = await Promise.all([
@@ -158,8 +165,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setError(`Couldn't load your data: ${(e as Error).message}`);
     } finally {
       setLoading(false);
+      // Also after a failure, so nothing waits forever when offline.
+      setLoadedFor({ user: userID, day });
     }
   }, [userID]);
+
+  // A new day brings a new quiz: load it.
+  useEffect(() => { if (userID && loadedFor && loadedFor.day !== today) refresh(); }, [today]);   // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!userID) { setData(EMPTY); return; }
@@ -218,18 +230,20 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [wordOfTheDay, data.dailyQuiz, today]);
 
   /** Saves run one at a time: each re-reads the day's totals, so overlapping saves would lose counts. */
-  const saveQueue = useRef<Promise<void>>(Promise.resolve());
+  const saveQueue = useRef<Promise<unknown>>(Promise.resolve());
 
   /** Record one answer. The rows are re-read first so answers given on another device aren't overwritten. */
-  const record = useCallback((wordID: string, answer: Answer): Promise<void> => {
-    const next = saveQueue.current.then(() => saveAnswer(wordID, answer));
+  const record = useCallback((wordID: string, answer: Answer, quiz?: { day: string; word_id: string }): Promise<boolean> => {
+    const next = saveQueue.current.then(() => saveAnswer(wordID, answer, quiz));
     saveQueue.current = next.catch(() => undefined);
     return next;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userID]);
 
-  async function saveAnswer(wordID: string, answer: Answer) {
-    if (!userID) return;
+  /** With `quiz`, the answer is today's finished quiz: it is saved only if the quiz hasn't been counted
+   *  already (on another page or device), in one step with marking it counted. */
+  async function saveAnswer(wordID: string, answer: Answer, quiz?: { day: string; word_id: string }): Promise<boolean> {
+    if (!userID) return false;
     const stamp = now();
     const day = dayString();
     try {
@@ -239,29 +253,41 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       ]);
       const progress = recordOnWord((wp as WordProgress | null) ?? emptyProgress(wordID, stamp), answer, stamp);
       const studyDay = recordOnDay((sd as StudyDay | null) ?? emptyDay(day, stamp), answer, stamp);
+      if (quiz) {
+        const { data: counted, error } = await supabase.rpc("record_daily_quiz",
+          { p_day: quiz.day, p_word_id: quiz.word_id, p_progress: progress, p_study_day: studyDay });
+        if (error) throw new Error(error.message);
+        if (!counted) return true;   // already counted elsewhere; the next load brings its numbers
+      }
       edit("progress", "studyDays");
       setData((d) => ({
         ...d,
         progress: [...d.progress.filter((p) => p.word_id !== wordID), progress],
         studyDays: [...d.studyDays.filter((s) => s.day !== day), studyDay],
       }));
+      if (quiz) return true;
       const [a, b] = await Promise.all([
         supabase.from("word_progress").upsert({ ...progress, user_id: userID }, { onConflict: "user_id,word_id" }),
         supabase.from("study_days").upsert({ ...studyDay, user_id: userID }, { onConflict: "user_id,day" }),
       ]);
       if (a.error || b.error) throw new Error((a.error ?? b.error)!.message);
+      return true;
     } catch (e) {
       setError(`Couldn't save your answer: ${(e as Error).message}`);
+      return false;
     }
   }
 
+  /** Quiz saves run one after another, so the result is saved before it is claimed below. */
+  const quizQueue = useRef<Promise<unknown>>(Promise.resolve());
   const upsertQuiz = useCallback((row: DailyQuizRow) => {
     if (!userID) return;
     edit("dailyQuiz");
     setData((d) => ({ ...d, dailyQuiz: row }));
-    supabase.from("daily_quiz").upsert({ ...row, user_id: userID }, { onConflict: "user_id,day" }).then(({ error }) => {
-      if (error) setError(`Couldn't save today's word: ${error.message}`);
-    });
+    quizQueue.current = quizQueue.current.then(() =>
+      supabase.from("daily_quiz").upsert({ ...row, user_id: userID }, { onConflict: "user_id,day" }).then(({ error }) => {
+        if (error) setError(`Couldn't save today's word: ${error.message}`);
+      }));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userID]);
 
@@ -275,6 +301,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   // A finished quiz is counted in the stats once, and only marked as counted after that has saved, so
   // closing the page mid-save doesn't lose it: it's counted on the next load instead.
+  // Count a finished quiz in the stats exactly once, across reloads, tabs and devices. The database
+  // marks it counted and saves the count in one step (record_daily_quiz), so it can be neither counted
+  // twice nor marked without being counted. The quiz's own save goes first (quizQueue).
   const counting = useRef<string | null>(null);
   useEffect(() => {
     const row = data.dailyQuiz;
@@ -283,11 +312,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const key = `${row.day}:${row.word_id}`;
     if (counting.current === key) return;
     counting.current = key;
-    record(quiz.word.id, {
-      correct: quiz.state === "solved", source: "quiz",
+    const answer = {
+      correct: quiz.state === "solved", source: "quiz" as const,
       gaveUp: quiz.state === "failed" && quiz.mistakes < 3, hints: quiz.revealedHints.length,
-    }).then(() => upsertQuiz({ ...row, recorded: true, updated_at: now() }));
-  }, [userID, quiz, data.dailyQuiz, today, record, upsertQuiz]);
+    };
+    quizQueue.current = quizQueue.current.then(async () => {
+      if (await record(quiz.word.id, answer, { day: row.day, word_id: row.word_id })) {
+        edit("dailyQuiz");
+        setData((d) => d.dailyQuiz?.day === row.day ? { ...d, dailyQuiz: { ...d.dailyQuiz, recorded: true } } : d);
+      } else {
+        counting.current = null;   // try again on the next change or load
+      }
+    });
+  }, [userID, quiz, data.dailyQuiz, today, record]);
 
   const submitDaily = useCallback((answer: string): Outcome => {
     if (!quiz) return { kind: "ignored" };
@@ -378,7 +415,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const connectorShown = data.hasConnectorToken ? (data.connectorToken ?? connectorKey) : null;
 
   const store: Store = {
-    session, ready, loading, error, setError, data, settings, myWords, allWords, findWord,
+    session, ready, loading, error,
+    loaded: loadedFor?.user === userID, todayLoaded: loadedFor?.user === userID && loadedFor.day === today, setError, data, settings, myWords, allWords, findWord,
     progressFor: (id) => progressMap.get(id), progressMap, stats, level, earned, wordOfTheDay,
     dailyQuiz: quiz, submitDaily, giveUpDaily, revealDailyHint, record, refresh, updateSettings, deleteWord, deleteWords,
     setTaskDone, deleteGuide,

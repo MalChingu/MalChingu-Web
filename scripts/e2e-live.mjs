@@ -33,6 +33,25 @@ const userID = auth.user.id;
 // Start each run from a clean slate for today, so the checks below are predictable.
 await supabase.from("daily_quiz").delete().eq("day", today);
 
+// The database counts a finished quiz once: the first call counts it, a second (another tab or device) doesn't.
+{
+  await supabase.from("daily_quiz").upsert({ user_id: userID, day: today, word_id: "b-가다", state: "solved", mistakes: 0,
+    revealed_hints: [], recorded: false, updated_at: new Date().toISOString() }, { onConflict: "user_id,day" });
+  const { data: wp } = await supabase.from("word_progress").select("*").eq("word_id", "b-가다").maybeSingle();
+  const { data: sd } = await supabase.from("study_days").select("*").eq("day", today).maybeSingle();
+  const stamp = new Date().toISOString();
+  const progress = wp ?? { word_id: "b-가다", streak: 0, best_streak: 0, correct: 0, wrong: 0, dont_know: 0, hints_used: 0,
+    first_reviewed: stamp, last_reviewed: stamp, updated_at: stamp };
+  const day = sd ?? { day: today, reviews: 0, correct: 0, quiz_answers: 0, flashcard_answers: 0, dont_know: 0, hints_used: 0, updated_at: stamp };
+  const args = { p_day: today, p_word_id: "b-가다", p_progress: progress, p_study_day: day };
+  const first = await supabase.rpc("record_daily_quiz", args);
+  const second = await supabase.rpc("record_daily_quiz", args);
+  const { data: row } = await supabase.from("daily_quiz").select("recorded").eq("day", today).single();
+  check(first.data === true && second.data === false && row?.recorded === true,
+    `a finished quiz is counted once (${first.error?.message ?? first.data}, ${second.error?.message ?? second.data})`);
+  await supabase.from("daily_quiz").delete().eq("day", today);
+}
+
 // Seed through the Claude connector, as Claude would.
 // One link per account: turn off the old one (left by the last run) before making a new one.
 await supabase.from("connector_tokens").delete().eq("user_id", userID);
