@@ -63,7 +63,14 @@ export interface GuideSessionRow {
   title: string;
   goals: string[];
   grammar_notes: string;
+  /** "Check Yourself" questions; missing on rows saved before it existed. */
+  self_check?: CheckItem[];
   updated_at: string;
+}
+
+export interface CheckItem {
+  question: string;
+  answer: string;
 }
 
 export interface GuideTaskRow {

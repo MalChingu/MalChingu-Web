@@ -1,0 +1,403 @@
+[
+ {
+  "input": "**Same rule as the present tense, just add ㅆ:**\n- Last stem vowel ㅏ or ㅗ → **-았어요**: 좋다 → 좋았어요, 앉다 → 앉았어요\n- Any other vowel → **-었어요**: 먹다 → 먹었어요, 맛없다 → 맛없었어요\n- 하다 verbs → **-했어요**: 요리하다 → 요리했어요, 이사하다 → 이사했어요\n\n**Shortening:** 가았어요 → **갔어요**, 오았어요 → **왔어요**, 보다 → **봤어요**, 자다 → **잤어요**, 마시었어요 → **마셨어요**, 쓰었어요 → **썼어요**\n- ㅡ drops: 바쁘다 → **바빴어요** (not 바쁘았어요)\n\n**Pronunciation (from the 11.17 notes):** 씻었어요 [씨서써요] · 맛있었어요 [마시써써요] · 맛없었어요 [마덥써써요]\n\n**Greeting:** 밥 먹었어요? works like \"How are you?\" → 네, 먹었어요. → 뭐 먹었어요? → 커피하고 바나나 두 개 먹었어요.",
+  "blocks": [
+   {
+    "kind": "heading",
+    "spans": [
+     {
+      "kind": "text",
+      "text": "Same rule as the present tense, just add ㅆ"
+     }
+    ]
+   },
+   {
+    "kind": "bullet",
+    "spans": [
+     {
+      "kind": "text",
+      "text": "Last stem vowel ㅏ or ㅗ → "
+     },
+     {
+      "kind": "bold",
+      "text": "-았어요"
+     },
+     {
+      "kind": "text",
+      "text": ": 좋다 → 좋았어요, 앉다 → 앉았어요"
+     }
+    ]
+   },
+   {
+    "kind": "bullet",
+    "spans": [
+     {
+      "kind": "text",
+      "text": "Any other vowel → "
+     },
+     {
+      "kind": "bold",
+      "text": "-었어요"
+     },
+     {
+      "kind": "text",
+      "text": ": 먹다 → 먹었어요, 맛없다 → 맛없었어요"
+     }
+    ]
+   },
+   {
+    "kind": "bullet",
+    "spans": [
+     {
+      "kind": "text",
+      "text": "하다 verbs → "
+     },
+     {
+      "kind": "bold",
+      "text": "-했어요"
+     },
+     {
+      "kind": "text",
+      "text": ": 요리하다 → 요리했어요, 이사하다 → 이사했어요"
+     }
+    ]
+   },
+   {
+    "kind": "paragraph",
+    "spans": [
+     {
+      "kind": "bold",
+      "text": "Shortening:"
+     },
+     {
+      "kind": "text",
+      "text": " 가았어요 → "
+     },
+     {
+      "kind": "bold",
+      "text": "갔어요"
+     },
+     {
+      "kind": "text",
+      "text": ", 오았어요 → "
+     },
+     {
+      "kind": "bold",
+      "text": "왔어요"
+     },
+     {
+      "kind": "text",
+      "text": ", 보다 → "
+     },
+     {
+      "kind": "bold",
+      "text": "봤어요"
+     },
+     {
+      "kind": "text",
+      "text": ", 자다 → "
+     },
+     {
+      "kind": "bold",
+      "text": "잤어요"
+     },
+     {
+      "kind": "text",
+      "text": ", 마시었어요 → "
+     },
+     {
+      "kind": "bold",
+      "text": "마셨어요"
+     },
+     {
+      "kind": "text",
+      "text": ", 쓰었어요 → "
+     },
+     {
+      "kind": "bold",
+      "text": "썼어요"
+     }
+    ]
+   },
+   {
+    "kind": "bullet",
+    "spans": [
+     {
+      "kind": "text",
+      "text": "ㅡ drops: 바쁘다 → "
+     },
+     {
+      "kind": "bold",
+      "text": "바빴어요"
+     },
+     {
+      "kind": "text",
+      "text": " (not 바쁘았어요)"
+     }
+    ]
+   },
+   {
+    "kind": "paragraph",
+    "spans": [
+     {
+      "kind": "bold",
+      "text": "Pronunciation (from the 11.17 notes):"
+     },
+     {
+      "kind": "text",
+      "text": " 씻었어요 "
+     },
+     {
+      "kind": "pron",
+      "text": "씨서써요"
+     },
+     {
+      "kind": "text",
+      "text": " · 맛있었어요 "
+     },
+     {
+      "kind": "pron",
+      "text": "마시써써요"
+     },
+     {
+      "kind": "text",
+      "text": " · 맛없었어요 "
+     },
+     {
+      "kind": "pron",
+      "text": "마덥써써요"
+     }
+    ]
+   },
+   {
+    "kind": "paragraph",
+    "spans": [
+     {
+      "kind": "bold",
+      "text": "Greeting:"
+     },
+     {
+      "kind": "text",
+      "text": " 밥 먹었어요? works like \"How are you?\" → 네, 먹었어요. → 뭐 먹었어요? → 커피하고 바나나 두 개 먹었어요."
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "input": "## Rule\n### Second level:\n# Top",
+  "blocks": [
+   {
+    "kind": "heading",
+    "spans": [
+     {
+      "kind": "text",
+      "text": "Rule"
+     }
+    ]
+   },
+   {
+    "kind": "heading",
+    "spans": [
+     {
+      "kind": "text",
+      "text": "Second level"
+     }
+    ]
+   },
+   {
+    "kind": "heading",
+    "spans": [
+     {
+      "kind": "text",
+      "text": "Top"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "input": "**Heading**:",
+  "blocks": [
+   {
+    "kind": "heading",
+    "spans": [
+     {
+      "kind": "text",
+      "text": "Heading"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "input": "* star bullet\n• dot bullet\n– dash bullet\n-았어요 is an ending, not a bullet",
+  "blocks": [
+   {
+    "kind": "bullet",
+    "spans": [
+     {
+      "kind": "text",
+      "text": "star bullet"
+     }
+    ]
+   },
+   {
+    "kind": "bullet",
+    "spans": [
+     {
+      "kind": "text",
+      "text": "dot bullet"
+     }
+    ]
+   },
+   {
+    "kind": "bullet",
+    "spans": [
+     {
+      "kind": "text",
+      "text": "dash bullet"
+     }
+    ]
+   },
+   {
+    "kind": "paragraph",
+    "spans": [
+     {
+      "kind": "text",
+      "text": "-았어요 is an ending, not a bullet"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "input": "1. First\n2) Second\n2026.11.17 is a date",
+  "blocks": [
+   {
+    "kind": "numbered",
+    "number": 1,
+    "spans": [
+     {
+      "kind": "text",
+      "text": "First"
+     }
+    ]
+   },
+   {
+    "kind": "numbered",
+    "number": 2,
+    "spans": [
+     {
+      "kind": "text",
+      "text": "Second"
+     }
+    ]
+   },
+   {
+    "kind": "paragraph",
+    "spans": [
+     {
+      "kind": "text",
+      "text": "2026.11.17 is a date"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "input": "Read the [pronunciations] and [씨서써요] but not [] or [abc]",
+  "blocks": [
+   {
+    "kind": "paragraph",
+    "spans": [
+     {
+      "kind": "text",
+      "text": "Read the [pronunciations] and "
+     },
+     {
+      "kind": "pron",
+      "text": "씨서써요"
+     },
+     {
+      "kind": "text",
+      "text": " but not [] or [abc]"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "input": "**oops never closed\n****\nA ** B",
+  "blocks": [
+   {
+    "kind": "paragraph",
+    "spans": [
+     {
+      "kind": "text",
+      "text": "**oops never closed"
+     }
+    ]
+   },
+   {
+    "kind": "paragraph",
+    "spans": [
+     {
+      "kind": "text",
+      "text": "****"
+     }
+    ]
+   },
+   {
+    "kind": "paragraph",
+    "spans": [
+     {
+      "kind": "text",
+      "text": "A ** B"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "input": "`가다 (gada) — to go`",
+  "blocks": [
+   {
+    "kind": "paragraph",
+    "spans": [
+     {
+      "kind": "text",
+      "text": "가다 (gada) — to go"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "input": "line one\r\n\r\n   line two   ",
+  "blocks": [
+   {
+    "kind": "paragraph",
+    "spans": [
+     {
+      "kind": "text",
+      "text": "line one"
+     }
+    ]
+   },
+   {
+    "kind": "paragraph",
+    "spans": [
+     {
+      "kind": "text",
+      "text": "line two"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "input": "",
+  "blocks": []
+ }
+]

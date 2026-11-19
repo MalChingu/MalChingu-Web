@@ -4,6 +4,7 @@ import type { GuideSessionRow, StudyGuideRow, Word } from "../core/models";
 import { customToWord } from "../core/wordBank";
 import { addDays, dayString } from "../core/wordOfDay";
 import { Icon } from "../components/Icon";
+import { CheckYourself, GuideNotes } from "../components/GuideNotes";
 import { Button, Card, ConfirmDialog, Page, RoundButton, SectionTitle, Segmented, Sheet, Stepper, WordRow, copyText } from "../components/ui";
 import { overviewPoints } from "../core/guideOverview";
 import { useStore } from "../lib/store";
@@ -152,9 +153,11 @@ function DayCard({ guide, session, isToday, words, practice }: {
   guide: StudyGuideRow; session: GuideSessionRow; isToday: boolean; words: Word[]; practice: (words: Word[]) => void;
 }) {
   const store = useStore();
+  const [showingWords, setShowingWords] = useState(false);
+  const checks = session.self_check ?? [];
   void guide;
   return (
-    <Card>
+    <Card className="day-card">
       <div className="row">
         <h3 className="grow">{session.title}</h3>
         {isToday && <span className="today-badge">TODAY</span>}
@@ -163,19 +166,22 @@ function DayCard({ guide, session, isToday, words, practice }: {
         <ul className="goals">{session.goals.map((g, i) => <li key={i}><Icon name="target" size={14} /> {g}</li>)}</ul>
       )}
       <TaskList tasks={store.data.tasks.filter((t) => t.session_id === session.id)} />
-      {session.grammar_notes && (
-        <details className="notes"><summary>Notes</summary><div className="notes-body">{session.grammar_notes}</div></details>
-      )}
+      {session.grammar_notes && <GuideNotes text={session.grammar_notes} />}
+      {checks.length > 0 && <CheckYourself items={checks} />}
       {words.length > 0 && (
-        <>
-          <div className="row top-rule">
-            <strong className="grow">Vocabulary · {words.length}</strong>
-            <Button onClick={() => practice(words)}>Practice</Button>
+        <section className="guide-section top-rule">
+          <div className="row">
+            <Icon name="cards" size={18} className="accent" />
+            <strong className="grow section-label">Vocabulary · {words.length}</strong>
+            <Button compact expanded={showingWords} onClick={() => setShowingWords(!showingWords)}>{showingWords ? "Hide" : "Show"}</Button>
+            <Button compact kind="prominent" onClick={() => practice(words)}>Practice</Button>
           </div>
-          <div className="divided">
-            {words.map((w) => <WordRow key={w.id} word={w} progress={store.progressFor(w.id)} onClick={() => store.openWord(w)} />)}
-          </div>
-        </>
+          {showingWords && (
+            <div className="divided">
+              {words.map((w) => <WordRow key={w.id} word={w} progress={store.progressFor(w.id)} onClick={() => store.openWord(w)} />)}
+            </div>
+          )}
+        </section>
       )}
     </Card>
   );

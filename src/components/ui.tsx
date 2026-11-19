@@ -91,12 +91,13 @@ export function StatTile({ title, value, icon, tone = "accent" }: { title: strin
 
 type ButtonKind = "prominent" | "glass" | "danger";
 
-export function Button({ children, icon, kind = "glass", onClick, disabled, full, type = "button", large }: {
+export function Button({ children, icon, kind = "glass", onClick, disabled, full, type = "button", large, compact, expanded }: {
   children: ReactNode; icon?: IconName; kind?: ButtonKind; onClick?: () => void; disabled?: boolean; full?: boolean;
-  type?: "button" | "submit"; large?: boolean;
+  type?: "button" | "submit"; large?: boolean; compact?: boolean; expanded?: boolean;
 }) {
   return (
-    <button type={type} className={`button ${kind} ${full ? "full" : ""} ${large ? "large" : ""}`} onClick={onClick} disabled={disabled}>
+    <button type={type} className={`button ${kind} ${full ? "full" : ""} ${large ? "large" : ""} ${compact ? "compact" : ""}`} onClick={onClick} disabled={disabled}
+      aria-expanded={expanded}>
       {icon && <Icon name={icon} size={18} />}
       <span>{children}</span>
     </button>

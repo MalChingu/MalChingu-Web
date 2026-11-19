@@ -73,3 +73,14 @@ describe("guide overview points (same rules as the app)", () => {
     expect(overviewPoints("")).toEqual([]);
   });
 });
+
+import { noteBlocks } from "../noteMarkup";
+import noteCases from "./noteMarkup.cases.json";
+
+describe("guide notes markup (same cases as the iPhone and Android apps)", () => {
+  for (const [i, c] of noteCases.entries()) {
+    it(`case ${i + 1}: ${JSON.stringify(c.input.slice(0, 40))}`, () => {
+      expect(noteBlocks(c.input)).toEqual(c.blocks);
+    });
+  }
+});
