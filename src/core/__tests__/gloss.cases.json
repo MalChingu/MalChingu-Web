@@ -1,0 +1,333 @@
+{
+ "words": [
+  {
+   "id": "c-1",
+   "hangul": "엄마",
+   "romanization": "eomma",
+   "meanings": [
+    "mom",
+    "mother"
+   ],
+   "pos": "noun",
+   "examples": []
+  },
+  {
+   "id": "c-2",
+   "hangul": "귀엽다",
+   "romanization": "gwiyeopda",
+   "meanings": [
+    "to be cute",
+    "cute"
+   ],
+   "pos": "adjective",
+   "examples": [],
+   "tenses": {
+    "past": "귀여웠어요",
+    "present": "귀여워요",
+    "future": "귀여울 거예요"
+   }
+  },
+  {
+   "id": "c-3",
+   "hangul": "제가",
+   "romanization": "jega",
+   "meanings": [
+    "I (polite, subject)"
+   ],
+   "pos": "phrase",
+   "examples": []
+  },
+  {
+   "id": "c-4",
+   "hangul": "차",
+   "romanization": "cha",
+   "meanings": [
+    "tea"
+   ],
+   "pos": "noun",
+   "examples": []
+  }
+ ],
+ "cases": [
+  {
+   "form": "-았어요",
+   "gloss": {
+    "form": "-았어요",
+    "romanization": "asseoyo",
+    "meaning": "Past ending, after ㅏ or ㅗ"
+   }
+  },
+  {
+   "form": "었어요",
+   "gloss": {
+    "form": "었어요",
+    "romanization": "eosseoyo",
+    "meaning": "Past ending, after other vowels"
+   }
+  },
+  {
+   "form": "~했어요",
+   "gloss": {
+    "form": "-했어요",
+    "romanization": "haesseoyo",
+    "meaning": "Past of 하다 verbs"
+   }
+  },
+  {
+   "form": "갔어요",
+   "gloss": {
+    "form": "갔어요",
+    "romanization": "gasseoyo",
+    "meaning": "Past of 가다 · to go"
+   }
+  },
+  {
+   "form": "좋았어요",
+   "gloss": {
+    "form": "좋았어요",
+    "romanization": "joasseoyo",
+    "meaning": "Past of 좋다 · to be good"
+   }
+  },
+  {
+   "form": "바빴어요",
+   "gloss": {
+    "form": "바빴어요",
+    "romanization": "bappasseoyo",
+    "meaning": "Past of 바쁘다 · to be busy"
+   }
+  },
+  {
+   "form": "더워요",
+   "gloss": {
+    "form": "더워요",
+    "romanization": "deowoyo",
+    "meaning": "Present of 덥다 · to be hot"
+   }
+  },
+  {
+   "form": "귀여웠어요",
+   "gloss": {
+    "form": "귀여웠어요",
+    "romanization": "gwiyeowosseoyo",
+    "meaning": "Past of 귀엽다 · to be cute"
+   }
+  },
+  {
+   "form": "가다",
+   "gloss": {
+    "form": "가다",
+    "romanization": "gada",
+    "meaning": "to go"
+   }
+  },
+  {
+   "form": "엄마",
+   "gloss": {
+    "form": "엄마",
+    "romanization": "eomma",
+    "meaning": "mom"
+   }
+  },
+  {
+   "form": "제가",
+   "gloss": {
+    "form": "제가",
+    "romanization": "jega",
+    "meaning": "I (polite, as the subject)"
+   }
+  },
+  {
+   "form": "은/는",
+   "gloss": {
+    "form": "은/는",
+    "romanization": "eun/neun",
+    "meaning": "Topic marker"
+   }
+  },
+  {
+   "form": "이",
+   "gloss": {
+    "form": "이",
+    "romanization": "i",
+    "meaning": "Subject marker (after a consonant)"
+   }
+  },
+  {
+   "form": "커피는",
+   "gloss": {
+    "form": "커피는",
+    "romanization": "keopineun",
+    "meaning": "커피 (coffee) + 는 · topic"
+   }
+  },
+  {
+   "form": "엄마가",
+   "gloss": {
+    "form": "엄마가",
+    "romanization": "eommaga",
+    "meaning": "엄마 (mom) + 가 · subject"
+   }
+  },
+  {
+   "form": "차는",
+   "gloss": {
+    "form": "차는",
+    "romanization": "chaneun",
+    "meaning": "차 (tea) + 는 · topic"
+   }
+  },
+  {
+   "form": "음식은",
+   "gloss": {
+    "form": "음식은",
+    "romanization": "eumsigeun",
+    "meaning": "음식 (food) + 은 · topic"
+   }
+  },
+  {
+   "form": "고양이",
+   "gloss": {
+    "form": "고양이",
+    "romanization": "goyangi",
+    "meaning": "cat"
+   }
+  },
+  {
+   "form": "고양이가",
+   "gloss": {
+    "form": "고양이가",
+    "romanization": "goyangiga",
+    "meaning": "고양이 (cat) + 가 · subject"
+   }
+  },
+  {
+   "form": "학교에서",
+   "gloss": {
+    "form": "학교에서",
+    "romanization": "hakgyoeseo",
+    "meaning": "학교 (school) + 에서 · at / from"
+   }
+  },
+  {
+   "form": "안 더워요",
+   "gloss": {
+    "form": "안 더워요",
+    "romanization": "an deowoyo",
+    "meaning": "Not · 덥다 · to be hot"
+   }
+  },
+  {
+   "form": "안 더웠어요",
+   "gloss": {
+    "form": "안 더웠어요",
+    "romanization": "an deowosseoyo",
+    "meaning": "Not (past) · 덥다 · to be hot"
+   }
+  },
+  {
+   "form": "덥지 않아요",
+   "gloss": {
+    "form": "덥지 않아요",
+    "romanization": "deopji anayo",
+    "meaning": "Not · 덥다 · to be hot"
+   }
+  },
+  {
+   "form": "덥지 않았어요",
+   "gloss": {
+    "form": "덥지 않았어요",
+    "romanization": "deopji anasseoyo",
+    "meaning": "Not (past) · 덥다 · to be hot"
+   }
+  },
+  {
+   "form": "안 덥고",
+   "gloss": {
+    "form": "안 덥고",
+    "romanization": "an deopgo",
+    "meaning": "Not · 덥다 · to be hot + -고 (and)"
+   }
+  },
+  {
+   "form": "덥고",
+   "gloss": {
+    "form": "덥고",
+    "romanization": "deopgo",
+    "meaning": "덥다 · to be hot + -고 (and)"
+   }
+  },
+  {
+   "form": "공부 안 해요",
+   "gloss": {
+    "form": "공부 안 해요",
+    "romanization": "gongbu an haeyo",
+    "meaning": "Not · 공부하다 · to study"
+   }
+  },
+  {
+   "form": "안 해요",
+   "gloss": {
+    "form": "안 해요",
+    "romanization": "an haeyo",
+    "meaning": "Not · 하다 · to do"
+   }
+  },
+  {
+   "form": "공부 안 했어요",
+   "gloss": {
+    "form": "공부 안 했어요",
+    "romanization": "gongbu an haesseoyo",
+    "meaning": "Not (past) · 공부하다 · to study"
+   }
+  },
+  {
+   "form": "갔어요.",
+   "gloss": {
+    "form": "갔어요",
+    "romanization": "gasseoyo",
+    "meaning": "Past of 가다 · to go"
+   }
+  },
+  {
+   "form": "\"제가\"",
+   "gloss": {
+    "form": "제가",
+    "romanization": "jega",
+    "meaning": "I (polite, as the subject)"
+   }
+  },
+  {
+   "form": "(학교에)",
+   "gloss": {
+    "form": "학교에",
+    "romanization": "hakgyoe",
+    "meaning": "학교 (school) + 에 · at / to"
+   }
+  },
+  {
+   "form": "유진은",
+   "gloss": null
+  },
+  {
+   "form": "밥 먹었어요?",
+   "gloss": null
+  },
+  {
+   "form": "hello",
+   "gloss": null
+  },
+  {
+   "form": "",
+   "gloss": null
+  },
+  {
+   "form": "갈 거예요",
+   "gloss": {
+    "form": "갈 거예요",
+    "romanization": "gal geoyeyo",
+    "meaning": "Future of 가다 · to go"
+   }
+  }
+ ]
+}

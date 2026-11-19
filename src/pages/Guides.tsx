@@ -5,6 +5,7 @@ import { customToWord } from "../core/wordBank";
 import { addDays, dayString } from "../core/wordOfDay";
 import { Icon } from "../components/Icon";
 import { CheckYourself, GuideNotes, GuideSection } from "../components/GuideNotes";
+import { TranslateCard } from "../components/TranslateCard";
 import { Button, Card, ConfirmDialog, Page, RoundButton, SectionTitle, Segmented, Sheet, Stepper, WordRow, copyText } from "../components/ui";
 import { overviewPoints } from "../core/guideOverview";
 import { useStore } from "../lib/store";
@@ -117,6 +118,7 @@ function GuideDetail({ guide, onBack, practice }: { guide: StudyGuideRow; onBack
           )}
         </div>
 
+        <aside className="guide-side">
         <nav className="glass card day-list" aria-label="Days">
           <div className="section-title">Days</div>
           {sessions.map((s) => {
@@ -138,6 +140,8 @@ function GuideDetail({ guide, onBack, practice }: { guide: StudyGuideRow; onBack
             );
           })}
         </nav>
+        <TranslateCard />
+        </aside>
       </div>
 
       {confirmingDelete && (

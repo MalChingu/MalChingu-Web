@@ -84,3 +84,16 @@ describe("guide notes markup (same cases as the iPhone and Android apps)", () =>
     });
   }
 });
+
+import { gloss } from "../gloss";
+import glossCases from "./gloss.cases.json";
+import type { Word } from "../models";
+
+describe("explaining a Korean form in the notes (same cases as the iPhone and Android apps)", () => {
+  const words = [...(glossCases.words as Word[]), ...BUILT_IN];
+  for (const c of glossCases.cases) {
+    it(`${JSON.stringify(c.form)}`, () => {
+      expect(gloss(c.form, words)).toEqual(c.gloss);
+    });
+  }
+});

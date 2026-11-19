@@ -21,6 +21,7 @@
   --glass: rgba(255, 255, 255, 0.62);
   --glass-border: rgba(255, 255, 255, 0.75);
   --glass-strong: rgba(255, 255, 255, 0.82);
+  --popover: #ffffff;
   --field: rgba(255, 255, 255, 0.7);
   --divider: rgba(21, 19, 43, 0.09);
   --shadow: 0 10px 30px rgba(40, 30, 120, 0.1), 0 1px 2px rgba(40, 30, 120, 0.06);
@@ -48,6 +49,7 @@
   --glass: rgba(36, 34, 60, 0.55);
   --glass-border: rgba(255, 255, 255, 0.1);
   --glass-strong: rgba(44, 42, 72, 0.85);
+  --popover: #2c2a48;
   --field: rgba(255, 255, 255, 0.08);
   --divider: rgba(255, 255, 255, 0.09);
   --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
@@ -71,6 +73,7 @@
       --glass: rgba(36, 34, 60, 0.55);
       --glass-border: rgba(255, 255, 255, 0.1);
       --glass-strong: rgba(44, 42, 72, 0.85);
+      --popover: #2c2a48;
       --field: rgba(255, 255, 255, 0.08);
       --divider: rgba(255, 255, 255, 0.09);
       --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
@@ -272,6 +275,18 @@ button:disabled { cursor: default; opacity: 0.45; }
 .note-list { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; }
 .note-list li::marker { color: var(--accent); font-weight: 700; }
 .note-key { color: var(--accent); font-weight: 700; font-size: 1.04em; }
+/* Purple Korean is a button: hover, focus or tap shows what it means. */
+.note-key[role="button"] { cursor: help; border-radius: 4px;
+  text-decoration: underline dotted color-mix(in srgb, var(--accent) 50%, transparent); text-underline-offset: 3px; }
+.gloss-tip { position: fixed; z-index: 1000; transform: translate(-50%, -100%); width: max-content;
+  max-width: min(300px, calc(100vw - 32px)); padding: 10px 14px; border-radius: 16px; display: flex; flex-direction: column; gap: 2px;
+  background: var(--popover); border: 1px solid var(--glass-border); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.22);
+  word-break: keep-all; overflow-wrap: break-word; }
+.gloss-tip.below { transform: translate(-50%, 0); }
+.gloss-head { gap: 6px; }
+.gloss-form { font-size: 1.1rem; color: var(--accent); }
+.gloss-meaning { font-weight: 600; }
+.gloss-translate { align-self: flex-start; }
 .nowrap { white-space: nowrap; }
 .note-pron { display: inline-block; font-size: 0.85em; line-height: 1.4; padding: 0 8px; margin: 0 1px; border-radius: 999px;
   background: var(--glass-strong); border: 1px solid var(--divider); color: var(--text-2); white-space: nowrap; }
@@ -448,7 +463,16 @@ progress::-moz-progress-bar { background: var(--accent-fill); }
 .guide-main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .day-switcher { display: flex; align-items: center; gap: 12px; }
 .day-switcher-label { flex: 1; display: flex; flex-direction: column; align-items: center; text-align: center; }
+.guide-side { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .day-list { gap: 4px; padding: 14px; }
+.translate-card { padding: 14px; gap: 10px; }
+.translate-card .section-title { padding: 4px 6px 0; }
+.translate-results { display: flex; flex-direction: column; gap: 14px; padding: 4px 2px 0; word-break: keep-all; overflow-wrap: break-word; }
+.translate-results .section-title { padding: 0; }
+.translate-known { display: flex; flex-direction: column; gap: 2px; }
+.translate-known strong { color: var(--accent); font-size: 1.05rem; }
+.translate-out { display: flex; flex-direction: column; gap: 2px; }
+.translate-text { font-size: 1.05rem; font-weight: 600; }
 .day-list .section-title { padding: 4px 6px 8px; }
 .day-item { display: flex; align-items: center; gap: 12px; border: 0; background: none; padding: 10px; border-radius: 14px; text-align: left; width: 100%; }
 .day-item:hover { background: var(--field); }
@@ -464,7 +488,7 @@ progress::-moz-progress-bar { background: var(--accent-fill); }
 .day-item-title { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @media (min-width: 1180px) {
   .guide-layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 20px; align-items: start; }
-  .day-list { position: sticky; top: 32px; max-height: calc(100dvh - 64px); overflow-y: auto; }
+  .guide-side { position: sticky; top: 32px; max-height: calc(100dvh - 64px); overflow-y: auto; }
 }
 
 /* Confirmation dialog. */
