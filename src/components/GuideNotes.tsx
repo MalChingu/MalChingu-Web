@@ -1,7 +1,7 @@
 import { Fragment, useMemo, useState, type ReactNode } from "react";
 import type { CheckItem } from "../core/models";
 import { noteBlocks, type NoteBlock, type NoteSpan } from "../core/noteMarkup";
-import { Icon } from "./Icon";
+import { Icon, type IconName } from "./Icon";
 
 const HANGUL = /[ᄀ-ᇿ㄰-㆏가-힯]/;
 
@@ -43,19 +43,40 @@ function renderBlocks(blocks: NoteBlock[]): ReactNode[] {
   return out;
 }
 
-/** The day's notes from Claude: open by default, formatted from their simple Markdown. */
-export function GuideNotes({ text }: { text: string }) {
-  const [open, setOpen] = useState(true);
-  const blocks = useMemo(() => noteBlocks(text), [text]);
+/** A guide day's section: an icon and title that open and close it, the section's own actions, and an
+ *  arrow at the right that turns down when it opens. Closed by default; the content slides open. */
+export function GuideSection({ icon, title, actions, children }: {
+  icon: IconName; title: string; actions?: (open: boolean) => ReactNode; children: ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  const toggle = () => setOpen(!open);
   return (
     <section className="guide-section top-rule">
-      <button type="button" className="section-toggle" aria-expanded={open} onClick={() => setOpen(!open)}>
-        <Icon name="book" size={18} className="accent" />
-        <strong className="grow">Notes</strong>
-        <Icon name="chevron" size={16} className={`chev ${open ? "open" : ""}`} />
-      </button>
-      {open && <div className="notes-panel">{renderBlocks(blocks)}</div>}
+      <div className="row">
+        <button type="button" className="section-toggle grow" aria-expanded={open} onClick={toggle}>
+          <Icon name={icon} size={18} className="accent" />
+          <strong className="section-label">{title}</strong>
+        </button>
+        {actions?.(open)}
+        {/* The title is the keyboard stop; the arrow is a second, larger target for the pointer. */}
+        <button type="button" className="chev-button" tabIndex={-1} aria-hidden="true" onClick={toggle}>
+          <Icon name="chevron" size={18} className={`chev ${open ? "open" : ""}`} />
+        </button>
+      </div>
+      <div className={`collapsible ${open ? "open" : ""}`} inert={!open}>
+        <div>{children}</div>
+      </div>
     </section>
+  );
+}
+
+/** The day's notes from Claude, formatted from their simple Markdown. */
+export function GuideNotes({ text }: { text: string }) {
+  const blocks = useMemo(() => noteBlocks(text), [text]);
+  return (
+    <GuideSection icon="book" title="Notes">
+      <div className="notes-panel">{renderBlocks(blocks)}</div>
+    </GuideSection>
   );
 }
 
@@ -69,14 +90,11 @@ export function CheckYourself({ items }: { items: CheckItem[] }) {
     setShown(next);
   };
   return (
-    <section className="guide-section top-rule">
-      <div className="row">
-        <Icon name="question" size={18} className="accent" />
-        <strong className="grow section-label">Check Yourself · {items.length}</strong>
-        <button type="button" className="link small" onClick={() => setShown(all ? new Set() : new Set(items.map((_, i) => i)))}>
-          {all ? "Hide All" : "Show All"}
-        </button>
-      </div>
+    <GuideSection icon="question" title={`Check Yourself · ${items.length}`} actions={(open) => open && (
+      <button type="button" className="link small" onClick={() => setShown(all ? new Set() : new Set(items.map((_, i) => i)))}>
+        {all ? "Hide All" : "Show All"}
+      </button>
+    )}>
       <div className="check-list">
         {items.map((item, i) => {
           const open = shown.has(i);
@@ -90,6 +108,6 @@ export function CheckYourself({ items }: { items: CheckItem[] }) {
           );
         })}
       </div>
-    </section>
+    </GuideSection>
   );
 }
