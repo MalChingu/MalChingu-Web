@@ -7,6 +7,14 @@ import { Icon } from "../components/Icon";
 import { Button, Card, KoreanHeadline, Page, PosTag, RoundButton, Segmented, SpeakButton, Stepper, WordRow } from "../components/ui";
 import { useStore } from "../lib/store";
 import { MyWords } from "./MyWords";
+import { formInSentence, pastFormRight } from "../core/koreanWords";
+import { romanize } from "../core/romanizer";
+import { KoreanText, MicButton, heardNothing } from "../components/KoreanText";
+import type { Example } from "../core/models";
+
+/** Meaning: what the dictionary form means, in English. Past form: the polite past (맛있다 → 맛있었어요). */
+export type PracticeMode = "meaning" | "past";
+export type Practice = (words: Word[], mode: PracticeMode) => void;
 
 type Source = "Built-in" | "My Words" | "Mix";
 type View = { kind: "setup" } | { kind: "round"; words: Word[] } | { kind: "myWords" };
@@ -69,10 +77,36 @@ function Setup({ start, openMyWords }: { start: (words: Word[]) => void; openMyW
   );
 }
 
-type Phase = { kind: "answering" } | { kind: "revealed"; correct: boolean; typed: string | null };
+type Phase = { kind: "answering" } | { kind: "revealed"; correct: boolean; given: string | null; spoken: boolean };
 
-/** One round. Swipe (or drag) right to submit, left if you don't know; then right again to move on. */
-export function Round({ words, onClose }: { words: Word[]; onClose: () => void }) {
+/** The example sentence with the word's form in the accent colour (음식이 **맛있었어요**), a dot between words
+ *  and Listen. For Past Form it prefers an example that uses the past form. */
+function ExampleLine({ word, mode }: { word: Word; mode: PracticeMode }) {
+  const past = word.tenses?.past;
+  const example: Example | undefined = (mode === "past" && past ? word.examples.find((e) => e.korean.includes(past)) : undefined)
+    ?? word.examples[0];
+  if (!example) return null;
+  const range = formInSentence(example.korean, word);
+  const k = example.korean;
+  return (
+    <div className="example-line">
+      <div className="row center-row">
+        <span lang="ko" className="example-korean">
+          {range ? <><KoreanText text={k.slice(0, range[0])} /><strong className="accent"><KoreanText text={k.slice(range[0], range[1])} /></strong>
+            <KoreanText text={k.slice(range[1])} /></> : <KoreanText text={k} />}
+        </span>
+        <SpeakButton text={k} size={18} />
+      </div>
+      <span className="small muted">{example.english}</span>
+    </div>
+  );
+}
+
+/** One round. Swipe (or drag) right to submit, left if you don't know; then right again to move on. Enter submits,
+ *  then moves on. `doneLabel` is the last button: New Round, or Back to Guide when it came from a guide. */
+export function Round({ words, onClose, mode = "meaning", doneLabel = "New Round" }: {
+  words: Word[]; onClose: () => void; mode?: PracticeMode; doneLabel?: string;
+}) {
   const store = useStore();
   const [index, setIndex] = useState(0);
   const [phase, setPhase] = useState<Phase>({ kind: "answering" });
@@ -101,15 +135,28 @@ export function Round({ words, onClose }: { words: Word[]; onClose: () => void }
     setNudge(null);
   };
 
+  const check = (given: string) => mode === "past"
+    ? pastFormRight(given, word?.tenses?.past ?? "")
+    : isCorrectAnswer(given, word?.meanings ?? []);
+
+  const submitAnswer = (given: string, spoken = false) => {
+    if (!word) return;
+    inputRef.current?.blur();
+    const correct = check(given);
+    finish(correct);
+    setPhase({ kind: "revealed", correct, given, spoken });
+  };
+
   const swipeRight = () => {
     if (!word) return;
     if (!answering) { advance(); return; }
     const typed = answer.trim();
-    if (!typed) { setNudge("Type the meaning first, or swipe left if you don't know"); return; }
-    inputRef.current?.blur();
-    const correct = isCorrectAnswer(typed, word.meanings);
-    finish(correct);
-    setPhase({ kind: "revealed", correct, typed: correct ? null : typed });
+    if (!typed) {
+      setNudge(mode === "past" ? "Type or say the past form first, or swipe left if you don't know"
+        : "Type the meaning first, or swipe left if you don't know");
+      return;
+    }
+    submitAnswer(typed);
   };
 
   const swipeLeft = () => {
@@ -117,16 +164,18 @@ export function Round({ words, onClose }: { words: Word[]; onClose: () => void }
     if (!answering) { advance(); return; }
     inputRef.current?.blur();
     finish(false, true);
-    setPhase({ kind: "revealed", correct: false, typed: null });
+    setPhase({ kind: "revealed", correct: false, given: null, spoken: false });
   };
 
-  // Arrow keys work like swipes, except while typing in the answer field.
+  // Arrow keys work like swipes, except while typing in the answer field; Enter moves on after an answer.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement) return;
       if (e.key === "ArrowRight") swipeRight();
       if (e.key === "ArrowLeft") swipeLeft();
       if (e.key === "Escape") onClose();
+      // (A focused button handles its own Enter.)
+      if (e.key === "Enter" && !answering && !(e.target instanceof HTMLButtonElement)) { e.preventDefault(); advance(); }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -177,7 +226,7 @@ export function Round({ words, onClose }: { words: Word[]; onClose: () => void }
               ))}
             </div>
           </Card>
-          <Button kind="prominent" icon="refresh" full large onClick={onClose}>New Round</Button>
+          <Button kind="prominent" icon={doneLabel === "New Round" ? "refresh" : "chevronLeft"} full large onClick={onClose}>{doneLabel}</Button>
         </div>
       </div>
     );
@@ -206,21 +255,42 @@ export function Round({ words, onClose }: { words: Word[]; onClose: () => void }
             </div>
             <div className="flashcard-bottom">
               {phase.kind === "answering" ? (
-                <input ref={inputRef} className="flashcard-input" value={answer} placeholder="Meaning in English"
-                  autoCapitalize="off" autoCorrect="off" spellCheck={false} aria-label="Meaning in English" enterKeyHint="done"
-                  onChange={(e) => setAnswer(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); (e.target as HTMLInputElement).blur(); } }} />
+                <div className="answer-stack">
+                  <span className="small muted">{mode === "past" ? "Past form (polite)" : "Meaning of the dictionary form"}</span>
+                  <div className="answer-row">
+                    <input ref={inputRef} className="flashcard-input" value={answer} lang={mode === "past" ? "ko" : "en"}
+                      placeholder={mode === "past" ? "Type it in Korean" : "Meaning in English"}
+                      autoCapitalize="off" autoCorrect="off" spellCheck={false} enterKeyHint="done"
+                      aria-label={mode === "past" ? "Past form in Korean" : "Meaning of the dictionary form, in English"}
+                      onChange={(e) => setAnswer(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); swipeRight(); } }} />
+                    {mode === "past" && (
+                      <MicButton lang="ko-KR" label="Say the Past Form" onHeard={(heard) => {
+                        const said = heard.said.find((s) => check(s)) ?? heard.said[0];
+                        if (said) submitAnswer(said, true); else setNudge(heardNothing(heard));
+                      }} />
+                    )}
+                  </div>
+                </div>
               ) : (
                 <div className="center stack small-gap">
-                  <div className="meaning-line">{displayMeanings(word.meanings).join(", ")}</div>
-                  {phase.correct ? <span className="good strong"><Icon name="checkCircle" size={16} /> Correct!</span>
-                    : phase.typed ? <span className="bad">You wrote “{phase.typed}”</span>
-                    : <span className="muted">Now you know.</span>}
-                  {word.examples[0] && (
-                    <div className="small muted">
-                      <span lang="ko">{word.examples[0].korean}</span><br />{word.examples[0].english}
-                    </div>
+                  {mode === "past" && word.tenses ? (
+                    <>
+                      <div className="meaning-line" lang="ko">{word.tenses.past}</div>
+                      <div className="row center-row">
+                        <span className="small muted">{romanize(word.tenses.past)} · {displayMeanings(word.meanings)[0]}</span>
+                        <SpeakButton text={word.tenses.past} size={18} />
+                      </div>
+                    </>
+                  ) : (
+                    <div className="meaning-line">{displayMeanings(word.meanings).join(", ")}</div>
                   )}
+                  {phase.correct
+                    ? <span className="good strong"><Icon name="checkCircle" size={16} /> Correct!{phase.spoken && phase.given ? ` You said “${phase.given}”.` : ""}</span>
+                    : phase.given
+                      ? <span className="bad"><Icon name="x" size={14} /> {phase.spoken ? "You said" : "Your answer:"} “{phase.given}”</span>
+                      : <span className="muted">You skipped this one.</span>}
+                  <ExampleLine word={word} mode={mode} />
                 </div>
               )}
             </div>

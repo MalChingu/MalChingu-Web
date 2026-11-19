@@ -37,6 +37,10 @@ const PATHS: Record<string, string> = {
   award: "M12 15a6 6 0 1 0 0-12 6 6 0 0 0 0 12zM8.5 14l-1.5 8 5-3 5 3-1.5-8",
   lock: "M6 11h12v10H6zM8 11V7a4 4 0 0 1 8 0v4",
   select: "M4 6l1.5 1.5L8 5M4 12l1.5 1.5L8 11M4 18l1.5 1.5L8 17M11 6.5h9M11 12.5h9M11 18.5h9",
+  mic: "M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3zM5 11a7 7 0 0 0 14 0M12 18v3",
+  pencil: "M4 20h4L19 9l-4-4L4 16v4zM14 6l4 4",
+  swap: "M7 7h13M16 3l4 4-4 4M17 17H4M8 13l-4 4 4 4",
+  bookmark: "M6 3h12v18l-6-4-6 4z",
 };
 
 export type IconName = keyof typeof PATHS;

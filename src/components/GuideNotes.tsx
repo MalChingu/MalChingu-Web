@@ -1,7 +1,12 @@
 import { createContext, Fragment, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { cleanForm, gloss } from "../core/gloss";
-import type { CheckItem, Word } from "../core/models";
+import type { CheckItem, NoteSection, Word } from "../core/models";
+import { saidRight } from "../core/koreanWords";
+import { selectingIn } from "../pages/Today";
+import { KoreanText, koreanToSay, MicButton, heardNothing } from "./KoreanText";
+import type { Heard } from "../lib/listen";
+import { useNoteMenu } from "./NoteMenu";
 import { noteBlocks, type NoteBlock, type NoteSpan } from "../core/noteMarkup";
 import { romanize } from "../core/romanizer";
 import { activeCustomWords, BUILT_IN } from "../core/wordBank";
@@ -39,12 +44,12 @@ function Spans({ spans }: { spans: NoteSpan[] }) {
               onFocus={(e) => tips.hover(s.text, e.currentTarget)} onBlur={tips.leave}
               onClick={(e) => tips.toggle(s.text, e.currentTarget)}
               onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); tips.toggle(s.text, e.currentTarget); } }}>
-              {s.text}
+              <KoreanText text={s.text} />
             </strong>
           );
         }
         if (s.kind === "pron") return <span key={i} className="note-pron" title="Pronunciation">{s.text}</span>;
-        return <Fragment key={i}>{s.text}</Fragment>;
+        return <Fragment key={i}><KoreanText text={s.text} /></Fragment>;
       })}
     </>
   );
@@ -172,13 +177,19 @@ function renderBlocks(blocks: NoteBlock[]): ReactNode[] {
 
 /** A guide day's section: an icon and title that open and close it, the section's own actions, and an
  *  arrow at the right that turns down when it opens. Closed by default; the content slides open. */
-export function GuideSection({ icon, title, actions, children }: {
-  icon: IconName; title: string; actions?: (open: boolean) => ReactNode; children: ReactNode;
+export function GuideSection({ icon, title, actions, below, section, children }: {
+  icon: IconName; title: string; actions?: (open: boolean) => ReactNode;
+  /** Always shown under the header, open or closed (Vocabulary's flashcard buttons). */
+  below?: ReactNode;
+  /** Which part of the day it is, for "Add Note Here" on right-click. */
+  section?: NoteSection;
+  children: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   const toggle = () => setOpen(!open);
+  const menu = useNoteMenu();
   return (
-    <section className="guide-section top-rule">
+    <section className="guide-section top-rule" onContextMenu={section && menu ? (e) => menu.open(e, section) : undefined}>
       <div className="row">
         <button type="button" className="section-toggle grow" aria-expanded={open} onClick={toggle}>
           <Icon name={icon} size={18} className="accent" />
@@ -190,6 +201,7 @@ export function GuideSection({ icon, title, actions, children }: {
           <Icon name="chevron" size={18} className={`chev ${open ? "open" : ""}`} />
         </button>
       </div>
+      {below}
       <div className={`collapsible ${open ? "open" : ""}`} inert={!open}>
         <div>{children}</div>
       </div>
@@ -201,40 +213,70 @@ export function GuideSection({ icon, title, actions, children }: {
 export function GuideNotes({ text }: { text: string }) {
   const blocks = useMemo(() => noteBlocks(text), [text]);
   return (
-    <GuideSection icon="book" title="Notes">
+    <GuideSection icon="book" title="Notes" section="notes">
       <GlossTips><div className="notes-panel">{renderBlocks(blocks)}</div></GlossTips>
     </GuideSection>
   );
 }
 
-/** Quick questions on the notes; each answer stays hidden until its row is tapped. */
+/** Quick questions on the notes; each answer stays hidden until its row is tapped, or until it's said right. */
 export function CheckYourself({ items }: { items: CheckItem[] }) {
   const [shown, setShown] = useState<ReadonlySet<number>>(new Set());
   const all = shown.size === items.length;
-  const toggle = (i: number) => {
+  const set = (i: number, open: boolean) => {
     const next = new Set(shown);
-    if (next.has(i)) next.delete(i); else next.add(i);
+    if (open) next.add(i); else next.delete(i);
     setShown(next);
   };
   return (
-    <GuideSection icon="question" title={`Check Yourself · ${items.length}`} actions={(open) => open && (
+    <GuideSection icon="question" title={`Check Yourself · ${items.length}`} section="check" actions={(open) => open && (
       <button type="button" className="link small" onClick={() => setShown(all ? new Set() : new Set(items.map((_, i) => i)))}>
         {all ? "Hide All" : "Show All"}
       </button>
     )}>
       <div className="check-list">
-        {items.map((item, i) => {
-          const open = shown.has(i);
-          return (
-            <button key={i} type="button" className={`check-row ${open ? "open" : ""}`} aria-expanded={open} onClick={() => toggle(i)}>
-              <span className="check-q"><span className="check-n">{i + 1}</span>{item.question}</span>
-              {open
-                ? <span className="check-a">{item.answer}</span>
-                : <span className="check-hint">Tap to Show Answer</span>}
-            </button>
-          );
-        })}
+        {items.map((item, i) => (
+          <CheckRow key={i} n={i + 1} item={item} open={shown.has(i)} setOpen={(open) => set(i, open)} />
+        ))}
       </div>
     </GuideSection>
+  );
+}
+
+type Said = { text: string; right: boolean } | { problem: string };
+
+/** One question. Clicking the row shows or hides the answer (dragging selects the text instead); 🎤 checks a
+ *  spoken answer and 🔊 reads the answer aloud. */
+function CheckRow({ n, item, open, setOpen }: { n: number; item: CheckItem; open: boolean; setOpen: (open: boolean) => void }) {
+  const [said, setSaid] = useState<Said | null>(null);
+  const onHeard = (heard: Heard) => {
+    const right = heard.said.find((s) => saidRight(s, item.answer));
+    if (right) { setSaid({ text: right, right: true }); setOpen(true); }
+    else if (heard.said[0]) setSaid({ text: heard.said[0], right: false });
+    else setSaid({ problem: heardNothing(heard) });
+  };
+  return (
+    <div className={`check-row ${open ? "open" : ""}`} onClick={(e) => { if (!selectingIn(e.currentTarget)) setOpen(!open); }}>
+      <div className="check-q">
+        <span className="check-n">{n}</span>
+        <span className="check-text"><KoreanText text={item.question} /></span>
+        <MicButton lang="ko-KR" label="Say Your Answer" size={18} onHeard={onHeard} />
+      </div>
+      {said && ("problem" in said
+        ? <span className="check-said muted">{said.problem}</span>
+        : <span className={`check-said ${said.right ? "good" : "bad"}`}>
+            {said.right ? "✓ You said " : "You said "}<span lang="ko">“{said.text}”</span>{said.right ? "" : " · not quite. Tap to see the answer."}
+          </span>)}
+      {open ? (
+        <div className="check-a">
+          <span className="grow"><KoreanText text={item.answer} /></span>
+          <span onClick={(e) => e.stopPropagation()}><SpeakButton text={koreanToSay(item.answer)} size={18} /></span>
+        </div>
+      ) : (
+        <button type="button" className="check-hint" aria-expanded={false} onClick={(e) => { e.stopPropagation(); setOpen(true); }}>
+          Tap to Show Answer
+        </button>
+      )}
+    </div>
   );
 }

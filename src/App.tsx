@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
+import { Segmented } from "./components/ui";
+import { useZoom, ZOOMS, type Zoom } from "./lib/zoom";
 import type { Word } from "./core/models";
 import { Icon, type IconName } from "./components/Icon";
 import { useStore } from "./lib/store";
-import { Flashcards, Round } from "./pages/Flashcards";
+import { Flashcards, Round, type PracticeMode } from "./pages/Flashcards";
 import { Guides } from "./pages/Guides";
 import { Profile } from "./pages/Profile";
 import { avatarSrc } from "./lib/avatar";
@@ -25,11 +27,24 @@ const tabFromHash = (): Tab => {
   return TABS.some((t) => t.id === hash) ? hash : "today";
 };
 
+/** Bottom of the sidebar on wide screens: the page at 100%, 150% or 200% for big, sharp monitors. */
+function TextSize() {
+  const [zoom, setZoom] = useZoom();
+  return (
+    <div className="text-size">
+      <span className="section-title">Text Size</span>
+      <Segmented label="Text Size" value={String(zoom)} onChange={(v) => setZoom(Number(v) as Zoom)}
+        options={ZOOMS.map((z) => ({ value: String(z), label: `${z * 100}%` }))} />
+    </div>
+  );
+}
+
 export function App() {
   const store = useStore();
   const [tab, setTab] = useState<Tab>(tabFromHash);
   const [guideID, setGuideID] = useState<string | null>(null);
-  const [practice, setPractice] = useState<Word[] | null>(null);
+  // Flashcards started from a guide: they come back to it.
+  const [practice, setPractice] = useState<{ words: Word[]; mode: PracticeMode } | null>(null);
 
   useEffect(() => {
     const onHash = () => setTab(tabFromHash());
@@ -61,12 +76,13 @@ export function App() {
             <span>{t.label}</span>
           </button>
         ))}
+        <TextSize />
       </nav>
       <main className="main">
-        {practice ? <Round words={practice} onClose={() => setPractice(null)} />
+        {practice ? <Round words={practice.words} mode={practice.mode} doneLabel="Back to Guide" onClose={() => setPractice(null)} />
           : tab === "today" ? <Today openGuide={(id) => { go("guides"); setGuideID(id); }} />
           : tab === "flashcards" ? <Flashcards />
-          : tab === "guides" ? <Guides openGuideID={guideID} setOpenGuideID={setGuideID} practice={setPractice} />
+          : tab === "guides" ? <Guides openGuideID={guideID} setOpenGuideID={setGuideID} practice={(words, mode) => setPractice({ words, mode })} />
           : tab === "stats" ? <Stats />
           : <Profile />}
       </main>

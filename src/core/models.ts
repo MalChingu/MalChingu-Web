@@ -68,6 +68,33 @@ export interface GuideSessionRow {
   updated_at: string;
 }
 
+/** A row of `user_notes`: the learner's own note, optionally tagged with a guide, a day and a section. */
+export interface UserNoteRow {
+  id: string;
+  guide_id: string | null;
+  day_number: number | null;
+  section: NoteSection | null;
+  body: string;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+export type NoteSection = "notes" | "check" | "vocabulary" | "tasks";
+
+/** A row of `saved_translations`: a translation kept from the Translate card. */
+export interface SavedTranslationRow {
+  id: string;
+  source: string;
+  source_lang: "ko" | "en";
+  translation: string;
+  guide_id: string | null;
+  day_number: number | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
 export interface CheckItem {
   question: string;
   answer: string;

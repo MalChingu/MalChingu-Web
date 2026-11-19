@@ -1,7 +1,7 @@
 import { achievementProgress, earnedAchievements, type Achievement } from "../core/achievements";
 import type { Session } from "@supabase/supabase-js";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import type { CustomWordRow, GuideSessionRow, GuideTaskRow, StudyGuideRow, Word } from "../core/models";
+import type { CustomWordRow, GuideSessionRow, GuideTaskRow, SavedTranslationRow, StudyGuideRow, UserNoteRow, Word } from "../core/models";
 import { computeStats, emptyDay, emptyProgress, estimateLevel, recordOnDay, recordOnWord,
   type Answer, type StudyDay, type WordProgress } from "../core/progress";
 import { giveUp, newQuiz, revealHint, submit, isFinished, type Outcome, type QuizSession } from "../core/quiz";
@@ -21,6 +21,9 @@ interface Data {
   guides: StudyGuideRow[];
   sessions: GuideSessionRow[];
   tasks: GuideTaskRow[];
+  /** The learner's own notes and saved translations, deleted ones included (deleted_at set). */
+  notes: UserNoteRow[];
+  savedTranslations: SavedTranslationRow[];
   hasConnectorToken: boolean;
   /** The account's connector key, shared by every device. Null for links made before keys were shared. */
   connectorToken: string | null;
@@ -40,7 +43,7 @@ interface DailyQuizRow {
 }
 
 const EMPTY: Data = { settingsRaw: {}, customWords: [], progress: [], studyDays: [], guides: [], sessions: [], tasks: [],
-  hasConnectorToken: false, connectorToken: null, dailyQuiz: null };
+  notes: [], savedTranslations: [], hasConnectorToken: false, connectorToken: null, dailyQuiz: null };
 
 async function selectAll<T>(table: string, order: string): Promise<T[]> {
   const rows: T[] = [];
@@ -85,6 +88,10 @@ interface Store {
   refresh: () => Promise<void>;
   updateSettings: (change: Partial<Settings>) => Promise<void>;
   deleteWord: (row: CustomWordRow) => Promise<void>;
+  saveNote: (note: Pick<UserNoteRow, "body" | "guide_id" | "day_number" | "section"> & { id?: string }) => Promise<void>;
+  deleteNote: (id: string) => Promise<void>;
+  saveTranslation: (t: Pick<SavedTranslationRow, "source" | "source_lang" | "translation" | "guide_id" | "day_number">) => Promise<void>;
+  deleteTranslation: (id: string) => Promise<void>;
   /** Deletes several words at once. */
   deleteWords: (ids: string[]) => Promise<void>;
   setTaskDone: (task: GuideTaskRow, done: boolean) => Promise<void>;
@@ -136,7 +143,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const day = dayString();
     const started = performance.now();
     try {
-      const [profiles, customWords, progress, studyDays, guides, sessions, tasks, tokens, quizzes] = await Promise.all([
+      const [profiles, customWords, progress, studyDays, guides, sessions, tasks, tokens, quizzes, notes, savedTranslations] = await Promise.all([
         selectAll<{ settings: RawSettings }>("profiles", "user_id"),
         selectAll<CustomWordRow>("custom_words", "id"),
         selectAll<WordProgress>("word_progress", "word_id"),
@@ -149,9 +156,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           if (error) throw new Error(error.message);
           return (data ?? []) as DailyQuizRow[];
         }),
+        selectAll<UserNoteRow>("user_notes", "id"),
+        selectAll<SavedTranslationRow>("saved_translations", "id"),
       ]);
       const loaded: Data = { settingsRaw: profiles[0]?.settings ?? {}, customWords, progress, studyDays, guides, sessions, tasks,
-        hasConnectorToken: tokens.length > 0, connectorToken: tokens[0]?.token ?? null, dailyQuiz: quizzes[0] ?? null };
+        notes, savedTranslations, hasConnectorToken: tokens.length > 0, connectorToken: tokens[0]?.token ?? null, dailyQuiz: quizzes[0] ?? null };
       // Keep anything edited here after this load started; the server copy is older than the edit.
       setData((current) => {
         const next = { ...loaded };
@@ -364,6 +373,45 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (error) setError(`Couldn't update the task: ${error.message}`);
   }, []);
 
+  /** Adds a note, or saves changes to one (same id). */
+  const saveNote = useCallback(async (note: Pick<UserNoteRow, "body" | "guide_id" | "day_number" | "section"> & { id?: string }) => {
+    const stamp = now();
+    const existing = note.id ? data.notes.find((n) => n.id === note.id) : undefined;
+    const row: UserNoteRow = {
+      id: note.id ?? crypto.randomUUID(), body: note.body, guide_id: note.guide_id, day_number: note.day_number, section: note.section,
+      created_at: existing?.created_at ?? stamp, updated_at: stamp, deleted_at: null,
+    };
+    edit("notes");
+    setData((d) => ({ ...d, notes: existing ? d.notes.map((n) => n.id === row.id ? row : n) : [...d.notes, row] }));
+    const { error } = await supabase.from("user_notes").upsert(row, { onConflict: "id" });
+    if (error) setError(`Couldn't save the note: ${error.message}`);
+  }, [data.notes]);
+
+  const deleteNote = useCallback(async (id: string) => {
+    const stamp = now();
+    edit("notes");
+    setData((d) => ({ ...d, notes: d.notes.map((n) => n.id === id ? { ...n, deleted_at: stamp, updated_at: stamp } : n) }));
+    const { error } = await supabase.from("user_notes").update({ deleted_at: stamp, updated_at: stamp }).eq("id", id);
+    if (error) setError(`Couldn't delete the note: ${error.message}`);
+  }, []);
+
+  const saveTranslation = useCallback(async (t: Pick<SavedTranslationRow, "source" | "source_lang" | "translation" | "guide_id" | "day_number">) => {
+    const stamp = now();
+    const row: SavedTranslationRow = { ...t, id: crypto.randomUUID(), created_at: stamp, updated_at: stamp, deleted_at: null };
+    edit("savedTranslations");
+    setData((d) => ({ ...d, savedTranslations: [...d.savedTranslations, row] }));
+    const { error } = await supabase.from("saved_translations").insert(row);
+    if (error) setError(`Couldn't save the translation: ${error.message}`);
+  }, []);
+
+  const deleteTranslation = useCallback(async (id: string) => {
+    const stamp = now();
+    edit("savedTranslations");
+    setData((d) => ({ ...d, savedTranslations: d.savedTranslations.map((t) => t.id === id ? { ...t, deleted_at: stamp, updated_at: stamp } : t) }));
+    const { error } = await supabase.from("saved_translations").update({ deleted_at: stamp, updated_at: stamp }).eq("id", id);
+    if (error) setError(`Couldn't delete the translation: ${error.message}`);
+  }, []);
+
   const deleteGuide = useCallback(async (guide: StudyGuideRow) => {
     const stamp = now();
     edit("guides");
@@ -419,7 +467,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     loaded: loadedFor?.user === userID, todayLoaded: loadedFor?.user === userID && loadedFor.day === today, setError, data, settings, myWords, allWords, findWord,
     progressFor: (id) => progressMap.get(id), progressMap, stats, level, earned, wordOfTheDay,
     dailyQuiz: quiz, submitDaily, giveUpDaily, revealDailyHint, record, refresh, updateSettings, deleteWord, deleteWords,
-    setTaskDone, deleteGuide,
+    setTaskDone, deleteGuide, saveNote, deleteNote, saveTranslation, deleteTranslation,
     connectorURL: connectorShown ? `${CONNECTOR_BASE_URL}?key=${connectorShown}` : null,
     createConnectorLink, revokeConnectorLink, signInWithApple, signOut,
     openWord: (word, quizMode = false) => setOpenedWord({ word, quiz: quizMode }),

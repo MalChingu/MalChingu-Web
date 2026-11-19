@@ -4,9 +4,11 @@ import { createRoot } from "react-dom/client";
 import { App } from "./App";
 import { StoreProvider } from "./lib/store";
 import { applyAppearance, watchSystemAppearance } from "./lib/theme";
+import { applyZoom } from "./lib/zoom";
 import "./styles.css";
 
 applyAppearance();
+applyZoom();
 watchSystemAppearance();
 
 createRoot(document.getElementById("root")!).render(

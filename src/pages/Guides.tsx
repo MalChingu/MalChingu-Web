@@ -11,20 +11,51 @@ import { overviewPoints } from "../core/guideOverview";
 import { useStore } from "../lib/store";
 import { formatDay, guideDate, guideDayNumber } from "./guideDates";
 import { TaskList } from "./Today";
+import { KoreanText } from "../components/KoreanText";
+import { NoteFab, NoteMenuProvider, NoteSheet, useNoteMenu, type NoteDraft } from "../components/NoteMenu";
+import { Notebook } from "./Notebook";
+import type { Practice } from "./Flashcards";
 
 export function Guides({ openGuideID, setOpenGuideID, practice }: {
-  openGuideID: string | null; setOpenGuideID: (id: string | null) => void; practice: (words: Word[]) => void;
+  openGuideID: string | null; setOpenGuideID: (id: string | null) => void; practice: Practice;
 }) {
   const store = useStore();
   const [creating, setCreating] = useState(false);
+  const [notebook, setNotebook] = useState<"notes" | "translations" | null>(null);
+  const [noteDraft, setNoteDraft] = useState<NoteDraft | null>(null);
   const guides = store.data.guides.filter((g) => !g.deleted_at).sort((a, b) => b.created_at.localeCompare(a.created_at));
   const open = guides.find((g) => g.id === openGuideID);
+  const noteCount = store.data.notes.filter((n) => !n.deleted_at).length + store.data.savedTranslations.filter((t) => !t.deleted_at).length;
+  const sheet = noteDraft && <NoteSheet key={noteDraft.id ?? "new"} draft={noteDraft} onClose={() => setNoteDraft(null)} />;
+  const blank: NoteDraft = { body: "", guide_id: null, day_number: null, section: null };
 
-  if (open) return <GuideDetail guide={open} onBack={() => setOpenGuideID(null)} practice={practice} />;
+  if (notebook) {
+    return (
+      <>
+        <Notebook startTab={notebook} onBack={() => setNotebook(null)} addNote={setNoteDraft} />
+        <NoteFab onClick={() => setNoteDraft(blank)} />
+        {sheet}
+      </>
+    );
+  }
+  if (open) {
+    return (
+      <>
+        <GuideDetail guide={open} onBack={() => setOpenGuideID(null)} practice={practice} addNote={setNoteDraft} openNotebook={setNotebook} />
+        {sheet}
+      </>
+    );
+  }
 
   return (
     <Page title="Study Guides" actions={guides.length > 0
       ? <RoundButton icon="plus" tint="glass" label="Create Guide" onClick={() => setCreating(true)} size={38} /> : undefined}>
+      <button type="button" className="glass card nav-row" onClick={() => setNotebook("notes")}>
+        <Icon name="pencil" size={20} className="accent" />
+        <span className="grow">My Notes</span>
+        <span className="muted">{noteCount}</span>
+        <Icon name="chevron" size={16} className="muted" />
+      </button>
       {guides.length === 0 && (
         <Card padding={22}>
           <div className="stack">
@@ -48,6 +79,8 @@ export function Guides({ openGuideID, setOpenGuideID, practice }: {
         );
       })}</div>}
       {creating && <CreateGuide onClose={() => setCreating(false)} />}
+      <NoteFab onClick={() => setNoteDraft(blank)} />
+      {sheet}
     </Page>
   );
 }
@@ -67,7 +100,10 @@ function startingDay(guide: StudyGuideRow, days: number[]): number {
   return days[days.length - 1];
 }
 
-function GuideDetail({ guide, onBack, practice }: { guide: StudyGuideRow; onBack: () => void; practice: (words: Word[]) => void }) {
+function GuideDetail({ guide, onBack, practice, addNote, openNotebook }: {
+  guide: StudyGuideRow; onBack: () => void; practice: Practice;
+  addNote: (draft: NoteDraft) => void; openNotebook: (tab: "notes" | "translations") => void;
+}) {
   const store = useStore();
   const today = guideDayNumber(guide);
   const sessions = store.data.sessions.filter((s) => s.guide_id === guide.id).sort((a, b) => a.day_number - b.day_number);
@@ -86,6 +122,7 @@ function GuideDetail({ guide, onBack, practice }: { guide: StudyGuideRow; onBack
     <Page title={guide.title} back={{ label: "Back to Study Guides", onClick: onBack }} actions={
       <RoundButton icon="trash" tint="glass" label="Delete Guide" size={40} onClick={() => setConfirmingDelete(true)} />
     }>
+      <NoteMenuProvider onAddNote={(section) => addNote({ body: "", guide_id: guide.id, day_number: session?.day_number ?? null, section })}>
       <div className="guide-layout">
         <div className="guide-main">
           <Card>
@@ -94,7 +131,7 @@ function GuideDetail({ guide, onBack, practice }: { guide: StudyGuideRow; onBack
             <div className="row">
               <span className="small muted grow">{done} of {tasks.length} tasks · {vocabulary.length} words</span>
               {vocabulary.length > 0 && (
-                <Button icon="cards" onClick={() => practice(shuffled(vocabulary.map(customToWord)))}>Practice All Vocabulary</Button>
+                <Button icon="cards" onClick={() => practice(shuffled(vocabulary.map(customToWord)), "meaning")}>All Vocabulary Flashcards</Button>
               )}
             </div>
           </Card>
@@ -113,7 +150,7 @@ function GuideDetail({ guide, onBack, practice }: { guide: StudyGuideRow; onBack
               </div>
               <DayCard key={session.id} guide={guide} session={session} isToday={session.day_number === today}
                 words={vocabulary.filter((w) => w.day_number === session.day_number).map(customToWord)}
-                practice={(words) => practice(shuffled(words))} />
+                practice={(words, mode) => practice(shuffled(words), mode)} />
             </>
           )}
         </div>
@@ -140,10 +177,12 @@ function GuideDetail({ guide, onBack, practice }: { guide: StudyGuideRow; onBack
             );
           })}
         </nav>
-        <TranslateCard />
+        <TranslateCard guideID={guide.id} dayNumber={session?.day_number ?? null} openSaved={() => openNotebook("translations")} />
         </aside>
       </div>
+      </NoteMenuProvider>
 
+      <NoteFab onClick={() => addNote({ body: "", guide_id: guide.id, day_number: session?.day_number ?? null, section: null })} />
       {confirmingDelete && (
         <ConfirmDialog title="Delete This Guide?" message="Its days and tasks are removed on all your devices. Its vocabulary stays in My Words."
           confirmLabel="Delete Guide" onCancel={() => setConfirmingDelete(false)}
@@ -154,10 +193,12 @@ function GuideDetail({ guide, onBack, practice }: { guide: StudyGuideRow; onBack
 }
 
 function DayCard({ guide, session, isToday, words, practice }: {
-  guide: StudyGuideRow; session: GuideSessionRow; isToday: boolean; words: Word[]; practice: (words: Word[]) => void;
+  guide: StudyGuideRow; session: GuideSessionRow; isToday: boolean; words: Word[]; practice: Practice;
 }) {
   const store = useStore();
+  const menu = useNoteMenu();
   const checks = session.self_check ?? [];
+  const withTenses = words.filter((w) => w.tenses);
   void guide;
   return (
     <Card className="day-card">
@@ -166,15 +207,25 @@ function DayCard({ guide, session, isToday, words, practice }: {
         {isToday && <span className="today-badge">TODAY</span>}
       </div>
       {session.goals.length > 0 && (
-        <ul className="goals">{session.goals.map((g, i) => <li key={i}><Icon name="target" size={14} /> {g}</li>)}</ul>
+        <div className="goals-block">
+          <span className="section-title">Goals</span>
+          <ul className="goals">{session.goals.map((g, i) => <li key={i}><KoreanText text={g} /></li>)}</ul>
+        </div>
       )}
-      <TaskList tasks={store.data.tasks.filter((t) => t.session_id === session.id)} />
+      <div onContextMenu={menu ? (e) => menu.open(e, "tasks") : undefined}>
+        <TaskList tasks={store.data.tasks.filter((t) => t.session_id === session.id)} />
+      </div>
       {session.grammar_notes && <GuideNotes text={session.grammar_notes} />}
       {checks.length > 0 && <CheckYourself items={checks} />}
       {words.length > 0 && (
-        // Practice works without opening the list.
-        <GuideSection icon="cards" title={`Vocabulary · ${words.length}`}
-          actions={() => <Button compact kind="prominent" onClick={() => practice(words)}>Practice</Button>}>
+        // The flashcards work without opening the list: the meaning, or the past form of verbs and adjectives.
+        <GuideSection icon="cards" title={`Vocabulary · ${words.length}`} section="vocabulary" below={
+          <div className="flash-row">
+            <span className="small muted grow">Flashcards</span>
+            <Button compact kind="prominent" onClick={() => practice(words, "meaning")}>Meaning</Button>
+            {withTenses.length > 0 && <Button compact kind="prominent" onClick={() => practice(withTenses, "past")}>Past Form</Button>}
+          </div>
+        }>
           <div className="divided">
             {words.map((w) => <WordRow key={w.id} word={w} progress={store.progressFor(w.id)} onClick={() => store.openWord(w)} />)}
           </div>

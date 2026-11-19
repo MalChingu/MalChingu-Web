@@ -1,0 +1,243 @@
+{
+ "gaps": [
+  {
+   "text": "주말에 뭐 했어요?",
+   "gaps": [
+    3,
+    5
+   ]
+  },
+  {
+   "text": "밥 먹었어요?, 뭐 먹었어요?",
+   "gaps": [
+    1,
+    10
+   ]
+  },
+  {
+   "text": "커피하고 바나나 두 개 먹었어요.",
+   "gaps": [
+    4,
+    8,
+    10,
+    12
+   ]
+  },
+  {
+   "text": "네, 먹었어요.",
+   "gaps": []
+  },
+  {
+   "text": "Answer 밥 먹었어요? and 주말에 뭐 했어요?",
+   "gaps": [
+    8,
+    22,
+    24
+   ]
+  },
+  {
+   "text": "no Korean here",
+   "gaps": []
+  },
+  {
+   "text": " 앞 뒤 ",
+   "gaps": [
+    2
+   ]
+  },
+  {
+   "text": "갔어요",
+   "gaps": []
+  }
+ ],
+ "spoken": [
+  {
+   "spoken": "갔어요",
+   "answer": "갔어요 (gasseoyo)",
+   "right": true
+  },
+  {
+   "spoken": "갔 어요.",
+   "answer": "갔어요 (gasseoyo)",
+   "right": true
+  },
+  {
+   "spoken": "가요",
+   "answer": "갔어요 (gasseoyo)",
+   "right": false
+  },
+  {
+   "spoken": "씨서써요",
+   "answer": "씻었어요, said [씨서써요]",
+   "right": true
+  },
+  {
+   "spoken": "씻었어요",
+   "answer": "씻었어요, said [씨서써요]",
+   "right": true
+  },
+  {
+   "spoken": "더웠어요",
+   "answer": "더워요 / 더웠어요",
+   "right": true
+  },
+  {
+   "spoken": "더워요 더웠어요",
+   "answer": "더워요 / 더웠어요",
+   "right": true
+  },
+  {
+   "spoken": "도와요",
+   "answer": "도와요 / 도왔어요 (the rare 오 case)",
+   "right": true
+  },
+  {
+   "spoken": "오",
+   "answer": "도와요 / 도왔어요 (the rare 오 case)",
+   "right": false
+  },
+  {
+   "spoken": "안 추워요",
+   "answer": "안 추워요 · 춥지 않아요",
+   "right": true
+  },
+  {
+   "spoken": "춥지 않아요",
+   "answer": "안 추워요 · 춥지 않아요",
+   "right": true
+  },
+  {
+   "spoken": "제가",
+   "answer": "제가 (never 저가)",
+   "right": true
+  },
+  {
+   "spoken": "저가",
+   "answer": "제가 (never 저가)",
+   "right": false
+  },
+  {
+   "spoken": "학교에 안 갔어요",
+   "answer": "학교에 안 갔어요.",
+   "right": true
+  },
+  {
+   "spoken": "",
+   "answer": "갔어요",
+   "right": false
+  },
+  {
+   "spoken": "gasseoyo",
+   "answer": "갔어요 (gasseoyo)",
+   "right": false
+  }
+ ],
+ "past": [
+  {
+   "given": "맛있었어요",
+   "past": "맛있었어요",
+   "right": true
+  },
+  {
+   "given": "맛있었어요.",
+   "past": "맛있었어요",
+   "right": true
+  },
+  {
+   "given": "맛 있었어요",
+   "past": "맛있었어요",
+   "right": true
+  },
+  {
+   "given": "맛있어요",
+   "past": "맛있었어요",
+   "right": false
+  },
+  {
+   "given": "",
+   "past": "갔어요",
+   "right": false
+  }
+ ],
+ "highlight": [
+  {
+   "sentence": "음식이 맛있었어요.",
+   "word": {
+    "hangul": "맛있다",
+    "tenses": {
+     "past": "맛있었어요",
+     "present": "맛있어요",
+     "future": "맛있을 거예요"
+    }
+   },
+   "range": [
+    4,
+    9
+   ]
+  },
+  {
+   "sentence": "어제 서울에 갔어요.",
+   "word": {
+    "hangul": "가다",
+    "tenses": {
+     "past": "갔어요",
+     "present": "가요",
+     "future": "갈 거예요"
+    }
+   },
+   "range": [
+    7,
+    10
+   ]
+  },
+  {
+   "sentence": "내일 어디에 갈 거예요?",
+   "word": {
+    "hangul": "가다",
+    "tenses": {
+     "past": "갔어요",
+     "present": "가요",
+     "future": "갈 거예요"
+    }
+   },
+   "range": [
+    7,
+    12
+   ]
+  },
+  {
+   "sentence": "와, 정말 맛있었네요!",
+   "word": {
+    "hangul": "맛있다",
+    "tenses": {
+     "past": "맛있었어요",
+     "present": "맛있어요",
+     "future": "맛있을 거예요"
+    }
+   },
+   "range": [
+    6,
+    11
+   ]
+  },
+  {
+   "sentence": "저는 학생이에요.",
+   "word": {
+    "hangul": "학생",
+    "tenses": null
+   },
+   "range": [
+    3,
+    5
+   ]
+  },
+  {
+   "sentence": "커피를 마셔요.",
+   "word": {
+    "hangul": "차",
+    "tenses": null
+   },
+   "range": null
+  }
+ ]
+}

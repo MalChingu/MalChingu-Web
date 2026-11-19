@@ -97,3 +97,21 @@ describe("explaining a Korean form in the notes (same cases as the iPhone and An
     });
   }
 });
+
+import { formInSentence, koreanWordGaps, pastFormRight, saidRight } from "../koreanWords";
+import wordCases from "./word.cases.json";
+
+describe("Korean word helpers (same cases as the iPhone and Android apps)", () => {
+  it("finds the gaps between Korean words", () => {
+    for (const c of wordCases.gaps) expect(koreanWordGaps(c.text), c.text).toEqual(c.gaps);
+  });
+  it("checks spoken answers", () => {
+    for (const c of wordCases.spoken) expect(saidRight(c.spoken, c.answer), `${c.spoken} / ${c.answer}`).toBe(c.right);
+  });
+  it("checks past forms", () => {
+    for (const c of wordCases.past) expect(pastFormRight(c.given, c.past), c.given).toBe(c.right);
+  });
+  it("finds the word's form in an example", () => {
+    for (const c of wordCases.highlight) expect(formInSentence(c.sentence, c.word), c.sentence).toEqual(c.range);
+  });
+});

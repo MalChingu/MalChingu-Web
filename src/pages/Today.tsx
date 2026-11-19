@@ -1,4 +1,5 @@
 import { QuizPanel, QuizResult } from "../components/QuizPanel";
+import { KoreanText } from "../components/KoreanText";
 import { Icon } from "../components/Icon";
 import { Button, Card, KoreanHeadline, Page, PosTag, SectionTitle, SpeakButton, StatTile } from "../components/ui";
 import { isFinished } from "../core/quiz";
@@ -80,16 +81,27 @@ export function Today({ openGuide }: { openGuide: (id: string) => void }) {
   );
 }
 
+/** True when the person has just selected text inside `el` (a drag, not a click). */
+export function selectingIn(el: Element): boolean {
+  const selection = window.getSelection();
+  return !!selection && !selection.isCollapsed && !!selection.anchorNode && el.contains(selection.anchorNode);
+}
+
+/** The circle ticks a task; the text can be selected and copied, and a plain click on it ticks too. */
 export function TaskList({ tasks }: { tasks: GuideTaskRow[] }) {
   const { setTaskDone } = useStore();
   return (
     <div className="tasks">
       {[...tasks].sort((a, b) => a.position - b.position).map((task) => (
-        <button key={task.id} type="button" className={`task ${task.done ? "done" : ""}`} aria-pressed={task.done}
-          onClick={() => setTaskDone(task, !task.done)}>
-          <Icon name={task.done ? "checkCircle" : "circle"} size={22} className={task.done ? "good" : "muted"} />
-          <span>{task.text}</span>
-        </button>
+        <div key={task.id} className={`task ${task.done ? "done" : ""}`}>
+          <button type="button" className="task-check" role="checkbox" aria-checked={task.done} aria-label={task.text}
+            onClick={() => setTaskDone(task, !task.done)}>
+            <Icon name={task.done ? "checkCircle" : "circle"} size={22} className={task.done ? "good" : "muted"} />
+          </button>
+          <span className="task-text" onClick={(e) => { if (!selectingIn(e.currentTarget)) setTaskDone(task, !task.done); }}>
+            <KoreanText text={task.text} />
+          </span>
+        </div>
       ))}
     </div>
   );
