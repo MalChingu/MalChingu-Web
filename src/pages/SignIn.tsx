@@ -70,14 +70,8 @@ export function SignIn() {
           </p>
         </div>
       </div>
-      {/* © on the left (this year), the Terms and Privacy Policy on the right. */}
-      <footer className="home-footer">
-        <span>© {new Date().getFullYear()} RezPoint Inc.</span>
-        <nav className="home-footer-links" aria-label="Legal">
-          <a href="/terms">Terms of Service</a>
-          <a href="/privacy">Privacy Policy</a>
-        </nav>
-      </footer>
+      {/* The copyright, this year, centred at the bottom. */}
+      <footer className="home-footer">© {new Date().getFullYear()} RezPoint Inc.</footer>
     </div>
   );
 }
