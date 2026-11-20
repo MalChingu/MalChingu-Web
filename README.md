@@ -25,7 +25,7 @@ npm install
 npm run dev
 ```
 
-Then open http://localhost:5173. Signing in needs the Apple setup below.
+Then open http://localhost:5173. Signing in needs the Apple and Google setup below.
 
 ## Tests
 
@@ -73,3 +73,11 @@ The app's native sign-in already works. The web needs a few more pieces, done on
 4. **Supabase → Authentication → URL Configuration**: set **Site URL** to the web address, and add it plus `http://localhost:5173` under **Redirect URLs**.
 
 The client secret expires after at most 6 months. Make a new one from the same `.p8` key and paste it into Supabase before then, or web sign-in stops working (the app is unaffected).
+
+## Sign in with Google
+
+Google is already set up in **Supabase → Authentication → Sign In / Providers → Google** with the Web client from Google Cloud (its secret lives only in Supabase). The web button uses Supabase's redirect sign-in and comes back to the site, so it needs only the redirect URLs above. An account with the same verified email address is the same account whichever button is used.
+
+## The logo
+
+The logo is drawn inline (`Logo` in `src/components/ui.tsx`, the same drawing as `public/logo.svg`) so its eyes can blink: every few seconds on the home page, and once each time the pointer moves onto the sidebar logo when signed in. Reduced motion stops the home page loop.

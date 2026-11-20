@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { nextZoom, useZoom } from "./lib/zoom";
 import type { Word } from "./core/models";
 import { Icon, type IconName } from "./components/Icon";
+import { Logo } from "./components/ui";
 import { useStore } from "./lib/store";
 import { Flashcards, Round, type PracticeMode } from "./pages/Flashcards";
 import { Guides } from "./pages/Guides";
@@ -68,7 +69,7 @@ export function App() {
   return (
     <div className="app-background app">
       <nav className="tabs glass" aria-label="Sections">
-        <div className="tabs-brand"><img src="/logo.svg" alt="" width={32} height={32} /> Malchingu</div>
+        <div className="tabs-brand"><Logo size={32} blink="hover" className="brand-logo" /> Malchingu</div>
         {TABS.map((t) => (
           <button key={t.id} type="button" className={`tab ${tab === t.id ? "on" : ""}`} aria-current={tab === t.id ? "page" : undefined}
             onClick={() => go(t.id)}>

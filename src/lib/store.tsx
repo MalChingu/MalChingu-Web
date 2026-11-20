@@ -100,6 +100,7 @@ interface Store {
   createConnectorLink: () => Promise<void>;
   revokeConnectorLink: () => Promise<void>;
   signInWithApple: () => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   openWord: (word: Word, quiz?: boolean) => void;
   openedWord: { word: Word; quiz: boolean } | null;
@@ -464,6 +465,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (error) setError(`Sign-in failed: ${error.message}`);
   }, []);
 
+  // Google: the same account as Apple's when both share a verified email address.
+  const signInWithGoogle = useCallback(async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: window.location.origin },
+    });
+    if (error) setError(`Sign-in failed: ${error.message}`);
+  }, []);
+
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
     setData(EMPTY);
@@ -480,7 +490,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     dailyQuiz: quiz, submitDaily, giveUpDaily, revealDailyHint, record, refresh, updateSettings, deleteWord, deleteWords,
     setTaskDone, deleteGuide, saveNote, deleteNote, saveTranslation, deleteTranslation,
     connectorURL: connectorShown ? `${CONNECTOR_BASE_URL}?key=${connectorShown}` : null,
-    createConnectorLink, revokeConnectorLink, signInWithApple, signOut,
+    createConnectorLink, revokeConnectorLink, signInWithApple, signInWithGoogle, signOut,
     openWord: (word, quizMode = false) => setOpenedWord({ word, quiz: quizMode }),
     openedWord, closeWord: () => setOpenedWord(null),
   };

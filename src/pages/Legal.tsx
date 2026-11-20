@@ -41,7 +41,7 @@ function Privacy() {
       <Section title="Information We Collect">
         <p>When you use Malchingu, we store:</p>
         <ul>
-          <li>Your account: you sign in with Apple (web, iPhone, iPad and Mac) or Google (Android). We receive an account identifier and the email address the provider shares, which may be a private relay address, and your name if you choose to share it.</li>
+          <li>Your account: you sign in with Apple or Google. We receive an account identifier and the email address the provider shares, which may be a private relay address, and your name if you choose to share it.</li>
           <li>Your profile: the display name, profile picture and title you choose in the app.</li>
           <li>Your study data: the words you add, your progress on each word, quiz and flashcard answers, daily study totals and streaks, the word of the day quiz, study guides and their tasks, your notes and the translations you save.</li>
           <li>Your settings, such as appearance, flashcard setup and notification times.</li>

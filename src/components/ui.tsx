@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode, useLayoutEffect } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode, useLayoutEffect } from "react";
 import { posLabel, type DisplayMode, type Example, type PartOfSpeech, type Word } from "../core/models";
 import { attempts, isMastered, type WordProgress } from "../core/progress";
 import { displayRomanization, romanize } from "../core/romanizer";
@@ -262,8 +262,31 @@ export function ConfirmDialog({ title, message, confirmLabel, destructive = true
   );
 }
 
-export function Logo({ size = 120 }: { size?: number }) {
-  return <img src="/logo.svg" width={size} height={size} alt="" className="logo" />;
+/** Malchingu's logo, drawn inline so its eyes can blink. `blink="loop"` blinks every few seconds (the home page);
+ *  `blink="hover"` blinks once each time the pointer moves onto it (the sidebar). */
+export function Logo({ size = 120, blink, className = "logo" }: { size?: number; blink?: "loop" | "hover"; className?: string }) {
+  const id = useId().replace(/[^a-zA-Z0-9_-]/g, "");
+  const [blinking, setBlinking] = useState(false);
+  const hover = blink === "hover";
+  const classes = [className, blink === "loop" && "blink-loop", blinking && "blink-once"].filter(Boolean).join(" ");
+  return (
+    <svg viewBox="0 0 1024 1024" width={size} height={size} className={classes} aria-hidden="true"
+      onMouseEnter={hover ? () => setBlinking(true) : undefined}
+      onAnimationEnd={hover ? () => setBlinking(false) : undefined}>
+      <defs>
+        <linearGradient id={`${id}bg`} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#5B4FE9" /><stop offset=".5" stopColor="#7C5CF0" /><stop offset="1" stopColor="#22B8C7" />
+        </linearGradient>
+        <linearGradient id={`${id}ink`} gradientUnits="userSpaceOnUse" x1="280" y1="310" x2="740" y2="630">
+          <stop offset="0" stopColor="#4338CA" /><stop offset="1" stopColor="#0E9AA7" />
+        </linearGradient>
+      </defs>
+      <rect width="1024" height="1024" rx="230" fill={`url(#${id}bg)`} />
+      <path fill="#FFFFFF" d="M292 200 H732 A140 140 0 0 1 872 340 V610 A140 140 0 0 1 732 750 H430 L262 872 A14 14 0 0 1 240 858 L262 742 A140 140 0 0 1 152 610 V340 A140 140 0 0 1 292 200 Z" />
+      <circle className="logo-eye" cx="392" cy="548" r="62" fill="none" stroke={`url(#${id}ink)`} strokeWidth="46" />
+      <circle className="logo-eye" cx="632" cy="548" r="62" fill="none" stroke={`url(#${id}ink)`} strokeWidth="46" />
+    </svg>
+  );
 }
 
 export function Steps({ steps }: { steps: { title?: string; text: string }[] }) {
