@@ -80,4 +80,4 @@ Google is already set up in **Supabase → Authentication → Sign In / Provider
 
 ## The logo
 
-The logo is drawn inline (`Logo` in `src/components/ui.tsx`, the same drawing as `public/logo.svg`) so its eyes can blink: every few seconds on the home page, and once each time the pointer moves onto the sidebar logo when signed in. Reduced motion stops the home page loop.
+The logo is drawn inline (`Logo` in `src/components/ui.tsx`, the same drawing as `public/logo.svg`) so its eyes can blink: every few seconds on the home page, and once each time the pointer moves onto the sidebar logo or the About the App logo in Profile when signed in. Reduced motion stops the home page loop.

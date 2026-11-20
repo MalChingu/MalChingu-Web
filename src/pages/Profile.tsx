@@ -4,7 +4,7 @@ import { ACHIEVEMENTS, shownTitle } from "../core/achievements";
 import { levelLabel } from "../core/progress";
 import { BUILT_IN } from "../core/wordBank";
 import { Icon } from "../components/Icon";
-import { Button, Card, ConfirmDialog, Page, SectionTitle, Segmented, Toggle, copyText } from "../components/ui";
+import { Button, Card, ConfirmDialog, Logo, Page, SectionTitle, Segmented, Toggle, copyText } from "../components/ui";
 import { avatarSrc, squareJPEGBase64 } from "../lib/avatar";
 import { initials } from "../lib/settings";
 import { speak, useKoreanVoice } from "../lib/speech";
@@ -115,9 +115,9 @@ export function Profile() {
         )}
 
         <Card>
-          <SectionTitle>About Malchingu</SectionTitle>
+          <SectionTitle>About the App</SectionTitle>
           <div className="about-app">
-            <img className="about-logo" src="/icon-192.png" alt="" width={80} height={80} />
+            <Logo size={80} blink="hover" className="about-logo" />
             <div className="about-name">Malchingu</div>
             <div className="small muted">Version {__APP_VERSION__}</div>
           </div>
