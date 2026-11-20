@@ -341,6 +341,18 @@ progress::-moz-progress-bar { background: var(--accent-fill); }
 .round { min-height: calc(100dvh / var(--zoom, 1) - 100px); display: flex; flex-direction: column; }
 .round-body { flex: 1; display: flex; flex-direction: column; max-width: 560px; width: 100%; margin: 0 auto; }
 .segments { display: flex; gap: 4px; }
+/* Per-card timer: a thin bar that empties; red for the last three seconds. */
+.timer-bar { height: 4px; border-radius: 2px; background: var(--divider); overflow: hidden; margin-top: 6px; }
+.timer-bar span { display: block; height: 100%; background: var(--accent-fill); transition: width 0.1s linear; }
+.timer-bar.low span { background: var(--red); }
+.form-tag { background: var(--accent-fill); color: #fff; }
+/* Keyboard Shortcuts: only where there's a mouse or trackpad (the space stays, so the title stays centred). */
+@media (hover: none) and (pointer: coarse) { .round-help { visibility: hidden; } }
+.shortcut-list { display: flex; flex-direction: column; gap: 14px; }
+.shortcut-row { display: grid; grid-template-columns: 120px 1fr; gap: 12px; align-items: center; }
+.shortcut-keys { display: flex; gap: 4px; flex-wrap: wrap; }
+kbd { font: inherit; font-size: 0.85rem; font-weight: 600; min-width: 28px; text-align: center; padding: 3px 8px; border-radius: 8px;
+  background: var(--field); border: 1px solid var(--glass-border); box-shadow: 0 1px 0 var(--glass-border); }
 .segment { flex: 1; height: 6px; border-radius: 3px; background: var(--divider); }
 .segment.current { background: var(--accent-fill); }
 .segment.good { background: var(--green); }

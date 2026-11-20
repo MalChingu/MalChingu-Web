@@ -344,14 +344,25 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const giveUpDaily = useCallback(() => { if (quiz) saveQuiz(giveUp(quiz)); }, [quiz, saveQuiz]);
   const revealDailyHint = useCallback((i: number) => { if (quiz) saveQuiz(revealHint(quiz, i)); }, [quiz, saveQuiz]);
 
+  // Settings are saved one at a time, newest last: quick changes (two chips in a row) could otherwise reach the
+  // server out of order and leave the older settings saved. A change waiting behind a newer one is skipped.
+  const pendingSettings = useRef<RawSettings | null>(null);
+  const settingsQueue = useRef<Promise<void>>(Promise.resolve());
   const updateSettings = useCallback(async (change: Partial<Settings>) => {
     if (!userID) return;
-    const merged = { ...data.settingsRaw, ...settingsPatch(change, data.settingsRaw), updated_at: now() };
+    const base = pendingSettings.current ?? data.settingsRaw;
+    const merged = { ...base, ...settingsPatch(change, base), updated_at: now() };
+    pendingSettings.current = merged;
     edit("settingsRaw");
     setData((d) => ({ ...d, settingsRaw: merged }));
-    const { error } = await supabase.from("profiles")
-      .upsert({ user_id: userID, settings: merged, updated_at: merged.updated_at }, { onConflict: "user_id" });
-    if (error) setError(`Couldn't save settings: ${error.message}`);
+    settingsQueue.current = settingsQueue.current.then(async () => {
+      if (pendingSettings.current !== merged) return;   // a newer change will save everything
+      const { error } = await supabase.from("profiles")
+        .upsert({ user_id: userID, settings: merged, updated_at: merged.updated_at }, { onConflict: "user_id" });
+      if (pendingSettings.current === merged) pendingSettings.current = null;
+      if (error) setError(`Couldn't save settings: ${error.message}`);
+    });
+    await settingsQueue.current;
   }, [userID, data.settingsRaw]);
 
   const deleteWords = useCallback(async (ids: string[]) => {

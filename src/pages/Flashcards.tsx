@@ -4,7 +4,10 @@ import { PARTS_OF_SPEECH, posPlural, type PartOfSpeech, type Word } from "../cor
 import { buildDeck } from "../core/progress";
 import { BUILT_IN } from "../core/wordBank";
 import { Icon } from "../components/Icon";
-import { Button, Card, KoreanHeadline, Page, PosTag, RoundButton, Segmented, SpeakButton, Stepper, WordRow } from "../components/ui";
+import { Button, Card, KoreanHeadline, Page, PosTag, RoundButton, Segmented, Sheet, SpeakButton, Stepper, WordRow } from "../components/ui";
+import { formAnswerRight, formsFor, shownForForm, type CardForm } from "../core/englishForms";
+import type { FlashcardSource } from "../lib/settings";
+import { speak } from "../lib/speech";
 import { useStore } from "../lib/store";
 import { MyWords } from "./MyWords";
 import { formInSentence, pastFormRight } from "../core/koreanWords";
@@ -16,55 +19,88 @@ import type { Example } from "../core/models";
 export type PracticeMode = "meaning" | "past";
 export type Practice = (words: Word[], mode: PracticeMode) => void;
 
-type Source = "Built-in" | "My Words" | "Mix";
-type View = { kind: "setup" } | { kind: "round"; words: Word[] } | { kind: "myWords" };
+type Deck = { words: Word[]; forms: CardForm[]; seconds: number };
+type View = { kind: "setup" } | ({ kind: "round" } & Deck) | { kind: "myWords" };
 
 export function Flashcards() {
   const [view, setView] = useState<View>({ kind: "setup" });
-  if (view.kind === "round") return <Round words={view.words} onClose={() => setView({ kind: "setup" })} />;
+  if (view.kind === "round") {
+    return <Round words={view.words} forms={view.forms} seconds={view.seconds} onClose={() => setView({ kind: "setup" })} />;
+  }
   if (view.kind === "myWords") return <MyWords onBack={() => setView({ kind: "setup" })} />;
-  return <Setup start={(words) => setView({ kind: "round", words })} openMyWords={() => setView({ kind: "myWords" })} />;
+  return <Setup start={(deck) => setView({ kind: "round", ...deck })} openMyWords={() => setView({ kind: "myWords" })} />;
 }
 
-function Setup({ start, openMyWords }: { start: (words: Word[]) => void; openMyWords: () => void }) {
+const SOURCES: { value: FlashcardSource; label: string }[] = [
+  { value: "builtIn", label: "Built-in" }, { value: "mine", label: "My Words" }, { value: "mix", label: "Mix" },
+];
+const FORM_LABEL: Record<CardForm, string> = { dictionary: "Dictionary", past: "Past", present: "Present" };
+
+/** The round setup. Every choice is saved with the account, so the next round (and the Mac app) starts the same way. */
+function Setup({ start, openMyWords }: { start: (deck: Deck) => void; openMyWords: () => void }) {
   const store = useStore();
-  const [source, setSource] = useState<Source>("Built-in");
-  const [types, setTypes] = useState<PartOfSpeech[]>([]);
+  const { flashcardSource: source, flashcardTypes: types, flashcardForms: forms, flashcardSeconds: seconds, deckSize } = store.settings;
   const mine = store.allWords.slice(BUILT_IN.length);
-  const words = source === "Built-in" ? BUILT_IN : source === "My Words" ? mine : store.allWords;
-  const pool = types.length ? words.filter((w) => types.includes(w.pos)) : words;
-  const deckSize = store.settings.deckSize;
+  const words = source === "builtIn" ? BUILT_IN : source === "mine" ? mine : store.allWords;
+  // Past and Present only use verbs and adjectives with their tenses.
+  const pool = (types.length ? words.filter((w) => types.includes(w.pos)) : words).filter((w) => formsFor(w, forms).length > 0);
 
   const toggle = (pos: PartOfSpeech) =>
-    setTypes((t) => (t.includes(pos) ? t.filter((p) => p !== pos) : [...t, pos]));
+    store.updateSettings({ flashcardTypes: types.includes(pos) ? types.filter((p) => p !== pos) : [...types, pos] });
+  // At least one form stays on.
+  const toggleForm = (form: CardForm) => {
+    const next = forms.includes(form) ? forms.filter((f) => f !== form) : [...forms, form];
+    if (next.length) store.updateSettings({ flashcardForms: (["dictionary", "past", "present"] as CardForm[]).filter((f) => next.includes(f)) });
+  };
+  const begin = () => {
+    const deck = buildDeck(pool, store.progressMap, deckSize);
+    const cardForms = deck.map((w) => {
+      const options = formsFor(w, forms);
+      return options[Math.floor(Math.random() * options.length)];
+    });
+    start({ words: deck, forms: cardForms, seconds });
+  };
 
   return (
     <Page title="Flashcards">
       <Card padding={20}>
         <div className="stack">
           <h3>New Round</h3>
-          <Segmented label="Words From" value={source} onChange={setSource}
-            options={(["Built-in", "My Words", "Mix"] as Source[]).map((s) => ({ value: s, label: s }))} />
+          <Segmented label="Words From" value={source} onChange={(v) => store.updateSettings({ flashcardSource: v })} options={SOURCES} />
           <div className="small muted">Word Types</div>
           <div className="chips">
-            <button type="button" className={`chip ${types.length === 0 ? "on" : ""}`} onClick={() => setTypes([])}>All</button>
+            <button type="button" className={`chip ${types.length === 0 ? "on" : ""}`} onClick={() => store.updateSettings({ flashcardTypes: [] })}>All</button>
             {PARTS_OF_SPEECH.map((pos) => (
               <button key={pos} type="button" className={`chip ${types.includes(pos) ? "on" : ""}`} aria-pressed={types.includes(pos)}
                 onClick={() => toggle(pos)}>{posPlural(pos)}</button>
             ))}
           </div>
+          <div className="small muted">Forms</div>
+          <div className="chips" role="group" aria-label="Forms">
+            {(["dictionary", "past", "present"] as CardForm[]).map((f) => (
+              <button key={f} type="button" className={`chip ${forms.includes(f) ? "on" : ""}`} aria-pressed={forms.includes(f)}
+                onClick={() => toggleForm(f)}>{FORM_LABEL[f]}</button>
+            ))}
+          </div>
+          <p className="small muted">
+            {forms.length === 1 && forms[0] === "dictionary"
+              ? "Cards show the dictionary form (가다). Type what it means."
+              : "Cards show the word in a chosen form (가다, 갔어요 or 가요). Type what that form means: to go, went, goes. Past and Present use verbs and adjectives."}
+          </p>
+          <div className="small muted">Timer</div>
+          <Segmented label="Timer" value={String(seconds)} onChange={(v) => store.updateSettings({ flashcardSeconds: Number(v) })}
+            options={[{ value: "0", label: "Off" }, { value: "10", label: "10 s" }, { value: "20", label: "20 s" }, { value: "30", label: "30 s" }]} />
           <div className="row">
             <span className="grow">Cards per Round: {deckSize}</span>
             <Stepper minusLabel="Fewer cards" plusLabel="More cards" minusDisabled={deckSize <= 5} plusDisabled={deckSize >= 40}
               onMinus={() => store.updateSettings({ deckSize: deckSize - 5 })} onPlus={() => store.updateSettings({ deckSize: deckSize + 5 })} />
           </div>
           {pool.length === 0 && (
-            <p className="small muted">{source === "My Words"
+            <p className="small muted">{source === "mine"
               ? "You haven't added any words yet. Ask Claude to add them; My Words explains how."
               : "No words match these filters."}</p>
           )}
-          <Button kind="prominent" icon="play" full large disabled={pool.length === 0}
-            onClick={() => start(buildDeck(pool, store.progressMap, deckSize))}>Start</Button>
+          <Button kind="prominent" icon="play" full large disabled={pool.length === 0} onClick={begin}>Start</Button>
         </div>
       </Card>
       <button type="button" className="glass card nav-row" onClick={openMyWords}>
@@ -77,14 +113,12 @@ function Setup({ start, openMyWords }: { start: (words: Word[]) => void; openMyW
   );
 }
 
-type Phase = { kind: "answering" } | { kind: "revealed"; correct: boolean; given: string | null; spoken: boolean };
+type Phase = { kind: "answering" } | { kind: "revealed"; correct: boolean; given: string | null; spoken: boolean; timedOut?: boolean };
 
 /** The example sentence with the word's form in the accent colour (음식이 **맛있었어요**), a dot between words
  *  and Listen. For Past Form it prefers an example that uses the past form. */
-function ExampleLine({ word, mode }: { word: Word; mode: PracticeMode }) {
-  const past = word.tenses?.past;
-  const example: Example | undefined = (mode === "past" && past ? word.examples.find((e) => e.korean.includes(past)) : undefined)
-    ?? word.examples[0];
+function ExampleLine({ word, prefer }: { word: Word; prefer?: string }) {
+  const example: Example | undefined = (prefer ? word.examples.find((e) => e.korean.includes(prefer)) : undefined) ?? word.examples[0];
   if (!example) return null;
   const range = formInSentence(example.korean, word);
   const k = example.korean;
@@ -104,8 +138,12 @@ function ExampleLine({ word, mode }: { word: Word; mode: PracticeMode }) {
 
 /** One round. Swipe (or drag) right to submit, left if you don't know; then right again to move on. Enter submits,
  *  then moves on. `doneLabel` is the last button: New Round, or Back to Guide when it came from a guide. */
-export function Round({ words, onClose, mode = "meaning", doneLabel = "New Round" }: {
+export function Round({ words, onClose, mode = "meaning", doneLabel = "New Round", forms, seconds = 0 }: {
   words: Word[]; onClose: () => void; mode?: PracticeMode; doneLabel?: string;
+  /** The form each card shows (from the Flashcards setup); the dictionary form when not given. */
+  forms?: CardForm[];
+  /** Seconds per card; 0 is no timer. */
+  seconds?: number;
 }) {
   const store = useStore();
   const [index, setIndex] = useState(0);
@@ -116,10 +154,16 @@ export function Round({ words, onClose, mode = "meaning", doneLabel = "New Round
   const [dragX, setDragX] = useState(0);
   const drag = useRef<{ x: number; id: number } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [helpOpen, setHelpOpen] = useState(false);
+  /** Milliseconds left on this card's timer. */
+  const [remaining, setRemaining] = useState(seconds * 1000);
 
   const word = words[index] as Word | undefined;
   const answering = phase.kind === "answering";
   const last = index === words.length - 1;
+  // The form this card shows: 갔어요 for a Past card. (The guide's Past Form drill asks for it instead.)
+  const form: CardForm = mode === "past" ? "dictionary" : forms?.[index] ?? "dictionary";
+  const shown = (form === "past" ? word?.tenses?.past : form === "present" ? word?.tenses?.present : undefined) ?? word?.hangul ?? "";
 
   const finish = (correct: boolean, gaveUp = false) => {
     if (!word) return;
@@ -133,10 +177,12 @@ export function Round({ words, onClose, mode = "meaning", doneLabel = "New Round
     setPhase({ kind: "answering" });
     setAnswer("");
     setNudge(null);
+    setRemaining(seconds * 1000);   // with the new card, so it doesn't start out of time
   };
 
   const check = (given: string) => mode === "past"
     ? pastFormRight(given, word?.tenses?.past ?? "")
+    : word && form !== "dictionary" ? formAnswerRight(given, word, form)
     : isCorrectAnswer(given, word?.meanings ?? []);
 
   const submitAnswer = (given: string, spoken = false) => {
@@ -167,9 +213,45 @@ export function Round({ words, onClose, mode = "meaning", doneLabel = "New Round
     setPhase({ kind: "revealed", correct: false, given: null, spoken: false });
   };
 
-  // Arrow keys work like swipes, except while typing in the answer field; Enter moves on after an answer.
+  /** Time's up: what was typed is submitted; with nothing typed, the card counts as wrong. */
+  const timeUp = () => {
+    if (!word || !answering) return;
+    const typed = answer.trim();
+    if (typed) { submitAnswer(typed); return; }
+    inputRef.current?.blur();
+    finish(false);
+    setPhase({ kind: "revealed", correct: false, given: null, spoken: false, timedOut: true });
+  };
+
+  // The timer: restarts on each card, stops once the answer shows, and waits while Keyboard Shortcuts is open.
+  useEffect(() => {
+    if (!seconds || !answering || helpOpen || !word) return;
+    let before = performance.now();
+    const tick = window.setInterval(() => {
+      const now = performance.now();
+      const step = now - before;
+      before = now;
+      setRemaining((left) => Math.max(0, left - step));
+    }, 100);
+    return () => window.clearInterval(tick);
+  }, [seconds, answering, helpOpen, index, word]);
+  useEffect(() => { if (seconds && answering && remaining <= 0) timeUp(); });
+
+  // The answer box is ready to type in on every card (and after closing Keyboard Shortcuts).
+  useEffect(() => {
+    if (answering && !helpOpen) inputRef.current?.focus({ preventScroll: true });
+  }, [index, answering, helpOpen]);
+
+  // Ctrl+L listens and Ctrl+D is "I don't know", even while typing. Arrow keys work like swipes, except while
+  // typing in the answer field; Enter moves on after an answer.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (helpOpen || !word) return;
+      if (e.ctrlKey && !e.metaKey && !e.altKey) {
+        const key = e.key.toLowerCase();
+        if (key === "l") { e.preventDefault(); speak(phase.kind === "revealed" && mode === "past" ? word.tenses?.past ?? shown : shown); return; }
+        if (key === "d") { e.preventDefault(); if (answering) swipeLeft(); return; }
+      }
       if (e.target instanceof HTMLInputElement) return;
       if (e.key === "ArrowRight") swipeRight();
       if (e.key === "ArrowLeft") swipeLeft();
@@ -200,7 +282,9 @@ export function Round({ words, onClose, mode = "meaning", doneLabel = "New Round
     <header className="page-header centered with-close">
       <RoundButton icon="x" tint="glass" label="Close" onClick={onClose} size={38} />
       <h1 className="inline-title">{title}</h1>
-      <span style={{ width: 38 }} />
+      {word
+        ? <span className="round-help"><RoundButton icon="question" tint="glass" label="Keyboard Shortcuts" onClick={() => setHelpOpen(true)} size={38} /></span>
+        : <span style={{ width: 38 }} />}
     </header>
   );
 
@@ -244,24 +328,33 @@ export function Round({ words, onClose, mode = "meaning", doneLabel = "New Round
             <span key={i} className={`segment ${i < results.length ? (results[i].correct ? "good" : "bad") : i === index ? "current" : ""}`} />
           ))}
         </div>
+        {seconds > 0 && (
+          <div className={`timer-bar ${answering && remaining <= 3000 ? "low" : ""}`} role="timer"
+            aria-label={answering ? `${Math.ceil(remaining / 1000)} seconds left` : "Timer stopped"}>
+            <span style={{ width: `${answering ? (remaining / (seconds * 1000)) * 100 : 0}%` }} />
+          </div>
+        )}
         <div className="round-center">
           <div className="glass flashcard" style={{ transform: `translateX(${dragX}px) rotate(${dragX / 22}deg)` }}
             onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}>
             {badge && <span className={`swipe-badge ${badge[1]}`} style={{ opacity: Math.min(Math.abs(dragX) / 100, 1) }}>{badge[0]}</span>}
             <div className="flashcard-top">
-              <PosTag pos={word.pos} />
-              <KoreanHeadline word={word} mode="both" size={54} />
-              <SpeakButton text={word.hangul} size={24} />
+              <div className="row center-row">
+                <PosTag pos={word.pos} />
+                {form !== "dictionary" && <span className="pos-tag form-tag">{form.toUpperCase()}</span>}
+              </div>
+              <KoreanHeadline word={form === "dictionary" ? word : { ...word, hangul: shown, romanization: romanize(shown) }} mode="both" size={54} />
+              <SpeakButton text={shown} size={24} />
             </div>
             <div className="flashcard-bottom">
               {phase.kind === "answering" ? (
                 <div className="answer-stack">
-                  <span className="small muted">{mode === "past" ? "Past form (polite)" : "Meaning of the dictionary form"}</span>
+                  <span className="small muted">{mode === "past" ? "Past form (polite)" : `Meaning of the ${form === "dictionary" ? "dictionary" : form} form`}</span>
                   <div className="answer-row">
-                    <input ref={inputRef} className="flashcard-input" value={answer} lang={mode === "past" ? "ko" : "en"}
+                    <input ref={inputRef} className="flashcard-input" value={answer} lang={mode === "past" ? "ko" : "en"} autoFocus
                       placeholder={mode === "past" ? "Type it in Korean" : "Meaning in English"}
                       autoCapitalize="off" autoCorrect="off" spellCheck={false} enterKeyHint="done"
-                      aria-label={mode === "past" ? "Past form in Korean" : "Meaning of the dictionary form, in English"}
+                      aria-label={mode === "past" ? "Past form in Korean" : `Meaning of the ${form === "dictionary" ? "dictionary" : form} form, in English`}
                       onChange={(e) => setAnswer(e.target.value)}
                       onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); swipeRight(); } }} />
                     {mode === "past" && (
@@ -282,6 +375,11 @@ export function Round({ words, onClose, mode = "meaning", doneLabel = "New Round
                         <SpeakButton text={word.tenses.past} size={18} />
                       </div>
                     </>
+                  ) : form !== "dictionary" ? (
+                    <>
+                      <div className="meaning-line">{shownForForm(word, form).join(", ")}</div>
+                      <span className="small muted"><span lang="ko">{shown}</span> is the {form} of <span lang="ko">{word.hangul}</span> · {displayMeanings(word.meanings)[0]}</span>
+                    </>
                   ) : (
                     <div className="meaning-line">{displayMeanings(word.meanings).join(", ")}</div>
                   )}
@@ -289,8 +387,10 @@ export function Round({ words, onClose, mode = "meaning", doneLabel = "New Round
                     ? <span className="good strong"><Icon name="checkCircle" size={16} /> Correct!{phase.spoken && phase.given ? ` You said “${phase.given}”.` : ""}</span>
                     : phase.given
                       ? <span className="bad"><Icon name="x" size={14} /> {phase.spoken ? "You said" : "Your answer:"} “{phase.given}”</span>
-                      : <span className="muted">You skipped this one.</span>}
-                  <ExampleLine word={word} mode={mode} />
+                      : phase.timedOut
+                        ? <span className="bad"><Icon name="x" size={14} /> Time's up.</span>
+                        : <span className="muted">You skipped this one.</span>}
+                  <ExampleLine word={word} prefer={mode === "past" ? word.tenses?.past : form !== "dictionary" ? shown : undefined} />
                 </div>
               )}
             </div>
@@ -315,6 +415,32 @@ export function Round({ words, onClose, mode = "meaning", doneLabel = "New Round
           </div>
         </div>
       </div>
+      {helpOpen && <ShortcutsSheet onClose={() => setHelpOpen(false)} />}
     </div>
+  );
+}
+
+const SHORTCUTS: { keys: string[]; action: string }[] = [
+  { keys: ["Enter"], action: "Submit your answer, then go to the next card" },
+  { keys: ["Ctrl", "L"], action: "Listen" },
+  { keys: ["Ctrl", "D"], action: "I don't know" },
+  { keys: ["→"], action: "Submit, or the next card (when not typing)" },
+  { keys: ["←"], action: "I don't know, or the next card (when not typing)" },
+  { keys: ["Esc"], action: "Close the round" },
+];
+
+/** The round's keyboard shortcuts, from the ? button. */
+function ShortcutsSheet({ onClose }: { onClose: () => void }) {
+  return (
+    <Sheet title="Keyboard Shortcuts" onClose={onClose}>
+      <div className="shortcut-list">
+        {SHORTCUTS.map((s) => (
+          <div key={s.action} className="shortcut-row">
+            <span className="shortcut-keys">{s.keys.map((k) => <kbd key={k}>{k}</kbd>)}</span>
+            <span>{s.action}</span>
+          </div>
+        ))}
+      </div>
+    </Sheet>
   );
 }

@@ -115,3 +115,36 @@ describe("Korean word helpers (same cases as the iPhone and Android apps)", () =
     for (const c of wordCases.highlight) expect(formInSentence(c.sentence, c.word), c.sentence).toEqual(c.range);
   });
 });
+
+import { acceptedForForm, englishForms, formAnswerRight, formsFor, shownForForm } from "../englishForms";
+import englishCases from "./english.cases.json";
+import type { PartOfSpeech } from "../models";
+
+describe("English for past and present forms (shared cases)", () => {
+  it("conjugates each meaning", () => {
+    for (const c of englishCases.forms) {
+      expect(englishForms(c.meaning, c.pos as PartOfSpeech), c.meaning).toEqual({ past: c.past, present: c.present });
+    }
+  });
+  it("checks typed meanings for a form", () => {
+    for (const c of englishCases.answers) {
+      const word = { meanings: c.meanings, pos: c.pos as PartOfSpeech };
+      expect(formAnswerRight(c.given, word, c.form as "past" | "present"), `${c.given} (${c.form})`).toBe(c.right);
+    }
+  });
+  it("shows the first form of each meaning", () => {
+    for (const c of englishCases.shown) {
+      expect(shownForForm({ meanings: c.meanings, pos: c.pos as PartOfSpeech }, c.form as "past" | "present")).toEqual(c.shown);
+    }
+  });
+  it("gives every built-in verb and adjective a past and present", () => {
+    const conjugated = BUILT_IN.filter((w) => w.pos === "verb" || w.pos === "adjective");
+    expect(conjugated.length).toBe(137);
+    for (const w of conjugated) {
+      expect(acceptedForForm(w, "past").length, w.hangul).toBeGreaterThan(0);
+      expect(acceptedForForm(w, "present").length, w.hangul).toBeGreaterThan(0);
+      expect(formsFor(w, ["past", "present"]), w.hangul).toEqual(["past", "present"]);
+    }
+    expect(formsFor({ pos: "noun", tenses: null }, ["dictionary", "past"])).toEqual(["dictionary"]);
+  });
+});
