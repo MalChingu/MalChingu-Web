@@ -4,6 +4,10 @@ Malchingu (말친구, "talking buddy") in the browser: the same Korean study app
 
 - **Today**: a greeting, your streak, and the word of the day with its quiz (red X to give up, green ✓ to check, three tap-to-reveal hints). It's the same word the app shows that day, and the quiz itself is shared: hints and the result carry over between the web and the app.
 - **Flashcards**: built-in words, your own words or a mix; drag or swipe the card (or use the arrow keys), segmented progress, and every card turns over after you answer.
+  Cards can show the **Dictionary**, **Past** or **Present** form (가다, 갔어요, 가요) and you type what that form means
+  (to go, went, goes; "I went" counts too), with an optional **timer** of 10, 20 or 30 seconds per card. The setup is
+  saved with your account (shared with the Mac app). The answer box is ready to type in on every card; Enter submits
+  and moves on, Ctrl+L listens, Ctrl+D is "I don't know", and the ? button lists the shortcuts.
 - **Guides**: study guides that Claude writes from your notes, day by day, with checkable tasks and vocabulary practice. Create Guide gives you a one-sentence request to paste into Claude.
 - **Stats** and **Profile**: picture, name, level, appearance (System / Light / Dark), word-of-the-day settings, the Claude connector link (one per account, shown on every device), achievements and earned titles (see `src/core/achievements.ts`), and a listen button using the browser's Korean voice.
 
