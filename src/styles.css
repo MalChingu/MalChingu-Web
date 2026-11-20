@@ -453,7 +453,8 @@ progress::-moz-progress-bar { background: var(--accent-fill); }
 @media (min-width: 900px) {
   .app {
     display: grid; grid-template-columns: 236px minmax(0, 1fr); gap: 48px; align-items: start;
-    max-width: 1440px; margin: 0 auto; padding: 32px 40px 48px;
+    /* The same space above and below as the sidebar keeps (32px), so a short page fits the window without scrolling. */
+    max-width: 1440px; margin: 0 auto; padding: 32px 40px;
   }
   .tabs {
     /* Divided by the zoom, so the sidebar still fits the window at 150% and 200%. */
