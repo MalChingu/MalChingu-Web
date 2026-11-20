@@ -232,7 +232,7 @@ export function Legal({ kind }: { kind: LegalKind }) {
         <div className="legal-body">{kind === "privacy" ? <Privacy /> : <Terms />}</div>
       </main>
       <footer className="legal-footer">
-        <span>© 2026 RezPoint Inc.</span>
+        <span>© {new Date().getFullYear()} RezPoint Inc.</span>
         <a href="/privacy">Privacy Policy</a>
         <a href="/terms">Terms of Service</a>
       </footer>

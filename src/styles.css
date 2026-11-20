@@ -395,11 +395,32 @@ kbd { font: inherit; font-size: 0.85rem; font-weight: 600; min-width: 28px; text
 
 /* Sign in */
 /* The intro and the sign-in button sit together as one group in the middle of the screen. */
-.sign-in { min-height: calc(100dvh / var(--zoom, 1)); display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 56px; padding: 48px 24px 32px; text-align: center; }
+.sign-in { min-height: calc(100dvh / var(--zoom, 1)); display: flex; flex-direction: column; align-items: center; gap: 32px; padding: 48px 24px 24px; text-align: center; }
+/* The page's content in the middle of the window; the Terms and Privacy footer at the very bottom. */
+.sign-in-main { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 56px; }
+/* Home page footer: © on the left, Terms and Privacy Policy on the right (stacked and centred on narrow phones). */
+.home-footer { width: 100%; max-width: 1200px; display: flex; justify-content: space-between; align-items: center; gap: 8px 16px;
+  color: var(--text-2); font-size: 0.9rem; }
+.home-footer-links { display: flex; gap: 20px; }
+.home-footer-links a { color: var(--text-2); text-decoration: none; font-weight: 600; }
+.home-footer-links a:hover { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+.home-footer > span, .home-footer-links a { white-space: nowrap; }
+/* Phones have no room for one row: the links, then ©, centred. */
+@media (max-width: 520px) { .home-footer { flex-direction: column-reverse; } }
 .sign-in-top, .sign-in-bottom { display: flex; flex-direction: column; align-items: center; gap: 14px; }
 .logo { border-radius: 30px; box-shadow: 0 16px 32px rgba(40, 30, 120, 0.25); }
 .brand { font-size: 2.6rem; font-weight: 800; font-family: ui-rounded, inherit; }
 .lead { font-size: 1.2rem; color: var(--text-2); }
+.sign-in-top .lead { margin: -6px 0 0; }
+.korean-name { font-size: 1.5rem; font-weight: 700; color: var(--text); }
+/* Home page: the features typed out one at a time, with a blinking caret. Its own line height, so nothing jumps. */
+.typed { margin: 4px 0 0; min-height: 1.5em; font-size: 1.35rem; font-weight: 700; color: var(--accent); display: inline-flex; align-items: center; }
+.typed .caret { display: inline-block; width: 2px; height: 1.2em; margin-left: 3px; border-radius: 1px; background: var(--accent); animation: caret-blink 1s steps(1) infinite; }
+@keyframes caret-blink { 50% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .typed .caret { animation: none; } }
+.legal-consent { max-width: 460px; text-wrap: balance; }
+.legal-consent a { color: var(--accent); font-weight: 600; text-decoration: none; white-space: nowrap; }
+.legal-consent a:hover { text-decoration: underline; text-underline-offset: 3px; }
 .apple-button {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: min(360px, 100%); height: 52px;
   border-radius: 999px; border: 0; background: #000; color: #fff; font-size: 1.1rem; font-weight: 600;
@@ -641,8 +662,8 @@ button.achievement { cursor: pointer; }
 .legal-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 4px 4px 0; }
 .legal-brand { display: inline-flex; align-items: center; gap: 10px; font-weight: 700; font-size: 1.15rem; color: var(--text); text-decoration: none; }
 .legal-brand img { border-radius: 8px; }
-.legal-switch, .legal-footer a, .legal-links a { color: var(--accent); text-decoration: none; font-weight: 600; }
-.legal-switch:hover, .legal-footer a:hover, .legal-links a:hover { text-decoration: underline; text-underline-offset: 3px; }
+.legal-switch, .legal-footer a { color: var(--accent); text-decoration: none; font-weight: 600; }
+.legal-switch:hover, .legal-footer a:hover { text-decoration: underline; text-underline-offset: 3px; }
 .legal-card { padding: 32px 24px; gap: 0; }
 .legal-card h1 { font-size: clamp(1.8rem, 6vw, 2.6rem); font-weight: 800; text-align: center; letter-spacing: -0.02em; }
 .legal-updated { text-align: center; color: var(--text-2); font-size: 0.9rem; margin: 10px 0 28px; }
@@ -654,5 +675,4 @@ button.achievement { cursor: pointer; }
 .legal-section li::marker { color: var(--accent); }
 .legal-body a { color: var(--accent); text-underline-offset: 3px; }
 .legal-footer { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 18px; color: var(--text-2); font-size: 0.9rem; }
-.legal-links { display: flex; gap: 8px; justify-content: center; color: var(--text-3); }
 @media (min-width: 700px) { .legal { padding: 32px 24px 56px; } .legal-card { padding: 44px 48px; } }
