@@ -9,7 +9,6 @@ import { avatarSrc, squareJPEGBase64 } from "../lib/avatar";
 import { initials } from "../lib/settings";
 import { speak, useKoreanVoice } from "../lib/speech";
 import { useAppearance, type Appearance } from "../lib/theme";
-import { nextZoom, useZoom } from "../lib/zoom";
 import { useStore } from "../lib/store";
 
 export function Profile() {
@@ -22,7 +21,6 @@ export function Profile() {
   const file = useRef<HTMLInputElement>(null);
   const voice = useKoreanVoice();
   const [appearance, setAppearance] = useAppearance();
-  const [zoom, setZoom] = useZoom();
 
   useEffect(() => setName(settings.profile.name), [settings.profile.name]);
 
@@ -106,10 +104,6 @@ export function Profile() {
         <SectionTitle>Appearance</SectionTitle>
         <Segmented label="Appearance" value={appearance} onChange={setAppearance}
           options={(["system", "light", "dark"] as Appearance[]).map((o) => ({ value: o, label: o[0].toUpperCase() + o.slice(1) }))} />
-        <div className="row toggle-row">
-          <span>Text Size</span>
-          <Button compact icon="textSize" onClick={() => setZoom(nextZoom(zoom))}>{`${zoom * 100}%`}</Button>
-        </div>
       </Card>
 
       <Card>
