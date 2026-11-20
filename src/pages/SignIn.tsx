@@ -56,7 +56,6 @@ export function SignIn() {
           <p className="typed" aria-label={FEATURES.join(", ")}>
             <span aria-hidden="true">{typed}</span><span className="caret" aria-hidden="true" />
           </p>
-          <p className="muted measure">A word a day, flashcards that remember what you miss, and study guides built from your own notes.</p>
         </div>
         <div className="sign-in-bottom">
           <button type="button" className="apple-button" onClick={signInWithApple}>
