@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
-import { Segmented } from "./components/ui";
-import { useZoom, ZOOMS, type Zoom } from "./lib/zoom";
+import { nextZoom, useZoom } from "./lib/zoom";
 import type { Word } from "./core/models";
 import { Icon, type IconName } from "./components/Icon";
 import { useStore } from "./lib/store";
@@ -27,15 +26,18 @@ const tabFromHash = (): Tab => {
   return TABS.some((t) => t.id === hash) ? hash : "today";
 };
 
-/** Bottom of the sidebar on wide screens: the page at 100%, 150% or 200% for big, sharp monitors. */
+/** Bottom of the sidebar on wide screens: one button that steps the page through 100%, 150% and 200%, for big,
+ *  sharp monitors. */
 function TextSize() {
   const [zoom, setZoom] = useZoom();
+  const next = nextZoom(zoom);
   return (
-    <div className="text-size">
-      <span className="section-title">Text Size</span>
-      <Segmented label="Text Size" value={String(zoom)} onChange={(v) => setZoom(Number(v) as Zoom)}
-        options={ZOOMS.map((z) => ({ value: String(z), label: `${z * 100}%` }))} />
-    </div>
+    <button type="button" className="tab text-size" onClick={() => setZoom(next)}
+      aria-label={`Text Size ${zoom * 100}%. Change to ${next * 100}%`} title={`Change to ${next * 100}%`}>
+      <Icon name="textSize" size={22} />
+      <span>Text Size</span>
+      <span className="text-size-value">{zoom * 100}%</span>
+    </button>
   );
 }
 

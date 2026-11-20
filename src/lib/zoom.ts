@@ -14,6 +14,9 @@ function read(): Zoom {
   }
 }
 
+/** The next size for the Text Size button: 100% → 150% → 200% → back to 100%. */
+export const nextZoom = (zoom: Zoom): Zoom => ZOOMS[(ZOOMS.indexOf(zoom) + 1) % ZOOMS.length];
+
 let current: Zoom = 1;
 
 /** The page's zoom, for code that turns screen positions into page positions (popups at a word). */

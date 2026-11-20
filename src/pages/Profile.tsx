@@ -9,7 +9,7 @@ import { avatarSrc, squareJPEGBase64 } from "../lib/avatar";
 import { initials } from "../lib/settings";
 import { speak, useKoreanVoice } from "../lib/speech";
 import { useAppearance, type Appearance } from "../lib/theme";
-import { useZoom, ZOOMS, type Zoom } from "../lib/zoom";
+import { nextZoom, useZoom } from "../lib/zoom";
 import { useStore } from "../lib/store";
 
 export function Profile() {
@@ -106,9 +106,10 @@ export function Profile() {
         <SectionTitle>Appearance</SectionTitle>
         <Segmented label="Appearance" value={appearance} onChange={setAppearance}
           options={(["system", "light", "dark"] as Appearance[]).map((o) => ({ value: o, label: o[0].toUpperCase() + o.slice(1) }))} />
-        <SectionTitle>Text Size</SectionTitle>
-        <Segmented label="Text Size" value={String(zoom)} onChange={(v) => setZoom(Number(v) as Zoom)}
-          options={ZOOMS.map((z) => ({ value: String(z), label: `${z * 100}%` }))} />
+        <div className="row toggle-row">
+          <span>Text Size</span>
+          <Button compact icon="textSize" onClick={() => setZoom(nextZoom(zoom))}>{`${zoom * 100}%`}</Button>
+        </div>
       </Card>
 
       <Card>

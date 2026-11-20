@@ -41,6 +41,7 @@ const PATHS: Record<string, string> = {
   pencil: "M4 20h4L19 9l-4-4L4 16v4zM14 6l4 4",
   swap: "M7 7h13M16 3l4 4-4 4M17 17H4M8 13l-4 4 4 4",
   bookmark: "M6 3h12v18l-6-4-6 4z",
+  textSize: "M3 7V5h11v2M8.5 5v14M6.5 19h4M14 12v-1.5h7V12M17.5 10.5V19M16 19h3",
 };
 
 export type IconName = keyof typeof PATHS;

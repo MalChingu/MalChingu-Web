@@ -135,11 +135,12 @@ button:disabled { cursor: default; opacity: 0.45; }
   display: flex; justify-content: space-around; border-radius: 30px; padding: 6px;
 }
 .tabs-brand { display: none; }
-.text-size { display: none; }
 .tab {
   flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 2px;
   border: 0; background: none; border-radius: 22px; color: var(--text-2); font-size: 0.68rem; font-weight: 500;
 }
+/* Phones have no sidebar: Text Size is in Profile instead. */
+.tab.text-size { display: none; }
 .tab.on { color: var(--accent); background: var(--accent-soft); }
 
 
@@ -461,8 +462,9 @@ progress::-moz-progress-bar { background: var(--accent-fill); }
   }
   .tabs-brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 1.15rem; padding: 6px 10px 20px; }
   .tab { flex: none; flex-direction: row; gap: 12px; padding: 11px 14px; font-size: 1rem; }
-  .text-size { display: flex; flex-direction: column; gap: 8px; margin-top: auto; padding: 0 4px; }
-  .text-size .section-title { padding: 0 6px; }
+  /* Text Size sits at the bottom of the sidebar, like a tab, with the current size on the right. */
+  .tab.text-size { display: flex; margin-top: auto; }
+  .text-size-value { margin-left: auto; color: var(--accent); font-weight: 700; font-variant-numeric: tabular-nums; }
   .main { max-width: none; margin: 0; min-width: 0; }
   .page { padding: 0; }
   .page-header { padding: 28px 0 32px; }
