@@ -1,6 +1,8 @@
-import { attempts } from "../core/progress";
+import { useRef, useState } from "react";
+import type { Word } from "../core/models";
+import { attempts, type WordProgress } from "../core/progress";
 import { addDays, dayString } from "../core/wordOfDay";
-import { Card, Page, SectionTitle, StatTile, WordRow } from "../components/ui";
+import { Card, Page, RoundButton, SectionTitle, StatTile, WordRow } from "../components/ui";
 import { useStore } from "../lib/store";
 
 export function Stats() {
@@ -13,7 +15,7 @@ export function Stats() {
     .filter((p) => attempts(p) > 0)
     .map((p) => ({ progress: p, word: store.findWord(p.word_id) }))
     .filter((x) => x.word !== null);
-  const best = practiced.filter((x) => x.progress.streak > 0).sort((a, b) => b.progress.streak - a.progress.streak).slice(0, 10);
+  const best = practiced.filter((x) => x.progress.streak > 0).sort((a, b) => b.progress.streak - a.progress.streak);
 
   return (
     <Page title="Stats">
@@ -43,14 +45,51 @@ export function Stats() {
         </div>
       </Card>
       {practiced.length === 0 && <Card><p className="muted">Answer a quiz or a flashcard and your streaks will show up here.</p></Card>}
-      {best.length > 0 && (
-        <Card>
-          <SectionTitle>Best Streaks</SectionTitle>
-          <div className="divided">
-            {best.map(({ word, progress }) => <WordRow key={word!.id} word={word!} progress={progress} onClick={() => store.openWord(word!)} />)}
-          </div>
-        </Card>
-      )}
+      {best.length > 0 && <BestStreaks items={best.map((x) => ({ word: x.word!, progress: x.progress }))} />}
     </Page>
+  );
+}
+
+const PER_PAGE = 8;
+
+/** Every word with a streak, longest first, 8 to a page. The arrows (or a swipe on a touch screen) move between pages. */
+function BestStreaks({ items }: { items: { word: Word; progress: WordProgress }[] }) {
+  const store = useStore();
+  const pages = Math.ceil(items.length / PER_PAGE);
+  const [page, setPage] = useState(0);
+  const [direction, setDirection] = useState<"next" | "previous" | null>(null);
+  const touch = useRef<{ x: number; y: number } | null>(null);
+  const current = Math.min(page, pages - 1);
+  const go = (to: number) => {
+    if (to < 0 || to >= pages || to === current) return;
+    setDirection(to > current ? "next" : "previous");
+    setPage(to);
+  };
+  const shown = items.slice(current * PER_PAGE, (current + 1) * PER_PAGE);
+  return (
+    <Card>
+      <div className="best-head">
+        <SectionTitle>Best Streaks</SectionTitle>
+        {pages > 1 && (
+          <div className="best-pager">
+            <RoundButton icon="chevronLeft" tint="glass" label="Previous Page" size={34} disabled={current === 0} onClick={() => go(current - 1)} />
+            <span className="small muted best-page" aria-live="polite">{current + 1} of {pages}</span>
+            <RoundButton icon="chevron" tint="glass" label="Next Page" size={34} disabled={current === pages - 1} onClick={() => go(current + 1)} />
+          </div>
+        )}
+      </div>
+      <div key={current} className={`divided best-list ${direction ? `slide-${direction}` : ""}`}
+        onTouchStart={(e) => { touch.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }; }}
+        onTouchEnd={(e) => {
+          const start = touch.current;
+          touch.current = null;
+          if (!start) return;
+          const dx = e.changedTouches[0].clientX - start.x;
+          const dy = e.changedTouches[0].clientY - start.y;
+          if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) go(dx < 0 ? current + 1 : current - 1);
+        }}>
+        {shown.map(({ word, progress }) => <WordRow key={word.id} word={word} progress={progress} onClick={() => store.openWord(word)} />)}
+      </div>
+    </Card>
   );
 }

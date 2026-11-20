@@ -190,6 +190,16 @@ button:disabled { cursor: default; opacity: 0.45; }
 .example-text { flex: 1; display: flex; flex-direction: column; gap: 2px; }
 .example-korean { font-size: 1.15rem; font-weight: 600; }
 .divided > * + * { border-top: 1px solid var(--divider); padding-top: 12px; margin-top: 12px; }
+/* Stats → Best Streaks: the title with the page arrows on the right; each new page slides in from its side. */
+.best-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.best-pager { display: flex; align-items: center; gap: 10px; }
+.best-page { min-width: 3.6em; text-align: center; font-variant-numeric: tabular-nums; }
+.best-list { touch-action: pan-y; }
+.slide-next { animation: slide-next 0.22s ease-out; }
+.slide-previous { animation: slide-previous 0.22s ease-out; }
+@keyframes slide-next { from { opacity: 0; transform: translateX(28px); } }
+@keyframes slide-previous { from { opacity: 0; transform: translateX(-28px); } }
+@media (prefers-reduced-motion: reduce) { .slide-next, .slide-previous { animation: none; } }
 .tense-row { display: flex; align-items: center; gap: 12px; }
 .tense-name { width: 70px; }
 .tense-form { flex: 1; display: flex; flex-direction: column; }
