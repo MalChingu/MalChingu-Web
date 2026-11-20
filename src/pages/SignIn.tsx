@@ -21,6 +21,11 @@ export function SignIn() {
         </button>
         {error && <p className="error small" role="alert">{error}</p>}
         <p className="muted small measure">Your words, streaks and guides are saved to your account and sync with the Malchingu app on your iPhone, iPad and Mac.</p>
+        <p className="legal-links small">
+          <a href="/privacy">Privacy Policy</a>
+          <span aria-hidden="true">·</span>
+          <a href="/terms">Terms of Service</a>
+        </p>
       </div>
     </div>
   );

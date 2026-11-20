@@ -11,10 +11,10 @@ import { speak, useKoreanVoice } from "../lib/speech";
 import { useAppearance, type Appearance } from "../lib/theme";
 import { useStore } from "../lib/store";
 
-/** Malchingu's pages on the RezPoint site. */
+/** The policy pages (on this site) and RezPoint's. */
 const LINKS = {
-  privacy: "https://www.rezpoint.xyz/projects/malchingu/privacy-policy",
-  terms: "https://www.rezpoint.xyz/projects/malchingu/terms-of-service",
+  privacy: "/privacy",
+  terms: "/terms",
   rezpoint: "https://rezpoint.xyz/",
 };
 
