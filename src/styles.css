@@ -553,6 +553,12 @@ kbd { font: inherit; font-size: 0.85rem; font-weight: 600; min-width: 28px; text
 .level-intermediate { --level: var(--purple); }
 .level-advanced { --level: var(--orange); }
 .profile-card { border: 2px solid var(--level) !important; }
+/* Profile → About: the app's logo, name and version, centred. */
+.about-app { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px 0 12px; }
+.about-logo { width: 80px; height: 80px; border-radius: 18px; margin-bottom: 4px; }
+.about-name { font-size: 1.35rem; font-weight: 700; }
+.doc-link { color: inherit; text-decoration: none; }
+.doc-link:hover span { color: var(--accent); }
 .level-tag { background: color-mix(in srgb, var(--level) 16%, transparent); }
 .level-tag .level-icon { color: var(--level); }
 .profile-title { font-weight: 500; margin-top: -6px; }
