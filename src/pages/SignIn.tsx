@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Logo } from "../components/ui";
+import { Copyright, Logo } from "../components/ui";
 import { useStore } from "../lib/store";
 
 /** What Malchingu does, typed out one at a time on the home page. */
@@ -80,7 +80,7 @@ export function SignIn() {
         </div>
       </div>
       {/* The copyright, this year, centred at the bottom. */}
-      <footer className="home-footer">© {new Date().getFullYear()} RezPoint Inc.</footer>
+      <footer className="home-footer"><Copyright /></footer>
     </div>
   );
 }

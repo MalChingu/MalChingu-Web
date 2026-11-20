@@ -262,6 +262,16 @@ export function ConfirmDialog({ title, message, confirmLabel, destructive = true
   );
 }
 
+/** "© <this year> RezPoint Inc." The © is a hidden link to rezpoint.xyz: it looks and behaves like plain text. */
+export function Copyright() {
+  return (
+    <span>
+      <a className="easter-egg" href="https://rezpoint.xyz/" target="_blank" rel="noopener noreferrer">©</a>
+      {` ${new Date().getFullYear()} RezPoint Inc.`}
+    </span>
+  );
+}
+
 /** Malchingu's logo, drawn inline so its eyes can blink. `blink="loop"` blinks every few seconds (the home page);
  *  `blink="hover"` blinks once each time the pointer moves onto it (the sidebar). */
 export function Logo({ size = 120, blink, className = "logo" }: { size?: number; blink?: "loop" | "hover"; className?: string }) {

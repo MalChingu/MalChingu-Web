@@ -1,4 +1,5 @@
 import { useEffect, type ReactNode } from "react";
+import { Copyright } from "../components/ui";
 
 // The Privacy Policy (/privacy) and Terms of Service (/terms), on Malchingu's own site and in its design. They open
 // without signing in, and follow the Appearance setting (or the system's light or dark mode).
@@ -232,7 +233,7 @@ export function Legal({ kind }: { kind: LegalKind }) {
         <div className="legal-body">{kind === "privacy" ? <Privacy /> : <Terms />}</div>
       </main>
       <footer className="legal-footer">
-        <span>© {new Date().getFullYear()} RezPoint Inc.</span>
+        <Copyright />
         <a href="/privacy">Privacy Policy</a>
         <a href="/terms">Terms of Service</a>
       </footer>

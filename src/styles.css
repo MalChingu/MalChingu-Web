@@ -684,4 +684,8 @@ button.achievement { cursor: pointer; }
 .legal-section li::marker { color: var(--accent); }
 .legal-body a { color: var(--accent); text-underline-offset: 3px; }
 .legal-footer { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 18px; color: var(--text-2); font-size: 0.9rem; }
+/* The © in the copyright quietly links to rezpoint.xyz: same colour, no underline, no pointer, nothing on hover. */
+a.easter-egg, a.easter-egg:hover, .legal-footer a.easter-egg, .legal-footer a.easter-egg:hover {
+  color: inherit; font-weight: inherit; text-decoration: none; cursor: text;
+}
 @media (min-width: 700px) { .legal { padding: 32px 24px 56px; } .legal-card { padding: 44px 48px; } }
