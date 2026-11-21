@@ -311,6 +311,7 @@ export function Round({ words, onClose, mode = "meaning", doneLabel = "New Round
                 <div key={i} className="row">
                   <Icon name={r.correct ? "checkCircle" : "x"} size={20} className={r.correct ? "good" : "bad"} />
                   <WordRow word={r.word} progress={store.progressFor(r.word.id)} onClick={() => store.openWord(r.word)} />
+                  <SpeakButton text={r.word.hangul} size={18} />
                 </div>
               ))}
             </div>
