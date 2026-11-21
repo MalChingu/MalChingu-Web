@@ -156,6 +156,8 @@ export function Round({ words, onClose, mode = "meaning", doneLabel = "New Round
   const drag = useRef<{ x: number; id: number } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [helpOpen, setHelpOpen] = useState(false);
+  /** What the microphone heard for this card, put in the answer box to check before submitting. */
+  const [heard, setHeard] = useState<string | null>(null);
   /** Milliseconds left on this card's timer. */
   const [remaining, setRemaining] = useState(seconds * 1000);
 
@@ -179,6 +181,7 @@ export function Round({ words, onClose, mode = "meaning", doneLabel = "New Round
     setAnswer("");
     setNudge(null);
     setRemaining(seconds * 1000);   // with the new card, so it doesn't start out of time
+    setHeard(null);
   };
 
   const check = (given: string) => mode === "past"
@@ -203,7 +206,7 @@ export function Round({ words, onClose, mode = "meaning", doneLabel = "New Round
         : "Type the meaning first, or swipe left if you don't know");
       return;
     }
-    submitAnswer(typed);
+    submitAnswer(typed, typed === heard);   // "You said" when it's still what was heard
   };
 
   const swipeLeft = () => {
@@ -361,8 +364,14 @@ export function Round({ words, onClose, mode = "meaning", doneLabel = "New Round
                       onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); swipeRight(); } }} />
                     {mode === "past" && (
                       <MicButton lang="ko-KR" label="Say the Past Form" onHeard={(heard) => {
+                        // What was heard goes in the box to check (and fix) before submitting.
                         const said = heard.said.find((s) => check(s)) ?? heard.said[0];
-                        if (said) submitAnswer(said, true); else setNudge(heardNothing(heard));
+                        if (said) {
+                          setAnswer(said);
+                          setHeard(said);
+                          setNudge("Check what was heard, then submit");
+                          inputRef.current?.focus();
+                        } else setNudge(heardNothing(heard));
                       }} />
                     )}
                   </div>

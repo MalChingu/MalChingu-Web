@@ -682,6 +682,10 @@ button.achievement { cursor: pointer; }
 .filters { display: flex; flex-direction: column; gap: 10px; }
 .notebook-item { gap: 8px; }
 .note-body { white-space: pre-wrap; word-break: keep-all; overflow-wrap: break-word; user-select: text; }
+/* The Notes panel's list: each note a tappable card, its text cut to four lines. */
+.notes-list { display: flex; flex-direction: column; gap: 10px; }
+.note-item { display: flex; flex-direction: column; gap: 6px; padding: 14px 16px; border: 0; text-align: left; color: inherit; font: inherit; }
+.note-clamp { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
 .saved-pair { display: flex; flex-direction: column; gap: 2px; word-break: keep-all; }
 .saved-source { color: var(--text-2); }
 .saved-translation { font-weight: 600; font-size: 1.05rem; }

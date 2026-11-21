@@ -126,8 +126,8 @@ export function Toggle({ label, checked, onChange }: { label: string; checked: b
 }
 
 /** A modal sheet: centred on wide screens, sliding up from the bottom on phones. */
-export function Sheet({ title, onClose, children, trailing }: {
-  title: string; onClose: () => void; children: ReactNode; trailing?: ReactNode;
+export function Sheet({ title, onClose, children, trailing, leading }: {
+  title: string; onClose: () => void; children: ReactNode; trailing?: ReactNode; leading?: ReactNode;
 }) {
   const panel = useRef<HTMLDivElement>(null);
   const close = useRef(onClose);
@@ -151,7 +151,7 @@ export function Sheet({ title, onClose, children, trailing }: {
     <div className="sheet-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="sheet" role="dialog" aria-modal="true" aria-label={title} tabIndex={-1} ref={panel}>
         <div className="sheet-header">
-          <RoundButton icon="x" tint="glass" label="Close" onClick={onClose} size={36} />
+          {leading ?? <RoundButton icon="x" tint="glass" label="Close" onClick={onClose} size={36} />}
           <h2>{title}</h2>
           <div className="sheet-trailing">{trailing}</div>
         </div>
@@ -177,14 +177,14 @@ export function useWide(): boolean {
 
 /** A small window floating above the bottom-right button, with the same header as a sheet. It doesn't block the
  *  page: you can still scroll, click and select behind it. Escape closes it while you're in it. */
-export function FloatingPanel({ title, onClose, children, trailing }: {
-  title: string; onClose: () => void; children: ReactNode; trailing?: ReactNode;
+export function FloatingPanel({ title, onClose, children, trailing, leading }: {
+  title: string; onClose: () => void; children: ReactNode; trailing?: ReactNode; leading?: ReactNode;
 }) {
   return (
     <div className="floating-panel glass" role="dialog" aria-label={title}
       onKeyDown={(e) => { if (e.key === "Escape") { e.stopPropagation(); onClose(); } }}>
       <div className="sheet-header">
-        <RoundButton icon="x" tint="glass" label="Close" onClick={onClose} size={36} />
+        {leading ?? <RoundButton icon="x" tint="glass" label="Close" onClick={onClose} size={36} />}
         <h2>{title}</h2>
         <div className="sheet-trailing">{trailing}</div>
       </div>

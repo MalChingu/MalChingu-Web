@@ -12,7 +12,7 @@ import { useStore } from "../lib/store";
 import { formatDay, guideDate, guideDayNumber } from "./guideDates";
 import { TaskList } from "./Today";
 import { KoreanText } from "../components/KoreanText";
-import { NoteFab, NoteMenuProvider, NoteSheet, useNoteMenu, type NoteDraft } from "../components/NoteMenu";
+import { NoteFab, NoteMenuProvider, NotesPanel, useNoteMenu, type NoteDraft } from "../components/NoteMenu";
 import { Notebook } from "./Notebook";
 import type { Practice } from "./Flashcards";
 
@@ -22,27 +22,43 @@ export function Guides({ openGuideID, setOpenGuideID, practice }: {
   const store = useStore();
   const [creating, setCreating] = useState(false);
   const [notebook, setNotebook] = useState<"notes" | "translations" | null>(null);
-  const [noteDraft, setNoteDraft] = useState<NoteDraft | null>(null);
+  // The Notes panel: its list (this guide's notes inside a guide) or the note being written.
+  const [notesPanel, setNotesPanel] = useState<{ guideID: string | null; day: number | null; draft: NoteDraft | null } | null>(null);
   const guides = store.data.guides.filter((g) => !g.deleted_at).sort((a, b) => b.created_at.localeCompare(a.created_at));
   const open = guides.find((g) => g.id === openGuideID);
   const noteCount = store.data.notes.filter((n) => !n.deleted_at).length + store.data.savedTranslations.filter((t) => !t.deleted_at).length;
-  const sheet = noteDraft && <NoteSheet key={noteDraft.id ?? "new"} draft={noteDraft} onClose={() => setNoteDraft(null)} />;
   const blank: NoteDraft = { body: "", guide_id: null, day_number: null, section: null };
+  /** The Notes button: opens the list (or keeps what's open). */
+  const openNotes = (guideID: string | null, day: number | null) =>
+    setNotesPanel((p) => (p ? { ...p, guideID, day } : { guideID, day, draft: null }));
+  /** A new note (Add Note Here, or + on My Notes) or one to edit. A new note already being written keeps its text and
+   *  takes the new place. */
+  const addNote = (draft: NoteDraft) => setNotesPanel((p) => ({
+    guideID: draft.guide_id, day: draft.day_number,
+    draft: p?.draft && !p.draft.id && p.draft.body.trim() && !draft.id
+      ? { ...p.draft, guide_id: draft.guide_id, day_number: draft.day_number, section: draft.section } : draft,
+  }));
+  const panel = (inNotebook: boolean) => notesPanel && (
+    <NotesPanel guideID={notesPanel.guideID} dayNumber={notesPanel.day} draft={notesPanel.draft}
+      setDraft={(draft) => setNotesPanel((p) => p && { ...p, draft })} onClose={() => setNotesPanel(null)}
+      openAll={inNotebook ? undefined : () => { setNotesPanel(null); setNotebook("notes"); }} />
+  );
 
   if (notebook) {
     return (
       <>
-        <Notebook startTab={notebook} onBack={() => setNotebook(null)} addNote={setNoteDraft} />
-        <NoteFab onClick={() => setNoteDraft(blank)} />
-        {sheet}
+        <Notebook startTab={notebook} onBack={() => setNotebook(null)} addNote={addNote} />
+        <NoteFab kind="add" onClick={() => addNote(blank)} />
+        {panel(true)}
       </>
     );
   }
   if (open) {
     return (
       <>
-        <GuideDetail guide={open} onBack={() => setOpenGuideID(null)} practice={practice} addNote={setNoteDraft} openNotebook={setNotebook} />
-        {sheet}
+        <GuideDetail guide={open} onBack={() => setOpenGuideID(null)} practice={practice} addNote={addNote}
+          openNotes={(day) => openNotes(open.id, day)} openNotebook={setNotebook} />
+        {panel(false)}
       </>
     );
   }
@@ -79,8 +95,8 @@ export function Guides({ openGuideID, setOpenGuideID, practice }: {
         );
       })}</div>}
       {creating && <CreateGuide onClose={() => setCreating(false)} />}
-      <NoteFab onClick={() => setNoteDraft(blank)} />
-      {sheet}
+      <NoteFab onClick={() => openNotes(null, null)} />
+      {panel(false)}
     </Page>
   );
 }
@@ -100,9 +116,9 @@ function startingDay(guide: StudyGuideRow, days: number[]): number {
   return days[days.length - 1];
 }
 
-function GuideDetail({ guide, onBack, practice, addNote, openNotebook }: {
+function GuideDetail({ guide, onBack, practice, addNote, openNotes, openNotebook }: {
   guide: StudyGuideRow; onBack: () => void; practice: Practice;
-  addNote: (draft: NoteDraft) => void; openNotebook: (tab: "notes" | "translations") => void;
+  addNote: (draft: NoteDraft) => void; openNotes: (day: number | null) => void; openNotebook: (tab: "notes" | "translations") => void;
 }) {
   const store = useStore();
   const today = guideDayNumber(guide);
@@ -182,7 +198,7 @@ function GuideDetail({ guide, onBack, practice, addNote, openNotebook }: {
       </div>
       </NoteMenuProvider>
 
-      <NoteFab onClick={() => addNote({ body: "", guide_id: guide.id, day_number: session?.day_number ?? null, section: null })} />
+      <NoteFab onClick={() => openNotes(session?.day_number ?? null)} />
       {confirmingDelete && (
         <ConfirmDialog title="Delete This Guide?" message="Its days and tasks are removed on all your devices. Its vocabulary stays in My Words."
           confirmLabel="Delete Guide" onCancel={() => setConfirmingDelete(false)}

@@ -8,7 +8,7 @@ Malchingu (말친구, "talking buddy") in the browser: the same Korean study app
   (to go, went, goes; "I went" counts too), with an optional **timer** of 10, 20 or 30 seconds per card. The setup is
   saved with your account (shared with the Mac app). The answer box is ready to type in on every card; Enter submits
   and moves on, Ctrl+L listens, Ctrl+D is "I don't know", and the ? button lists the shortcuts.
-- **Guides**: study guides that Claude writes from your notes, day by day, with checkable tasks and vocabulary practice. Create Guide gives you a one-sentence request to paste into Claude.
+- **Guides**: study guides that Claude writes from your notes, day by day, with checkable tasks and vocabulary practice. Create Guide gives you a one-sentence request to paste into Claude. The round Notes button opens your notes (a guide's own notes inside a guide) with **+ Add Note**; on a computer it floats above the button so the guide stays readable and scrollable. In Past Form practice, what you say goes in the answer box to check before you submit.
 - **Stats** and **Profile**: picture, name, level, appearance (System / Light / Dark), word-of-the-day settings, the Claude connector link (one per account, shown on every device), achievements and earned titles (see `src/core/achievements.ts`), and a listen button using the browser's Korean voice.
 
 Not on the web: widgets, the lock screen and notifications. Those stay in the app.
