@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type ReactNode, useLayoutEffect } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode, type TouchEvent as ReactTouchEvent, useLayoutEffect } from "react";
 import { posLabel, type DisplayMode, type Example, type PartOfSpeech, type Word } from "../core/models";
 import { attempts, isMastered, type WordProgress } from "../core/progress";
 import { displayRomanization, romanize } from "../core/romanizer";
@@ -159,6 +159,23 @@ export function Sheet({ title, onClose, children, trailing, leading }: {
       </div>
     </div>
   );
+}
+
+/** A sideways swipe on a touch screen: right to left calls `next`, left to right `previous`. Spread the result
+ *  on the element (or a `display: contents` wrapper). Mostly-vertical swipes are left to scrolling. */
+export function useSwipe(previous: () => void, next: () => void) {
+  const start = useRef<{ x: number; y: number } | null>(null);
+  return {
+    onTouchStart: (e: ReactTouchEvent) => { start.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }; },
+    onTouchEnd: (e: ReactTouchEvent) => {
+      const from = start.current;
+      start.current = null;
+      if (!from) return;
+      const dx = e.changedTouches[0].clientX - from.x;
+      const dy = e.changedTouches[0].clientY - from.y;
+      if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) (dx < 0 ? next : previous)();
+    },
+  };
 }
 
 /** Whether the window is desktop-wide (the sidebar layout, 900 px and up). Follows resizes. */

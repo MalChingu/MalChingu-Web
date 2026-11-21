@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Icon } from "../components/Icon";
 import { KoreanText } from "../components/KoreanText";
 import { noteTags, type NoteDraft } from "../components/NoteMenu";
-import { Card, ConfirmDialog, Page, Segmented, SpeakButton, copyText } from "../components/ui";
+import { Card, ConfirmDialog, Page, Segmented, SpeakButton, copyText, useSwipe } from "../components/ui";
 import { romanize } from "../core/romanizer";
 import { useStore } from "../lib/store";
 
@@ -45,10 +45,13 @@ export function Notebook({ startTab = "notes", onBack, addNote }: {
   const saved = store.data.savedTranslations.filter((t) => !t.deleted_at && matches(t))
     .sort((a, b) => b.created_at.localeCompare(a.created_at));
 
+  const swipe = useSwipe(() => setTab("notes"), () => setTab("translations"));
   return (
     <Page title="My Notes" back={{ label: "Back to Study Guides", onClick: onBack }}>
       <Segmented label="Show" value={tab} onChange={setTab}
         options={[{ value: "notes", label: "Notes" }, { value: "translations", label: "Translations" }]} />
+      {/* On a phone, a sideways swipe switches between Notes and Translations. */}
+      <div className="swipe-area" {...swipe}>
       <Card>
         <div className="filters">
           <label className="form-row"><span>Guide</span>
@@ -119,6 +122,7 @@ export function Notebook({ startTab = "notes", onBack, addNote }: {
         );
       }))}
 
+      </div>
       {deleting && (
         <ConfirmDialog title={deleting.kind === "notes" ? "Delete This Note?" : "Delete This Translation?"}
           message="It's removed on all your devices." confirmLabel="Delete"

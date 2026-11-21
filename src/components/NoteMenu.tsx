@@ -5,10 +5,11 @@ import { useStore } from "../lib/store";
 import { pageZoom } from "../lib/zoom";
 import { Icon } from "./Icon";
 import { KoreanText } from "./KoreanText";
-import { Button, Card, FloatingPanel, RoundButton, SectionTitle, Sheet, copyText, useWide } from "./ui";
+import { Card, FloatingPanel, RoundButton, SectionTitle, Segmented, Sheet, SpeakButton, copyText, useSwipe, useWide } from "./ui";
+import { romanize } from "../core/romanizer";
 
 export const SECTION_LABEL: Record<NoteSection, string> = {
-  notes: "Notes", check: "Check Yourself", vocabulary: "Vocabulary", tasks: "Tasks",
+  notes: "Notes", check: "Check Yourself", vocabulary: "Vocabulary", tasks: "Goals & Tasks",
 };
 
 /** What a new or edited note says and where it belongs. */
@@ -115,8 +116,8 @@ const tidy = (draft: NoteDraft): NoteDraft => ({
   section: draft.guide_id && draft.day_number ? draft.section : null,
 });
 
-/** The Notes panel from the Notes button: your notes (this guide's inside a guide, otherwise all of them), newest
- *  first, with + Add Note. A note opens in the same panel, with ← back to the list; ✓ or Ctrl/⌘ + Enter saves it.
+/** The Notes panel from the Notes button: your notes and saved translations (this guide's inside a guide, otherwise
+ *  all of them), newest first, on two tabs (swipe between them on a phone), with + in the header for a new note. A note opens in the same panel, with ← back to the list; ✓ or Ctrl/⌘ + Enter saves it.
  *  On a desktop it floats above the button so the guide stays readable and scrollable; on a phone it's a sheet.
  *  `draft` is the note being written (null for the list). */
 export function NotesPanel({ guideID, dayNumber, draft, setDraft, onClose, openAll }: {
@@ -129,6 +130,10 @@ export function NotesPanel({ guideID, dayNumber, draft, setDraft, onClose, openA
   const titles = new Map(store.data.guides.map((g) => [g.id, g.title]));
   const notes = store.data.notes.filter((n) => !n.deleted_at && (!guideID || n.guide_id === guideID))
     .sort((a, b) => b.created_at.localeCompare(a.created_at));
+  const translations = store.data.savedTranslations.filter((t) => !t.deleted_at && (!guideID || t.guide_id === guideID))
+    .sort((a, b) => b.created_at.localeCompare(a.created_at));
+  const [tab, setTab] = useState<"notes" | "translations">("notes");
+  const swipe = useSwipe(() => setTab("notes"), () => setTab("translations"));
   const canSave = !!draft && draft.body.trim().length > 0;
   const save = async () => {
     if (!draft || !canSave) return;
@@ -145,28 +150,52 @@ export function NotesPanel({ guideID, dayNumber, draft, setDraft, onClose, openA
       </Frame>
     );
   }
+  const addNote = () => setDraft({ body: "", guide_id: guideID, day_number: guideID ? dayNumber : null, section: null });
+  const tag = (guide: string | null, day: number | null, section: NoteSection | null, created: string) =>
+    [noteTags(guideID ? null : guide ? titles.get(guide) ?? "Deleted guide" : null, day, section), formatWhen(created)].filter(Boolean).join(" · ");
   return (
-    <Frame title="Notes" onClose={onClose}>
-      <Button icon="plus" kind="prominent" full
-        onClick={() => setDraft({ body: "", guide_id: guideID, day_number: guideID ? dayNumber : null, section: null })}>
-        Add Note
-      </Button>
-      {notes.length === 0 ? (
-        <p className="muted center small">{guideID ? "No notes for this guide yet." : "No notes yet."}</p>
-      ) : (
-        <div className="notes-list">
-          {notes.map((n) => (
-            <button key={n.id} type="button" className="glass card note-item" aria-label={`Edit note: ${n.body.slice(0, 60)}`}
-              onClick={() => setDraft({ id: n.id, body: n.body, guide_id: n.guide_id, day_number: n.day_number, section: n.section })}>
-              <span className="note-body note-clamp"><KoreanText text={n.body} /></span>
-              <span className="small muted">
-                {[noteTags(guideID ? null : n.guide_id ? titles.get(n.guide_id) ?? "Deleted guide" : null, n.day_number, n.section), formatWhen(n.created_at)]
-                  .filter(Boolean).join(" · ")}
-              </span>
-            </button>
-          ))}
-        </div>
-      )}
+    <Frame title="Notes" onClose={onClose} trailing={tab === "notes"
+      ? <RoundButton icon="plus" tint="accent" label="Add Note" onClick={addNote} size={36} /> : undefined}>
+      <Segmented label="Show" value={tab} onChange={setTab}
+        options={[{ value: "notes", label: "Notes" }, { value: "translations", label: "Translations" }]} />
+      {/* On a phone, a sideways swipe switches between Notes and Translations. */}
+      <div className="swipe-area" {...swipe}>
+        {tab === "notes" && (notes.length === 0 ? (
+          <p className="muted center small">{guideID ? "No notes for this guide yet. Tap + to write one." : "No notes yet. Tap + to write one."}</p>
+        ) : (
+          <div className="notes-list">
+            {notes.map((n) => (
+              <button key={n.id} type="button" className="glass card note-item" aria-label={`Edit note: ${n.body.slice(0, 60)}`}
+                onClick={() => setDraft({ id: n.id, body: n.body, guide_id: n.guide_id, day_number: n.day_number, section: n.section })}>
+                <span className="note-body note-clamp"><KoreanText text={n.body} /></span>
+                <span className="small muted">{tag(n.guide_id, n.day_number, n.section, n.created_at)}</span>
+              </button>
+            ))}
+          </div>
+        ))}
+        {tab === "translations" && (translations.length === 0 ? (
+          <p className="muted center small">{guideID ? "No saved translations for this guide yet." : "No saved translations yet."} Save them from the Translate card.</p>
+        ) : (
+          <div className="notes-list">
+            {translations.map((t) => {
+              const korean = t.source_lang === "ko" ? t.source : t.translation;
+              return (
+                <div key={t.id} className="glass card note-item">
+                  <div className="translate-line">
+                    <span className="saved-pair grow">
+                      <span lang={t.source_lang} className="saved-source"><KoreanText text={t.source} /></span>
+                      <span lang={t.source_lang === "ko" ? "en" : "ko"} className="saved-translation"><KoreanText text={t.translation} /></span>
+                      <span className="small muted">{romanize(korean)}</span>
+                    </span>
+                    <SpeakButton text={korean} size={18} />
+                  </div>
+                  <span className="small muted">{tag(t.guide_id, t.day_number, null, t.created_at)}</span>
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
       {openAll && <button type="button" className="link small center" onClick={openAll}>All Notes and Translations</button>}
     </Frame>
   );

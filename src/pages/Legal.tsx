@@ -234,8 +234,6 @@ export function Legal({ kind }: { kind: LegalKind }) {
       </main>
       <footer className="legal-footer">
         <Copyright />
-        <a href="/privacy">Privacy Policy</a>
-        <a href="/terms">Terms of Service</a>
       </footer>
     </div>
   );

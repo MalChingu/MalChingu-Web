@@ -272,6 +272,7 @@ button:disabled { cursor: default; opacity: 0.45; }
 /* A guide day's sections: Notes, Check Yourself, Vocabulary. */
 /* Korean wraps between words, not inside them. */
 .day-card { word-break: keep-all; overflow-wrap: break-word; }
+.day-top { display: flex; flex-direction: column; gap: 12px; }
 .guide-section { display: flex; flex-direction: column; gap: 10px; }
 .guide-section svg { flex: none; }
 .section-label { white-space: nowrap; }
@@ -546,13 +547,16 @@ kbd { font: inherit; font-size: 0.85rem; font-weight: 600; min-width: 28px; text
 .translate-results .section-title { padding: 0; }
 .translate-known { display: flex; flex-direction: column; gap: 2px; }
 .translate-known strong { color: var(--accent); font-size: 1.05rem; }
-/* From Your Words: each word with its own Listen button. */
-.translate-known-form, .translate-match { display: flex; align-items: center; gap: 6px; }
+/* Translate results: the text on the left, Listen on the right. */
+.translate-line, .translate-match { display: flex; align-items: center; gap: 6px; }
 .translate-match .word-row { min-width: 0; }
 .translate-out { display: flex; flex-direction: column; gap: 2px; }
 .translate-text { font-size: 1.05rem; font-weight: 600; }
 .day-list .section-title { padding: 4px 6px 8px; }
-.day-item { display: flex; align-items: center; gap: 12px; border: 0; background: none; padding: 10px; border-radius: 14px; text-align: left; width: 100%; }
+.day-item { display: flex; align-items: center; gap: 12px; border: 2px solid transparent; background: none; padding: 8px; border-radius: 14px; text-align: left; width: 100%; }
+/* Green once every task is done; red for a past day left unfinished. */
+.day-item.done { border-color: var(--green); }
+.day-item.missed { border-color: var(--red); }
 .day-item:hover { background: var(--field); }
 .day-item.on { background: var(--accent-soft); }
 .day-item.on .muted { color: var(--text); }
@@ -560,8 +564,7 @@ kbd { font: inherit; font-size: 0.85rem; font-weight: 600; min-width: 28px; text
   flex: none; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
   font-weight: 700; font-size: 0.85rem; background: var(--field);
 }
-.day-number.finished { background: var(--green-fill); color: #fff; }
-.day-item.on .day-number:not(.finished) { background: var(--accent-fill); color: #fff; }
+.day-item.on .day-number { background: var(--accent-fill); color: #fff; }
 .day-item-text { display: flex; flex-direction: column; min-width: 0; }
 .day-item-title { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @media (min-width: 1180px) {
@@ -684,6 +687,8 @@ button.achievement { cursor: pointer; }
 .note-body { white-space: pre-wrap; word-break: keep-all; overflow-wrap: break-word; user-select: text; }
 /* The Notes panel's list: each note a tappable card, its text cut to four lines. */
 .notes-list { display: flex; flex-direction: column; gap: 10px; }
+/* A wrapper that only listens for swipes; its children lay out as if it weren't there. */
+.swipe-area { display: contents; }
 .note-item { display: flex; flex-direction: column; gap: 6px; padding: 14px 16px; border: 0; text-align: left; color: inherit; font: inherit; }
 .note-clamp { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
 .saved-pair { display: flex; flex-direction: column; gap: 2px; word-break: keep-all; }

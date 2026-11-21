@@ -1,8 +1,8 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import type { Word } from "../core/models";
 import { attempts, type WordProgress } from "../core/progress";
 import { addDays, dayString } from "../core/wordOfDay";
-import { Card, Page, RoundButton, SectionTitle, StatTile, WordRow } from "../components/ui";
+import { Card, Page, RoundButton, SectionTitle, StatTile, WordRow, useSwipe } from "../components/ui";
 import { useStore } from "../lib/store";
 
 export function Stats() {
@@ -58,7 +58,6 @@ function BestStreaks({ items }: { items: { word: Word; progress: WordProgress }[
   const pages = Math.ceil(items.length / PER_PAGE);
   const [page, setPage] = useState(0);
   const [direction, setDirection] = useState<"next" | "previous" | null>(null);
-  const touch = useRef<{ x: number; y: number } | null>(null);
   const current = Math.min(page, pages - 1);
   const go = (to: number) => {
     if (to < 0 || to >= pages || to === current) return;
@@ -66,6 +65,7 @@ function BestStreaks({ items }: { items: { word: Word; progress: WordProgress }[
     setPage(to);
   };
   const shown = items.slice(current * PER_PAGE, (current + 1) * PER_PAGE);
+  const swipe = useSwipe(() => go(current - 1), () => go(current + 1));
   return (
     <Card>
       <div className="best-head">
@@ -78,16 +78,7 @@ function BestStreaks({ items }: { items: { word: Word; progress: WordProgress }[
           </div>
         )}
       </div>
-      <div key={current} className={`divided best-list ${direction ? `slide-${direction}` : ""}`}
-        onTouchStart={(e) => { touch.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }; }}
-        onTouchEnd={(e) => {
-          const start = touch.current;
-          touch.current = null;
-          if (!start) return;
-          const dx = e.changedTouches[0].clientX - start.x;
-          const dy = e.changedTouches[0].clientY - start.y;
-          if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) go(dx < 0 ? current + 1 : current - 1);
-        }}>
+      <div key={current} className={`divided best-list ${direction ? `slide-${direction}` : ""}`} {...swipe}>
         {shown.map(({ word, progress }) => <WordRow key={word.id} word={word} progress={progress} onClick={() => store.openWord(word)} />)}
       </div>
     </Card>

@@ -8,7 +8,7 @@ import { useKnownWords } from "./GuideNotes";
 import { Icon } from "./Icon";
 import { KoreanText, MicButton, heardNothing } from "./KoreanText";
 import { TRANSLATE_EVENT } from "./NoteMenu";
-import { Button, SpeakButton, WordRow, copyText } from "./ui";
+import { Button, SpeakButton, WordRow } from "./ui";
 
 /** English → the learner's words whose meaning matches, exact matches first ("go" finds 가다 "to go"). */
 export function wordsMeaning(query: string, words: Word[], limit = 5): Word[] {
@@ -139,12 +139,12 @@ export function TranslateCard({ guideID, dayNumber, openSaved }: {
           <div className="stack small-gap">
             <span className="section-title">From Your Words</span>
             {result.known && (
-              <div className="translate-known">
-                <span className="translate-known-form">
+              <div className="translate-line">
+                <span className="translate-known grow">
                   <strong lang="ko">{result.known.form}</strong>
-                  <SpeakButton text={result.known.form.replace(/^-/, "")} size={18} />
+                  <span>{result.known.meaning}</span>
                 </span>
-                <span>{result.known.meaning}</span>
+                <SpeakButton text={result.known.form.replace(/^-/, "")} size={18} />
               </div>
             )}
             {result.matches.length > 0 && (
@@ -165,18 +165,15 @@ export function TranslateCard({ guideID, dayNumber, openSaved }: {
             {result.state === "pending" && <span className="small muted">Translating…</span>}
             {result.state === "failed" && <span className="small muted">Couldn't translate this.</span>}
             {result.state === "done" && result.translation && (
-              <div className="translate-out">
-                <span lang={koreanOut ? "ko" : "en"} className="translate-text">
-                  {koreanOut ? <KoreanText text={result.translation} /> : result.translation}
+              // The translation, with Listen on the right (as for the text above) when it's Korean.
+              <div className="translate-line">
+                <span className="translate-out grow">
+                  <span lang={koreanOut ? "ko" : "en"} className="translate-text">
+                    {koreanOut ? <KoreanText text={result.translation} /> : result.translation}
+                  </span>
+                  {koreanOut && <span className="small muted">{romanize(koreanOut)}</span>}
                 </span>
-                {koreanOut && <span className="small muted">{romanize(koreanOut)}</span>}
-                <div className="row">
-                  {koreanOut && <SpeakButton text={koreanOut} size={18} />}
-                  <button type="button" className="icon-button" aria-label="Copy Translation" title="Copy"
-                    onClick={() => copyText(result.translation ?? "")}>
-                    <Icon name="copy" size={18} />
-                  </button>
-                </div>
+                {koreanOut && <SpeakButton text={koreanOut} size={18} />}
               </div>
             )}
           </div>

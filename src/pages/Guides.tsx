@@ -177,12 +177,14 @@ function GuideDetail({ guide, onBack, practice, addNote, openNotes, openNotebook
           {sessions.map((s) => {
             const dayTasks = tasks.filter((t) => t.session_id === s.id);
             const finished = dayTasks.length > 0 && dayTasks.every((t) => t.done);
+            // Green once every task is done; red for a day that has passed with tasks left.
+            const missed = !finished && guideDate(guide, s.day_number) < dayString();
+            const status = finished ? "done" : missed ? "missed" : "";
             return (
-              <button key={s.id} type="button" className={`day-item ${s.day_number === selected ? "on" : ""}`}
-                aria-current={s.day_number === selected ? "true" : undefined} onClick={() => setSelected(s.day_number)}>
-                <span className={`day-number ${finished ? "finished" : ""}`}>
-                  {finished ? <Icon name="check" size={14} strokeWidth={3} /> : s.day_number}
-                </span>
+              <button key={s.id} type="button" className={`day-item ${status} ${s.day_number === selected ? "on" : ""}`}
+                aria-current={s.day_number === selected ? "true" : undefined} onClick={() => setSelected(s.day_number)}
+                aria-label={`Day ${s.day_number}: ${s.title}${finished ? ", done" : missed ? ", not finished" : ""}`}>
+                <span className="day-number">{s.day_number}</span>
                 <span className="day-item-text">
                   <span className="day-item-title">{s.title}</span>
                   <span className="small muted">
@@ -218,17 +220,18 @@ function DayCard({ guide, session, isToday, words, practice }: {
   void guide;
   return (
     <Card className="day-card">
-      <div className="row">
-        <h3 className="grow">{session.title}</h3>
-        {isToday && <span className="today-badge">TODAY</span>}
-      </div>
-      {session.goals.length > 0 && (
-        <div className="goals-block">
-          <span className="section-title">Goals</span>
-          <ul className="goals">{session.goals.map((g, i) => <li key={i}><KoreanText text={g} /></li>)}</ul>
+      {/* The day's title, goals and tasks share one right-click menu: Add Note to Goals & Tasks. */}
+      <div className="day-top" onContextMenu={menu ? (e) => menu.open(e, "tasks") : undefined}>
+        <div className="row">
+          <h3 className="grow">{session.title}</h3>
+          {isToday && <span className="today-badge">TODAY</span>}
         </div>
-      )}
-      <div onContextMenu={menu ? (e) => menu.open(e, "tasks") : undefined}>
+        {session.goals.length > 0 && (
+          <div className="goals-block">
+            <span className="section-title">Goals</span>
+            <ul className="goals">{session.goals.map((g, i) => <li key={i}><KoreanText text={g} /></li>)}</ul>
+          </div>
+        )}
         <TaskList tasks={store.data.tasks.filter((t) => t.session_id === session.id)} />
       </div>
       {session.grammar_notes && <GuideNotes text={session.grammar_notes} />}
