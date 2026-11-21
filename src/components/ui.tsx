@@ -161,6 +161,38 @@ export function Sheet({ title, onClose, children, trailing }: {
   );
 }
 
+/** Whether the window is desktop-wide (the sidebar layout, 900 px and up). Follows resizes. */
+export function useWide(): boolean {
+  const query = "(min-width: 900px)";
+  const [wide, setWide] = useState(() => typeof window.matchMedia === "function" && window.matchMedia(query).matches);
+  useEffect(() => {
+    if (typeof window.matchMedia !== "function") return;
+    const media = window.matchMedia(query);
+    const onChange = () => setWide(media.matches);
+    media.addEventListener("change", onChange);
+    return () => media.removeEventListener("change", onChange);
+  }, []);
+  return wide;
+}
+
+/** A small window floating above the bottom-right button, with the same header as a sheet. It doesn't block the
+ *  page: you can still scroll, click and select behind it. Escape closes it while you're in it. */
+export function FloatingPanel({ title, onClose, children, trailing }: {
+  title: string; onClose: () => void; children: ReactNode; trailing?: ReactNode;
+}) {
+  return (
+    <div className="floating-panel glass" role="dialog" aria-label={title}
+      onKeyDown={(e) => { if (e.key === "Escape") { e.stopPropagation(); onClose(); } }}>
+      <div className="sheet-header">
+        <RoundButton icon="x" tint="glass" label="Close" onClick={onClose} size={36} />
+        <h2>{title}</h2>
+        <div className="sheet-trailing">{trailing}</div>
+      </div>
+      <div className="sheet-body">{children}</div>
+    </div>
+  );
+}
+
 /** A row of options where one is chosen (the selected one is light with dark text in both themes). */
 export function Segmented<T extends string>({ options, value, onChange, label }: {
   options: { value: T; label: string }[]; value: T; onChange: (value: T) => void; label: string;
@@ -273,7 +305,7 @@ export function Copyright() {
 }
 
 /** Malchingu's logo, drawn inline so its eyes can blink. `blink="loop"` blinks every few seconds (the home page);
- *  `blink="hover"` blinks once each time the pointer moves onto it (the sidebar). */
+ *  `blink="hover"` blinks once each time the pointer moves onto it or it's tapped (the sidebar, About). */
 export function Logo({ size = 120, blink, className = "logo" }: { size?: number; blink?: "loop" | "hover"; className?: string }) {
   const id = useId().replace(/[^a-zA-Z0-9_-]/g, "");
   const [blinking, setBlinking] = useState(false);
@@ -282,6 +314,7 @@ export function Logo({ size = 120, blink, className = "logo" }: { size?: number;
   return (
     <svg viewBox="0 0 1024 1024" width={size} height={size} className={classes} aria-hidden="true"
       onMouseEnter={hover ? () => setBlinking(true) : undefined}
+      onClick={hover ? () => setBlinking(true) : undefined}
       onAnimationEnd={hover ? () => setBlinking(false) : undefined}>
       <defs>
         <linearGradient id={`${id}bg`} x1="0" y1="0" x2="1" y2="1">

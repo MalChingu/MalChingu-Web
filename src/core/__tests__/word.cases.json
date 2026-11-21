@@ -130,6 +130,56 @@
    "spoken": "gasseoyo",
    "answer": "갔어요 (gasseoyo)",
    "right": false
+  },
+  {
+   "spoken": "학교 안 갔어요",
+   "answer": "학교에 안 갔어요.",
+   "right": true
+  },
+  {
+   "spoken": "학교안갔어요",
+   "answer": "학교에 안 갔어요.",
+   "right": true
+  },
+  {
+   "spoken": "학교에 안 갔어요",
+   "answer": "학교 안 갔어요",
+   "right": true
+  },
+  {
+   "spoken": "학교에 안 가요",
+   "answer": "학교에 안 갔어요.",
+   "right": false
+  },
+  {
+   "spoken": "어제 서울 갔어요",
+   "answer": "어제 서울에 갔어요. (eoje seoure gasseoyo)",
+   "right": true
+  },
+  {
+   "spoken": "저 학생이에요",
+   "answer": "저는 학생이에요.",
+   "right": true
+  },
+  {
+   "spoken": "저도 학생이에요",
+   "answer": "저는 학생이에요.",
+   "right": false
+  },
+  {
+   "spoken": "밥 먹었어요",
+   "answer": "밥을 먹었어요 / 밥을 먹어요",
+   "right": true
+  },
+  {
+   "spoken": "밥 먹어요",
+   "answer": "밥을 먹었어요 / 밥을 먹어요",
+   "right": true
+  },
+  {
+   "spoken": "밥 먹을 거예요",
+   "answer": "밥을 먹었어요 / 밥을 먹어요",
+   "right": false
   }
  ],
  "past": [

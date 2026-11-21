@@ -9,6 +9,7 @@ import { formAnswerRight, formsFor, shownForForm, type CardForm } from "../core/
 import type { FlashcardSource } from "../lib/settings";
 import { speak } from "../lib/speech";
 import { useStore } from "../lib/store";
+import { pageZoom } from "../lib/zoom";
 import { MyWords } from "./MyWords";
 import { formInSentence, pastFormRight } from "../core/koreanWords";
 import { romanize } from "../core/romanizer";
@@ -268,7 +269,8 @@ export function Round({ words, onClose, mode = "meaning", doneLabel = "New Round
     drag.current = { x: e.clientX, id: e.pointerId };
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
   };
-  const onPointerMove = (e: ReactPointerEvent) => { if (drag.current) setDragX(e.clientX - drag.current.x); };
+  // Screen distance over the zoom (Text Size), so the card follows the pointer exactly.
+  const onPointerMove = (e: ReactPointerEvent) => { if (drag.current) setDragX((e.clientX - drag.current.x) / pageZoom()); };
   const onPointerUp = () => {
     if (!drag.current) return;
     if (dragX > 100) swipeRight();

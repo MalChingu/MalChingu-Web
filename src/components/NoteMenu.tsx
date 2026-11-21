@@ -4,7 +4,7 @@ import type { NoteSection } from "../core/models";
 import { useStore } from "../lib/store";
 import { pageZoom } from "../lib/zoom";
 import { Icon } from "./Icon";
-import { Card, RoundButton, SectionTitle, Sheet, copyText } from "./ui";
+import { Card, FloatingPanel, RoundButton, SectionTitle, Sheet, copyText, useWide } from "./ui";
 
 export const SECTION_LABEL: Record<NoteSection, string> = {
   notes: "Notes", check: "Check Yourself", vocabulary: "Vocabulary", tasks: "Tasks",
@@ -102,7 +102,8 @@ export function NoteFab({ onClick }: { onClick: () => void }) {
 
 // ---------------------------------------------------------------- note sheet
 
-/** Writing a note, tagged with a guide, a day and a section (all optional). ✓ or Ctrl/⌘ + Enter saves. */
+/** Writing a note, tagged with a guide, a day and a section (all optional). ✓ or Ctrl/⌘ + Enter saves. On a desktop
+ *  it floats above the Note button so the guide stays readable and scrollable; on a phone it's a sheet. */
 export function NoteSheet({ draft, onClose }: { draft: NoteDraft; onClose: () => void }) {
   const store = useStore();
   const [body, setBody] = useState(draft.body);
@@ -113,6 +114,10 @@ export function NoteSheet({ draft, onClose }: { draft: NoteDraft; onClose: () =>
     .sort((a, b) => b.created_at.localeCompare(a.created_at));
   const days = store.data.sessions.filter((s) => s.guide_id === guideID).map((s) => s.day_number).sort((a, b) => a - b);
   const canSave = body.trim().length > 0;
+  const wide = useWide();
+  const input = useRef<HTMLTextAreaElement>(null);
+  // The Note button (or Add Note Here) while it's open brings you back to the note.
+  useEffect(() => { input.current?.focus({ preventScroll: true }); }, [draft]);
   const save = async () => {
     if (!canSave) return;
     onClose();
@@ -121,11 +126,12 @@ export function NoteSheet({ draft, onClose }: { draft: NoteDraft; onClose: () =>
       day_number: guideID ? day : null, section: guideID && day ? section : null,
     });
   };
+  const Frame = wide ? FloatingPanel : Sheet;
   return (
-    <Sheet title={draft.id ? "Edit Note" : "New Note"} onClose={onClose}
+    <Frame title={draft.id ? "Edit Note" : "New Note"} onClose={onClose}
       trailing={<RoundButton icon="check" tint="green" label="Save Note" onClick={save} disabled={!canSave} size={36} />}>
       <Card>
-        <textarea className="text-input text-area note-input" rows={6} value={body} autoFocus aria-label="Note"
+        <textarea ref={input} className="text-input text-area note-input" rows={6} value={body} autoFocus aria-label="Note"
           placeholder="What do you want to remember?" onChange={(e) => setBody(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); void save(); } }} />
       </Card>
@@ -154,7 +160,7 @@ export function NoteSheet({ draft, onClose }: { draft: NoteDraft; onClose: () =>
           </label>
         )}
       </Card>
-    </Sheet>
+    </Frame>
   );
 }
 

@@ -224,7 +224,7 @@ export function Legal({ kind }: { kind: LegalKind }) {
   return (
     <div className="app-background legal">
       <header className="legal-bar">
-        <a className="legal-brand" href="/"><img src="/icon-192.png" alt="" width={32} height={32} /> Malchingu</a>
+        <span className="legal-brand"><img src="/icon-192.png" alt="" width={32} height={32} /> Malchingu</span>
         <a className="legal-switch" href={`/${other}`}>{TITLE[other]}</a>
       </header>
       <main className="glass card legal-card">

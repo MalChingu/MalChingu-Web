@@ -11,6 +11,7 @@ import { noteBlocks, type NoteBlock, type NoteSpan } from "../core/noteMarkup";
 import { romanize } from "../core/romanizer";
 import { activeCustomWords, BUILT_IN } from "../core/wordBank";
 import { useStore } from "../lib/store";
+import { pageZoom } from "../lib/zoom";
 import { canTranslate, translate } from "../lib/translator";
 import { Icon, type IconName } from "./Icon";
 import { SpeakButton } from "./ui";
@@ -74,10 +75,14 @@ function GlossTip({ tip, words, keep, leave }: { tip: Tip; words: Word[]; keep: 
   const ready = useTranslator("ko", "en");
   const form = known?.form ?? cleanForm(tip.form);
   const spoken = form.replace(/^-/, "");
-  // Above the word, or below it near the top of the window; kept inside the window sideways.
-  const below = tip.rect.top < 150;
-  const half = Math.min(150, window.innerWidth / 2 - 16);
-  const x = Math.min(Math.max(tip.rect.left + tip.rect.width / 2, half + 16), window.innerWidth - half - 16);
+  // Above the word, or below it near the top of the window; kept inside the window sideways. With Text Size above
+  // 100% the page is zoomed: the word's screen position is divided by the zoom to place the (zoomed) popup.
+  const z = pageZoom();
+  const rect = { top: tip.rect.top / z, bottom: tip.rect.bottom / z, left: tip.rect.left / z, width: tip.rect.width / z };
+  const width = window.innerWidth / z;
+  const below = rect.top < 150;
+  const half = Math.min(150, width / 2 - 16);
+  const x = Math.min(Math.max(rect.left + rect.width / 2, half + 16), width - half - 16);
   const run = async () => {
     setState("pending");
     const result = await translate(spoken, "ko", "en");
@@ -86,7 +91,7 @@ function GlossTip({ tip, words, keep, leave }: { tip: Tip; words: Word[]; keep: 
   };
   return createPortal(
     <div id="gloss-tip" role="tooltip" className={`gloss-tip ${below ? "below" : ""}`} onMouseEnter={keep} onMouseLeave={leave}
-      style={{ left: x, top: below ? tip.rect.bottom + 8 : tip.rect.top - 8 }}>
+      style={{ left: x, top: below ? rect.bottom + 8 : rect.top - 8 }}>
       <div className="row gloss-head">
         <strong lang="ko" className="gloss-form grow">{form}</strong>
         <SpeakButton text={spoken} size={18} />
@@ -246,12 +251,12 @@ export function CheckYourself({ items }: { items: CheckItem[] }) {
 type Said = { text: string; right: boolean } | { problem: string };
 
 /** One question. Clicking the row shows or hides the answer (dragging selects the text instead); 🎤 checks a
- *  spoken answer and 🔊 reads the answer aloud. */
+ *  spoken answer without opening it (an answer can have two parts), and 🔊 reads the answer aloud. */
 function CheckRow({ n, item, open, setOpen }: { n: number; item: CheckItem; open: boolean; setOpen: (open: boolean) => void }) {
   const [said, setSaid] = useState<Said | null>(null);
   const onHeard = (heard: Heard) => {
     const right = heard.said.find((s) => saidRight(s, item.answer));
-    if (right) { setSaid({ text: right, right: true }); setOpen(true); }
+    if (right) setSaid({ text: right, right: true });
     else if (heard.said[0]) setSaid({ text: heard.said[0], right: false });
     else setSaid({ problem: heardNothing(heard) });
   };

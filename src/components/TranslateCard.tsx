@@ -140,13 +140,21 @@ export function TranslateCard({ guideID, dayNumber, openSaved }: {
             <span className="section-title">From Your Words</span>
             {result.known && (
               <div className="translate-known">
-                <strong lang="ko">{result.known.form}</strong>
+                <span className="translate-known-form">
+                  <strong lang="ko">{result.known.form}</strong>
+                  <SpeakButton text={result.known.form.replace(/^-/, "")} size={18} />
+                </span>
                 <span>{result.known.meaning}</span>
               </div>
             )}
             {result.matches.length > 0 && (
               <div className="divided">
-                {result.matches.map((w) => <WordRow key={w.id} word={w} progress={store.progressFor(w.id)} onClick={() => store.openWord(w)} />)}
+                {result.matches.map((w) => (
+                  <div key={w.id} className="translate-match">
+                    <WordRow word={w} progress={store.progressFor(w.id)} onClick={() => store.openWord(w)} />
+                    <SpeakButton text={w.hangul} size={18} />
+                  </div>
+                ))}
               </div>
             )}
             {!result.known && result.matches.length === 0 && <span className="small muted">Not in your words.</span>}
