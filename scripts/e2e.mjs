@@ -45,8 +45,11 @@ const db = {
   ],
   connector_tokens: [],
   daily_quiz: [],
+  user_notes: [],
+  saved_translations: [],
+  public_profiles: [],
 };
-const KEYS = { profiles: ["user_id"], word_progress: ["user_id", "word_id"], study_days: ["user_id", "day"], daily_quiz: ["user_id", "day"] };
+const KEYS = { public_profiles: ["user_id"], profiles: ["user_id"], word_progress: ["user_id", "word_id"], study_days: ["user_id", "day"], daily_quiz: ["user_id", "day"] };
 
 /** Just enough of PostgREST for this app: eq filters, upserts, updates, deletes and one RPC. */
 async function fakeSupabase(route) {
@@ -60,6 +63,9 @@ async function fakeSupabase(route) {
     db.connector_tokens = [{ user_id: USER, token: "kt_e2etestkey" }];
     return json("kt_e2etestkey");
   }
+  // Friends: none yet in this account.
+  if (url.pathname === "/rest/v1/rpc/my_friends" || url.pathname === "/rest/v1/rpc/my_challenges") return json([]);
+  if (url.pathname === "/rest/v1/rpc/username_available") return json(true);
   if (url.pathname === "/rest/v1/rpc/record_daily_quiz") {
     // Like the real function: claim today's quiz and save the count together, or do nothing.
     const { p_day, p_word_id, p_progress, p_study_day } = request.postDataJSON();

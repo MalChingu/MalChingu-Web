@@ -4,12 +4,13 @@ import { PARTS_OF_SPEECH, posPlural, type PartOfSpeech, type Word } from "../cor
 import { buildDeck } from "../core/progress";
 import { BUILT_IN } from "../core/wordBank";
 import { Icon } from "../components/Icon";
-import { Button, Card, KoreanHeadline, Page, PosTag, RoundButton, Segmented, Sheet, SpeakButton, Stepper, Toggle, WordRow } from "../components/ui";
+import { Button, Card, ConfirmDialog, KoreanHeadline, Page, PosTag, RoundButton, Segmented, Sheet, SpeakButton, Stepper, Toggle, WordRow } from "../components/ui";
 import { formAnswerRight, formsFor, shownForForm, type CardForm } from "../core/englishForms";
 import { flashcardHint, type FlashcardHint } from "../core/flashcardHint";
 import type { FlashcardSource } from "../lib/settings";
 import { speak } from "../lib/speech";
-import { useStore } from "../lib/store";
+import { useStore, type Duel } from "../lib/store";
+import { duelWinner } from "../core/friends";
 import { pageZoom } from "../lib/zoom";
 import { MyWords } from "./MyWords";
 import { formInSentence, pastFormRight } from "../core/koreanWords";
@@ -142,12 +143,14 @@ function ExampleLine({ word, prefer }: { word: Word; prefer?: string }) {
 
 /** One round. Swipe (or drag) right to submit, left if you don't know; then right again to move on. Enter submits,
  *  then moves on. `doneLabel` is the last button: New Round, or Back to Guide when it came from a guide. */
-export function Round({ words, onClose, mode = "meaning", doneLabel = "New Round", forms, seconds = 0 }: {
+export function Round({ words, onClose, mode = "meaning", doneLabel = "New Round", forms, seconds = 0, duel }: {
   words: Word[]; onClose: () => void; mode?: PracticeMode; doneLabel?: string;
   /** The form each card shows (from the Flashcards setup); the dictionary form when not given. */
   forms?: CardForm[];
   /** Seconds per card; 0 is no timer. */
   seconds?: number;
+  /** A Flashcard Duel: no hints, and the score is sent once, at the end or on leaving. */
+  duel?: Duel;
 }) {
   const store = useStore();
   const [index, setIndex] = useState(0);
@@ -165,6 +168,10 @@ export function Round({ words, onClose, mode = "meaning", doneLabel = "New Round
   const [heard, setHeard] = useState<string | null>(null);
   /** Milliseconds left on this card's timer. */
   const [remaining, setRemaining] = useState(seconds * 1000);
+  /** A duel's score is sent once; leaving early asks first. */
+  const duelSent = useRef(false);
+  const [duelError, setDuelError] = useState<string | null>(null);
+  const [leaving, setLeaving] = useState(false);
 
   const word = words[index] as Word | undefined;
   const answering = phase.kind === "answering";
@@ -173,7 +180,18 @@ export function Round({ words, onClose, mode = "meaning", doneLabel = "New Round
   const form: CardForm = mode === "past" ? "dictionary" : forms?.[index] ?? "dictionary";
   const shown = (form === "past" ? word?.tenses?.past : form === "present" ? word?.tenses?.present : undefined) ?? word?.hangul ?? "";
   // One hint per card, when hints are on (Flashcards → Hints).
-  const hint = word && store.settings.flashcardHints ? flashcardHint(word, shown, mode === "past") : null;
+  const hint = word && !duel && store.settings.flashcardHints ? flashcardHint(word, shown, mode === "past") : null;
+  const right = results.filter((r) => r.correct).length;
+
+  const sendDuel = async () => {
+    if (!duel || duelSent.current) return;
+    duelSent.current = true;
+    setDuelError(await store.submitDuel(duel.id, right));
+  };
+  // The duel's score goes in as soon as the last card is answered.
+  useEffect(() => { if (duel && !word) sendDuel(); });   // eslint-disable-line react-hooks/exhaustive-deps
+  /** Close, except mid-duel: that asks first, since a duel is played once. */
+  const close = () => { if (duel && word) setLeaving(true); else onClose(); };
 
   const finish = (correct: boolean, gaveUp = false) => {
     if (!word) return;
@@ -258,7 +276,7 @@ export function Round({ words, onClose, mode = "meaning", doneLabel = "New Round
   // typing in the answer field; Enter moves on after an answer.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (helpOpen || !word) return;
+      if (helpOpen || leaving || !word) return;
       if (e.ctrlKey && !e.metaKey && !e.altKey) {
         const key = e.key.toLowerCase();
         if (key === "l") { e.preventDefault(); speak(phase.kind === "revealed" && mode === "past" ? word.tenses?.past ?? shown : shown); return; }
@@ -267,7 +285,7 @@ export function Round({ words, onClose, mode = "meaning", doneLabel = "New Round
       if (e.target instanceof HTMLInputElement) return;
       if (e.key === "ArrowRight") swipeRight();
       if (e.key === "ArrowLeft") swipeLeft();
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") close();
       // (A focused button handles its own Enter.)
       if (e.key === "Enter" && !answering && !(e.target instanceof HTMLButtonElement)) { e.preventDefault(); advance(); }
     };
@@ -293,16 +311,15 @@ export function Round({ words, onClose, mode = "meaning", doneLabel = "New Round
   const title = word ? `${index + 1} / ${words.length}` : "Round Complete";
   const header = (
     <header className="page-header centered with-close">
-      <RoundButton icon="x" tint="glass" label="Close" onClick={onClose} size={38} />
+      <RoundButton icon="x" tint="glass" label={duel ? "Leave Duel" : "Close"} onClick={close} size={38} />
       <h1 className="inline-title">{title}</h1>
-      {word
+      {word && !duel
         ? <span className="round-help"><RoundButton icon="question" tint="glass" label="Keyboard Shortcuts" onClick={() => setHelpOpen(true)} size={38} /></span>
         : <span style={{ width: 38 }} />}
     </header>
   );
 
   if (!word) {
-    const right = results.filter((r) => r.correct).length;
     return (
       <div className="page">
         {header}
@@ -313,6 +330,7 @@ export function Round({ words, onClose, mode = "meaning", doneLabel = "New Round
               <div className="muted">{right === results.length ? "Perfect round!" : "Missed words will come up more often."}</div>
             </div>
           </Card>
+          {duel && <DuelResult duel={duel} error={duelError} />}
           <Card>
             <div className="divided">
               {results.map((r, i) => (
@@ -441,7 +459,34 @@ export function Round({ words, onClose, mode = "meaning", doneLabel = "New Round
         </div>
       </div>
       {helpOpen && <ShortcutsSheet onClose={() => setHelpOpen(false)} />}
+      {leaving && (
+        <ConfirmDialog title="Leave the Duel?" confirmLabel="Leave"
+          message={`A duel is played once, so your score is sent now: ${right} / ${words.length}, with the cards you haven't answered counted as wrong.`}
+          onCancel={() => setLeaving(false)}
+          onConfirm={async () => { setLeaving(false); await sendDuel(); onClose(); }} />
+      )}
     </div>
+  );
+}
+
+/** Round Complete in a duel: who won, or that your friend hasn't played yet. */
+function DuelResult({ duel, error }: { duel: Duel; error: string | null }) {
+  const store = useStore();
+  const c = store.challenges.find((x) => x.id === duel.id);
+  const first = duel.friend.split(/\s+/)[0];
+  const both = c?.my_done && c.their_done;
+  const winner = both ? duelWinner(c.my_score ?? 0, c.their_score ?? 0) : null;
+  return (
+    <Card>
+      <div className="center stack small-gap" role="status">
+        <Icon name={winner ? "trophy" : "bolt"} size={26} className="accent" />
+        <span className="strong">Flashcard Duel with {duel.friend}</span>
+        {error ? <span className="error small">Couldn't send your score: {error}</span>
+          : !c?.my_done ? <span className="muted small">Sending your score…</span>
+          : winner ? <span>You {c.my_score} · {first} {c.their_score} · {winner === "me" ? "You win!" : winner === "them" ? `${first} wins` : "It's a tie"}</span>
+          : <span className="muted small">Your score is in. You'll see who won once {first} plays.</span>}
+      </div>
+    </Card>
   );
 }
 

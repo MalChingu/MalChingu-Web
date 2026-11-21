@@ -42,6 +42,9 @@ const PATHS: Record<string, string> = {
   pencil: "M4 20h4L19 9l-4-4L4 16v4zM14 6l4 4",
   swap: "M7 7h13M16 3l4 4-4 4M17 17H4M8 13l-4 4 4 4",
   bookmark: "M6 3h12v18l-6-4-6 4z",
+  mail: "M3 6h18v12H3zM3 7l9 6 9-6",
+  bolt: "M13 2 4 14h7l-1 8 9-12h-7l1-8z",
+  trophy: "M8 4h8v5a4 4 0 0 1-8 0V4zM8 6H5v1a3 3 0 0 0 3 3M16 6h3v1a3 3 0 0 1-3 3M12 13v4M8 21h8M9 17h6v4",
   textSize: "M3 7V5h11v2M8.5 5v14M6.5 19h4M14 12v-1.5h7V12M17.5 10.5V19M16 19h3",
 };
 

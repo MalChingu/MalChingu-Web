@@ -73,15 +73,25 @@ export function App() {
         {TABS.map((t) => (
           <button key={t.id} type="button" className={`tab ${tab === t.id ? "on" : ""}`} aria-current={tab === t.id ? "page" : undefined}
             onClick={() => go(t.id)}>
-            {t.id === "profile" && store.settings.profile.avatar
-              ? <img className="tab-avatar" src={avatarSrc(store.settings.profile.avatar)} alt="" width={24} height={24} />
-              : <Icon name={t.icon} size={22} />}
+            <span className="tab-icon">
+              {t.id === "profile" && store.settings.profile.avatar
+                ? <img className="tab-avatar" src={avatarSrc(store.settings.profile.avatar)} alt="" width={24} height={24} />
+                : <Icon name={t.icon} size={22} />}
+              {/* A friend request or a challenge is waiting. */}
+              {t.id === "profile" && store.friendsWaiting > 0 && <span className="tab-dot" aria-label="Something from a friend is waiting" />}
+            </span>
             <span>{t.label}</span>
           </button>
         ))}
         <TextSize />
       </nav>
-      <main className="main">
+      {/* A Flashcard Duel covers the whole app until it's finished or left, so it's played (and scored) once. */}
+      {store.duel && (
+        <div className="duel-screen app-background">
+          <Round key={store.duel.id} words={store.duel.words} duel={store.duel} doneLabel="Back to Friends" onClose={store.endDuel} />
+        </div>
+      )}
+      <main className="main" aria-hidden={store.duel ? true : undefined}>
         {practice ? <Round words={practice.words} mode={practice.mode} doneLabel="Back to Guide" onClose={() => setPractice(null)} />
           : tab === "today" ? <Today openGuide={(id) => { go("guides"); setGuideID(id); }} />
           : tab === "flashcards" ? <Flashcards />

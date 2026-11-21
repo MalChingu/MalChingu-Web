@@ -164,3 +164,63 @@ describe("flashcard hints", () => {
     expect(flashcardHint({ ...go, examples: [] }, "가다")).toEqual({ kind: "start", text: "g" });
   });
 });
+
+import { challengeNeedsMe, daysBetween, duelWinner, isValidUsername, looksLikeEmail, normalizeUsername, orderFriends, percent,
+  pickDuelWords, usernameBase, usernameCandidates, weekStatus, weekWinner, type FriendRow } from "../friends";
+import friendsCases from "./friends.cases.json";
+
+describe("friends (same cases as the iPhone and Android apps)", () => {
+  it("suggests a username from a name", () => {
+    for (const c of friendsCases.usernameBase) expect(usernameBase(c.name), c.name).toBe(c.base);
+  });
+  it("normalizes and checks usernames", () => {
+    for (const c of friendsCases.usernames) {
+      expect(normalizeUsername(c.typed), c.typed).toBe(c.normalized);
+      expect(isValidUsername(normalizeUsername(c.typed)), c.typed).toBe(c.valid);
+    }
+  });
+  it("tells emails from usernames", () => {
+    for (const c of friendsCases.emails) expect(looksLikeEmail(c.typed), c.typed).toBe(c.email);
+  });
+  it("works out percentages and winners", () => {
+    for (const c of friendsCases.percent) expect(percent(c.correct, c.total)).toBe(c.percent);
+    for (const c of friendsCases.weekWinner) {
+      expect(weekWinner(c.mine[0], c.mine[1], c.theirs[0], c.theirs[1]), JSON.stringify(c)).toBe(c.winner);
+    }
+    for (const c of friendsCases.duelWinner) expect(duelWinner(c.mine, c.theirs)).toBe(c.winner);
+  });
+  it("counts a 7-Day Challenge's days left", () => {
+    for (const c of friendsCases.weekStatus) {
+      const status = weekStatus(c.end, c.today);
+      expect(status.kind === "running" ? status.daysLeft : null, `${c.today} → ${c.end}`).toBe(c.daysLeft);
+    }
+    expect(daysBetween("2026-03-07", "2026-03-09")).toBe(2);   // across a clock change
+  });
+  it("suggests distinct usernames, with digits after the first", () => {
+    const names = usernameCandidates("Sam Lee", 6);
+    expect(names[0]).toBe("samlee");
+    expect(new Set(names).size).toBe(names.length);
+    for (const n of names.slice(1)) expect(n).toMatch(/^samlee\d\d$/);
+    expect(usernameCandidates("Jo", 3).every((n) => /^learner\d\d$/.test(n))).toBe(true);
+  });
+  it("picks 10 different built-in words for a duel", () => {
+    const words = pickDuelWords(BUILT_IN);
+    expect(words).toHaveLength(10);
+    expect(new Set(words.map((w) => w.id)).size).toBe(10);
+    expect(words.every((w) => w.id.startsWith("b-"))).toBe(true);
+  });
+  it("knows what's waiting on you", () => {
+    expect(challengeNeedsMe({ kind: "duel", status: "active", sent: false, my_done: false })).toBe(true);
+    expect(challengeNeedsMe({ kind: "duel", status: "active", sent: true, my_done: true })).toBe(false);
+    expect(challengeNeedsMe({ kind: "week", status: "pending", sent: false, my_done: false })).toBe(true);
+    expect(challengeNeedsMe({ kind: "week", status: "pending", sent: true, my_done: false })).toBe(false);
+    expect(challengeNeedsMe({ kind: "week", status: "active", sent: false, my_done: false })).toBe(false);
+  });
+  it("puts requests to you first and requests you sent last", () => {
+    const row = (id: string, direction: FriendRow["direction"], status: FriendRow["status"], created_at: string) =>
+      ({ id, direction, status, created_at });
+    const ordered = orderFriends([row("sent", "outgoing", "pending", "1"), row("b", "incoming", "accepted", "3"),
+      row("a", "outgoing", "accepted", "2"), row("asks", "incoming", "pending", "4")]);
+    expect(ordered.map((f) => f.id)).toEqual(["asks", "a", "b", "sent"]);
+  });
+});

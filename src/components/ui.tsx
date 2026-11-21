@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState, type ReactNode, type TouchEvent as ReactTouchEvent, useLayoutEffect } from "react";
+import { createPortal } from "react-dom";
 import { posLabel, type DisplayMode, type Example, type PartOfSpeech, type Word } from "../core/models";
 import { attempts, isMastered, type WordProgress } from "../core/progress";
 import { displayRomanization, romanize } from "../core/romanizer";
@@ -125,7 +126,8 @@ export function Toggle({ label, checked, onChange }: { label: string; checked: b
   );
 }
 
-/** A modal sheet: centred on wide screens, sliding up from the bottom on phones. */
+/** A modal sheet: centred on wide screens, sliding up from the bottom on phones. It's drawn at the end of the page, so
+ *  it covers the window even when opened from inside a card (a glass card's blur would otherwise hold it). */
 export function Sheet({ title, onClose, children, trailing, leading }: {
   title: string; onClose: () => void; children: ReactNode; trailing?: ReactNode; leading?: ReactNode;
 }) {
@@ -147,7 +149,7 @@ export function Sheet({ title, onClose, children, trailing, leading }: {
       document.body.style.paddingRight = paddingRight;
     };
   }, []);
-  return (
+  return createPortal(
     <div className="sheet-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="sheet" role="dialog" aria-modal="true" aria-label={title} tabIndex={-1} ref={panel}>
         <div className="sheet-header">
@@ -157,7 +159,8 @@ export function Sheet({ title, onClose, children, trailing, leading }: {
         </div>
         <div className="sheet-body">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -297,7 +300,7 @@ export function ConfirmDialog({ title, message, confirmLabel, destructive = true
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
-  return (
+  return createPortal(
     <div className="sheet-backdrop confirm-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) onCancel(); }}>
       <div className="confirm" role="alertdialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-message">
         <h2 id="confirm-title">{title}</h2>
@@ -307,7 +310,8 @@ export function ConfirmDialog({ title, message, confirmLabel, destructive = true
           <button type="button" className={`button full ${destructive ? "destructive" : "prominent"}`} onClick={onConfirm}>{confirmLabel}</button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

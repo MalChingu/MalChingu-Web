@@ -725,3 +725,47 @@ a.easter-egg, a.easter-egg:hover, .legal-footer a.easter-egg, .legal-footer a.ea
 .hint-button { display: inline-flex; align-items: center; gap: 4px; align-self: center; margin-top: 4px; }
 .hint { display: flex; flex-direction: column; align-items: center; gap: 2px; margin-top: 6px; padding: 10px 12px; border-radius: 14px;
   background: var(--accent-soft); text-align: center; }
+
+/* Friends (Profile → About): a row of pictures with + at the end, each friend's page, and adding friends. */
+.friends-row { display: flex; align-items: flex-start; gap: 12px; }
+.friends-scroll { flex: 1; min-width: 0; display: flex; gap: 12px; overflow-x: auto; scrollbar-width: none; padding: 2px; min-height: 76px; }
+.friends-scroll::-webkit-scrollbar { display: none; }
+.friend { flex: none; width: 60px; display: flex; flex-direction: column; align-items: center; gap: 4px; border: 0; background: none;
+  padding: 0; font: inherit; color: inherit; cursor: pointer; }
+.friend.sent { opacity: 0.55; }
+.friend-picture { position: relative; width: 52px; height: 52px; display: grid; place-items: center; border-radius: 50%; flex: none; }
+.friend:focus-visible { outline: none; }
+.friend:focus-visible .friend-picture { outline: 2px solid var(--accent); outline-offset: 2px; }
+.friend-add { color: var(--accent); background: var(--accent-soft); }
+.friend:hover .friend-add { background: color-mix(in srgb, var(--accent) 24%, transparent); }
+.friend-dot { position: absolute; top: 0; right: 0; width: 13px; height: 13px; border-radius: 50%; background: var(--red-fill); border: 2px solid var(--base); }
+.friend-caption { font-size: 0.75rem; max-width: 60px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-2); }
+.friends-empty { align-self: center; padding-bottom: 20px; }
+.person-picture { border-radius: 50%; object-fit: cover; flex: none; display: inline-flex; align-items: center; justify-content: center; }
+.person-picture.placeholder { background: linear-gradient(135deg, #5b4fe9, #22b8c7); color: #fff; font-weight: 800; }
+.friend-page { padding: 4px 0 16px; gap: 6px; }
+.friend-page .level-tag { margin-top: 4px; }
+.friend-page-name { font-size: 1.4rem; font-weight: 700; margin-top: 6px; }
+.button-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.stack.tiny-gap { gap: 2px; }
+.challenges .divided > * + * { padding-top: 12px; margin-top: 12px; }
+.challenge-line { display: flex; align-items: center; gap: 12px; }
+.challenge-option { display: flex; align-items: flex-start; gap: 12px; text-align: left; padding: 14px; border-radius: 18px;
+  border: 1px solid var(--divider); background: var(--field); font: inherit; color: inherit; cursor: pointer; }
+.challenge-option .grow { display: flex; flex-direction: column; gap: 2px; }
+.challenge-option:disabled { opacity: 0.55; cursor: default; }
+.challenge-option:not(:disabled):hover { border-color: var(--accent); }
+.search-result { gap: 12px; }
+.username-field { display: flex; align-items: center; gap: 2px; height: 48px; padding: 0 16px; border-radius: 14px;
+  border: 1px solid var(--divider); background: var(--field); font-size: 1.1rem; }
+.username-field input { flex: 1; min-width: 0; border: 0; background: none; outline: none; font: inherit; color: inherit; }
+.username-field:focus-within { border-color: var(--accent); }
+.username-row { width: 100%; border: 0; background: none; font: inherit; color: inherit; padding: 0; cursor: pointer; }
+/* A duel covers the app (tabs too) until it's finished or left. */
+.duel-screen { position: fixed; inset: 0; z-index: 30; overflow-y: auto; padding: 16px 0 24px; }
+.duel-screen > .page { max-width: 760px; margin: 0 auto; }
+@media (min-width: 900px) { .duel-screen { padding: 32px; } }
+/* The Profile tab's dot: a friend request or a challenge is waiting. */
+.tab-icon { position: relative; display: inline-flex; flex: none; }
+.tab-dot { position: absolute; top: -2px; right: -4px; width: 9px; height: 9px; border-radius: 50%; background: var(--red-fill); border: 1.5px solid var(--base); }
+.text-input.sheet-input { flex: none; }

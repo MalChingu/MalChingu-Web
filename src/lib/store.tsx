@@ -6,6 +6,8 @@ import { computeStats, emptyDay, emptyProgress, estimateLevel, recordOnDay, reco
   type Answer, type StudyDay, type WordProgress } from "../core/progress";
 import { giveUp, newQuiz, revealHint, submit, isFinished, type Outcome, type QuizSession } from "../core/quiz";
 import { activeCustomWords, BUILT_IN, builtInWord } from "../core/wordBank";
+import { challengeNeedsMe, friendLabel, isValidUsername, looksLikeEmail, normalizeUsername, pickDuelWords,
+  type ChallengeRow, type FriendRow, type UserSearchRow } from "../core/friends";
 import { dayString, wordOfDay } from "../core/wordOfDay";
 import { readSettings, settingsPatch, type RawSettings, type Settings } from "./settings";
 import { CONNECTOR_BASE_URL, supabase } from "./supabase";
@@ -57,6 +59,18 @@ async function selectAll<T>(table: string, order: string): Promise<T[]> {
 
 const now = () => new Date().toISOString();
 
+/** Your own row of `public_profiles`: what friends (and, for the username and level, anyone searching) see. */
+interface PublicCard { username: string | null; name: string; avatar: string | null; level: string }
+
+/** Friends, requests and challenges: loaded from the server each refresh, never kept offline. */
+interface FriendsState { rows: FriendRow[]; challenges: ChallengeRow[]; loaded: boolean; error: string | null }
+const NO_FRIENDS: FriendsState = { rows: [], challenges: [], loaded: false, error: null };
+
+export const USERNAME_RULE = "Use 3–20 letters, numbers, dots or underscores, starting with a letter or number.";
+
+/** A Flashcard Duel being played: its 10 words, the same for both friends. */
+export interface Duel { id: string; words: Word[]; friend: string }
+
 interface Store {
   session: Session | null;
   ready: boolean;
@@ -105,6 +119,32 @@ interface Store {
   openWord: (word: Word, quiz?: boolean) => void;
   openedWord: { word: Word; quiz: boolean } | null;
   closeWord: () => void;
+  // Friends. Each action resolves to an error message, or null when it worked.
+  friends: FriendRow[];
+  challenges: ChallengeRow[];
+  friendsLoaded: boolean;
+  friendsError: string | null;
+  /** Your username: null with none yet, undefined until your card has loaded. */
+  username: string | null | undefined;
+  /** Requests to you and challenges waiting on you. */
+  friendsWaiting: number;
+  setUsername: (typed: string) => Promise<string | null>;
+  /** Null when it couldn't be checked. */
+  usernameAvailable: (name: string) => Promise<boolean | null>;
+  searchUsers: (query: string) => Promise<UserSearchRow[]>;
+  /** By username, or by email when it looks like one. */
+  requestFriend: (typed: string) => Promise<{ error: string } | { result: "sent" | "friends" }>;
+  acceptFriend: (id: string) => Promise<string | null>;
+  /** Declines, cancels or removes, along with the challenges between you. */
+  removeFriend: (id: string) => Promise<string | null>;
+  /** A duel starts straight away (see `duel`); a 7-Day Challenge waits for your friend to accept. */
+  challengeFriend: (friend: FriendRow, kind: "duel" | "week") => Promise<string | null>;
+  acceptChallenge: (id: string) => Promise<string | null>;
+  removeChallenge: (id: string) => Promise<string | null>;
+  submitDuel: (id: string, score: number) => Promise<string | null>;
+  playDuel: (challenge: ChallengeRow) => void;
+  duel: Duel | null;
+  endDuel: () => void;
 }
 
 const StoreContext = createContext<Store | null>(null);
@@ -125,6 +165,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [today, setToday] = useState(dayString());
   const [openedWord, setOpenedWord] = useState<{ word: Word; quiz: boolean } | null>(null);
   const [connectorKey, setConnectorKey] = useState<string | null>(null);
+  const [friendsState, setFriendsState] = useState<FriendsState>(NO_FRIENDS);
+  /** Undefined until loaded; null when you have no card yet. */
+  const [card, setCard] = useState<PublicCard | null | undefined>(undefined);
+  /** Whether the account's data has loaded without an error, so your card isn't updated from empty data. */
+  const [dataOK, setDataOK] = useState(false);
+  const [duel, setDuel] = useState<Duel | null>(null);
   const userID = session?.user.id ?? null;
   /** When each part of the data was last changed on this page, so a load already in flight can't undo it. */
   const editedAt = useRef<Partial<Record<keyof Data, number>>>({});
@@ -138,8 +184,29 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return () => { subscription.unsubscribe(); window.clearInterval(timer); };
   }, []);
 
+  /** Only the newest friends load is kept, so an older one finishing late can't undo a change. */
+  const friendsLoad = useRef(0);
+  const loadFriends = useCallback(async () => {
+    if (!userID) return;
+    const ticket = ++friendsLoad.current;
+    const [f, c, me] = await Promise.all([
+      supabase.rpc("my_friends"),
+      supabase.rpc("my_challenges"),
+      supabase.from("public_profiles").select("username,name,avatar,level").eq("user_id", userID).maybeSingle(),
+    ]);
+    if (ticket !== friendsLoad.current) return;
+    const error = f.error ?? c.error ?? me.error;
+    if (error) {
+      setFriendsState((s) => ({ ...s, loaded: true, error: `Couldn't load your friends: ${error.message}` }));
+      return;
+    }
+    setFriendsState({ rows: (f.data ?? []) as FriendRow[], challenges: (c.data ?? []) as ChallengeRow[], loaded: true, error: null });
+    setCard((me.data as PublicCard | null) ?? null);
+  }, [userID]);
+
   const refresh = useCallback(async () => {
     if (!userID) return;
+    loadFriends();
     setLoading(true);
     const day = dayString();
     const started = performance.now();
@@ -171,6 +238,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         return next;
       });
       setError(null);
+      setDataOK(true);
     } catch (e) {
       setError(`Couldn't load your data: ${(e as Error).message}`);
     } finally {
@@ -178,12 +246,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       // Also after a failure, so nothing waits forever when offline.
       setLoadedFor({ user: userID, day });
     }
-  }, [userID]);
+  }, [userID, loadFriends]);
 
   // A new day brings a new quiz: load it.
   useEffect(() => { if (userID && loadedFor && loadedFor.day !== today) refresh(); }, [today]);   // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
+    setFriendsState(NO_FRIENDS);
+    setCard(undefined);
+    setDataOK(false);
+    setDuel(null);
     if (!userID) { setData(EMPTY); return; }
     setConnectorKey(localStorage.getItem(`malchingu.connectorKey.${userID}`));
     refresh();
@@ -474,6 +546,82 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (error) setError(`Sign-in failed: ${error.message}`);
   }, []);
 
+  // Your card follows your name, picture and level. (The username is changed on its own, below.)
+  const cardFields = useMemo(() => {
+    const avatar = settings.profile.avatar;
+    return { name: settings.profile.name.trim().slice(0, 80), avatar: avatar && avatar.length <= 200_000 ? avatar : null, level };
+  }, [settings.profile.name, settings.profile.avatar, level]);
+  useEffect(() => {
+    if (!userID || card === undefined || !dataOK) return;
+    if (card && card.name === cardFields.name && card.avatar === cardFields.avatar && card.level === cardFields.level) return;
+    setCard({ username: card?.username ?? null, ...cardFields });
+    supabase.from("public_profiles").upsert({ user_id: userID, ...cardFields, updated_at: now() }, { onConflict: "user_id" })
+      .then(({ error }) => { if (error) setFriendsState((s) => ({ ...s, error: `Couldn't update your card for friends: ${error.message}` })); });
+  }, [userID, card, dataOK, cardFields]);
+
+  const setUsername = useCallback(async (typed: string) => {
+    if (!userID) return "Sign in first.";
+    const username = normalizeUsername(typed);
+    if (!isValidUsername(username)) return USERNAME_RULE;
+    const { error } = await supabase.from("public_profiles")
+      .upsert({ user_id: userID, username, ...cardFields, updated_at: now() }, { onConflict: "user_id" });
+    if (error) return error.code === "23505" ? "That username is taken." : `Couldn't save your username: ${error.message}`;
+    setCard({ username, ...cardFields });
+    return null;
+  }, [userID, cardFields]);
+
+  const usernameAvailable = useCallback(async (name: string) => {
+    const { data: free, error } = await supabase.rpc("username_available", { p_name: normalizeUsername(name) });
+    return error ? null : free === true;
+  }, []);
+
+  const searchUsers = useCallback(async (query: string) => {
+    const { data: rows, error } = await supabase.rpc("search_users", { p_query: query });
+    if (error) throw new Error(error.message);
+    return (rows ?? []) as UserSearchRow[];
+  }, []);
+
+  /** Runs one of the friends functions, then reloads friends and challenges. */
+  const callFriends = useCallback(async (fn: string, args: Record<string, unknown>): Promise<string | null> => {
+    const { error } = await supabase.rpc(fn, args);
+    await loadFriends();
+    return error ? error.message : null;
+  }, [loadFriends]);
+
+  const requestFriend = useCallback(async (typed: string): Promise<{ error: string } | { result: "sent" | "friends" }> => {
+    const byEmail = looksLikeEmail(typed);
+    const { data: result, error } = await supabase.rpc("request_friend",
+      byEmail ? { p_email: typed.trim().toLowerCase() } : { p_username: normalizeUsername(typed) });
+    await loadFriends();
+    return error ? { error: error.message } : { result: result === "friends" ? "friends" : "sent" };
+  }, [loadFriends]);
+
+  const acceptFriend = useCallback((id: string) => callFriends("accept_friend", { p_id: id }), [callFriends]);
+  const removeFriend = useCallback((id: string) => callFriends("remove_friend", { p_id: id }), [callFriends]);
+  const acceptChallenge = useCallback((id: string) => callFriends("accept_challenge", { p_id: id, p_today: dayString() }), [callFriends]);
+  const removeChallenge = useCallback((id: string) => callFriends("remove_challenge", { p_id: id }), [callFriends]);
+  const submitDuel = useCallback((id: string, score: number) => callFriends("submit_duel", { p_id: id, p_score: score }), [callFriends]);
+
+  const challengeFriend = useCallback(async (friend: FriendRow, kind: "duel" | "week") => {
+    if (!friend.user_id) return "They haven't accepted yet.";
+    const words = kind === "duel" ? pickDuelWords(BUILT_IN) : [];
+    const { data: id, error } = await supabase.rpc("challenge_friend",
+      { p_friend: friend.user_id, p_kind: kind, p_words: kind === "duel" ? words.map((w) => w.id) : null });
+    await loadFriends();
+    if (error) return error.message;
+    if (kind === "duel" && typeof id === "string") setDuel({ id, words, friend: friendLabel(friend) });
+    return null;
+  }, [loadFriends]);
+
+  const playDuel = useCallback((c: ChallengeRow) => {
+    const words = (c.words ?? []).map((id) => builtInWord(id)).filter((w): w is Word => w !== null);
+    if (words.length) setDuel({ id: c.id, words, friend: friendLabel({ name: c.friend_name, username: c.friend_username, email: null }) });
+  }, []);
+
+  const friendsWaiting = useMemo(() =>
+    friendsState.rows.filter((f) => f.status === "pending" && f.direction === "incoming").length
+      + friendsState.challenges.filter(challengeNeedsMe).length, [friendsState]);
+
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
     setData(EMPTY);
@@ -493,6 +641,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     createConnectorLink, revokeConnectorLink, signInWithApple, signInWithGoogle, signOut,
     openWord: (word, quizMode = false) => setOpenedWord({ word, quiz: quizMode }),
     openedWord, closeWord: () => setOpenedWord(null),
+    friends: friendsState.rows, challenges: friendsState.challenges, friendsLoaded: friendsState.loaded,
+    friendsError: friendsState.error, username: card === undefined ? undefined : card?.username ?? null, friendsWaiting,
+    setUsername, usernameAvailable, searchUsers, requestFriend, acceptFriend, removeFriend, challengeFriend, acceptChallenge,
+    removeChallenge, submitDuel, playDuel, duel, endDuel: () => setDuel(null),
   };
   return <StoreContext.Provider value={store}>{children}</StoreContext.Provider>;
 }

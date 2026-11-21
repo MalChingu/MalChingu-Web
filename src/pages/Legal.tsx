@@ -12,7 +12,7 @@ export function legalKind(pathname: string): LegalKind | null {
 }
 
 const TITLE: Record<LegalKind, string> = { privacy: "Privacy Policy", terms: "Terms of Service" };
-const UPDATED = "Nov 20, 2026";
+const UPDATED = "Nov 21, 2026";
 const CONTACT = "atinderpaulk@rezpoint.xyz";
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
@@ -43,11 +43,22 @@ function Privacy() {
         <p>When you use Malchingu, we store:</p>
         <ul>
           <li>Your account: you sign in with Apple or Google. We receive an account identifier and the email address the provider shares, which may be a private relay address, and your name if you choose to share it.</li>
-          <li>Your profile: the display name, profile picture and title you choose in the app.</li>
+          <li>Your profile: the display name, profile picture, title and username you choose in the app.</li>
           <li>Your study data: the words you add, your progress on each word, quiz and flashcard answers, daily study totals and streaks, the word of the day quiz, study guides and their tasks, your notes and the translations you save.</li>
           <li>Your settings, such as appearance, flashcard setup and notification times.</li>
+          <li>Your friends: the friend requests you send and receive (including an email address you type to invite someone), your friendships, and the challenges you play with friends and their results.</li>
         </ul>
         <p>Malchingu does not request your contacts, location or phone number, and does not use advertising trackers.</p>
+      </Section>
+      <Section title="Friends and Challenges">
+        <p>Friends are optional. If you use them, here is what other people can see:</p>
+        <ul>
+          <li>Anyone signed in to Malchingu can search for your username and see it with your profile picture and level. They cannot see your name or email address this way.</li>
+          <li>Your friends, and people you send a friend request to, also see your display name.</li>
+          <li>Nobody is shown your email address. When you add someone by email, Malchingu does not say whether that address has an account; if it doesn't yet, the request waits and reaches that person if they sign up with that email.</li>
+          <li>In a Flashcard Duel, you and your friend see each other's score once you have both played. In a 7-Day Challenge, you each see how many answers the other got right, and how many they answered, during those 7 days. Friends do not see your words, notes, guides or other study data.</li>
+        </ul>
+        <p>You can change your username in Settings, remove a friend, or decline a request or challenge at any time. Removing a friend ends your challenges with them.</p>
       </Section>
       <Section title="The Claude Connector">
         <p>
@@ -88,12 +99,12 @@ function Privacy() {
         </ul>
       </Section>
       <Section title="Data Sharing">
-        <p>We do not sell, rent or share your information with advertisers. We share it only with the services above, as needed to run Malchingu, or when the law requires it.</p>
+        <p>We do not sell, rent or share your information with advertisers. We share it only with the services above, as needed to run Malchingu, with your friends as described in Friends and Challenges, or when the law requires it.</p>
       </Section>
       <Section title="Data Storage and Security">
         <p>
           Your data is sent over encrypted connections and stored by Supabase. Each account can read and change only its
-          own data. The apps also keep a copy on your device so they work offline, and the home-screen widgets read your
+          own data, apart from what it shares with friends as described above. The apps also keep a copy on your device so they work offline, and the home-screen widgets read your
           words from that copy.
         </p>
       </Section>
@@ -102,13 +113,14 @@ function Privacy() {
         <p>
           To delete your account and all of its data, open Profile, then Settings, then Delete Account in the iPhone, iPad
           or Mac app. This removes your account, words, progress, guides, notes, translations and connector link from our
-          servers. If you use only the web or Android app, email us at the address below and we will delete your account
+          servers, along with your username, friendships and challenges. If you use only the web or Android app, email us at the address below and we will delete your account
           within 30 days. Signing out removes your study data from that device.
         </p>
       </Section>
       <Section title="Your Choices">
         <ul>
-          <li>Edit or remove your name and profile picture in Profile.</li>
+          <li>Edit or remove your name and profile picture in Profile, and change your username in Settings.</li>
+          <li>Remove friends, and accept or decline friend requests and challenges.</li>
           <li>Turn notifications, the Claude connector and the microphone on or off.</li>
           <li>Ask us for a copy of your data or to correct it by email.</li>
         </ul>
@@ -152,7 +164,9 @@ function Terms() {
       </Section>
       <Section title="Your Content">
         <p>
-          The words, notes, study guides and other content you add stay yours. You give us permission to store, process
+          The words, notes, study guides and other content you add stay yours. Your username, profile picture, name and
+          level are shown to other people as described in the Privacy Policy, and your challenge results to the friend you
+          play with. You give us permission to store, process
           and show that content only as needed to run Malchingu for you, such as syncing it across your devices. Please
           add only content you have the right to use.
         </p>
@@ -172,6 +186,7 @@ function Terms() {
           <li>Try to access another person's account or data</li>
           <li>Interfere with, overload or try to break the service, including through the connector</li>
           <li>Copy, resell or redistribute the app or its built-in word list</li>
+          <li>Choose a username that impersonates someone or is offensive, or use friend requests and challenges to harass anyone</li>
         </ul>
       </Section>
       <Section title="Third-Party Services">

@@ -1,0 +1,68 @@
+{
+  "usernameBase": [
+    { "name": "Sam Lee", "base": "samlee" },
+    { "name": "김민수", "base": "gimminsu" },
+    { "name": "José Álvarez", "base": "josealvarez" },
+    { "name": "Mary-Jane O'Neil 2", "base": "maryjaneoneil2" },
+    { "name": "A very long name indeed for a username", "base": "averylongnameind" },
+    { "name": "Kim 민지", "base": "kimminji" },
+    { "name": "민", "base": "min" },
+    { "name": "Jo", "base": "learner" },
+    { "name": "李", "base": "learner" },
+    { "name": "  ", "base": "learner" },
+    { "name": "", "base": "learner" }
+  ],
+  "usernames": [
+    { "typed": "samlee", "normalized": "samlee", "valid": true },
+    { "typed": "  @SamLee ", "normalized": "samlee", "valid": true },
+    { "typed": "sam.lee_99", "normalized": "sam.lee_99", "valid": true },
+    { "typed": "9lives", "normalized": "9lives", "valid": true },
+    { "typed": "ab", "normalized": "ab", "valid": false },
+    { "typed": "_sam", "normalized": "_sam", "valid": false },
+    { "typed": ".sam", "normalized": ".sam", "valid": false },
+    { "typed": "sam lee", "normalized": "sam lee", "valid": false },
+    { "typed": "sam-lee", "normalized": "sam-lee", "valid": false },
+    { "typed": "abcdefghijklmnopqrst", "normalized": "abcdefghijklmnopqrst", "valid": true },
+    { "typed": "abcdefghijklmnopqrstu", "normalized": "abcdefghijklmnopqrstu", "valid": false },
+    { "typed": "민수", "normalized": "민수", "valid": false }
+  ],
+  "emails": [
+    { "typed": "sam@example.com", "email": true },
+    { "typed": "  sam.lee+k@mail.example.org ", "email": true },
+    { "typed": "sam@example", "email": false },
+    { "typed": "@samlee", "email": false },
+    { "typed": "samlee", "email": false },
+    { "typed": "sam @example.com", "email": false }
+  ],
+  "percent": [
+    { "correct": 41, "total": 50, "percent": 82 },
+    { "correct": 1, "total": 3, "percent": 33 },
+    { "correct": 2, "total": 3, "percent": 67 },
+    { "correct": 0, "total": 0, "percent": null },
+    { "correct": 10, "total": 10, "percent": 100 }
+  ],
+  "weekWinner": [
+    { "mine": [41, 50], "theirs": [38, 50], "winner": "me" },
+    { "mine": [38, 50], "theirs": [41, 50], "winner": "them" },
+    { "mine": [1, 3], "theirs": [2, 6], "winner": "tie" },
+    { "mine": [9, 10], "theirs": [80, 100], "winner": "me" },
+    { "mine": [5, 5], "theirs": [0, 0], "winner": "me" },
+    { "mine": [0, 4], "theirs": [0, 0], "winner": "tie" },
+    { "mine": [0, 0], "theirs": [1, 9], "winner": "them" },
+    { "mine": [0, 0], "theirs": [0, 0], "winner": "tie" }
+  ],
+  "duelWinner": [
+    { "mine": 7, "theirs": 8, "winner": "them" },
+    { "mine": 10, "theirs": 3, "winner": "me" },
+    { "mine": 5, "theirs": 5, "winner": "tie" }
+  ],
+  "weekStatus": [
+    { "end": "2026-11-27", "today": "2026-11-21", "daysLeft": 7 },
+    { "end": "2026-11-27", "today": "2026-11-25", "daysLeft": 3 },
+    { "end": "2026-11-27", "today": "2026-11-27", "daysLeft": 1 },
+    { "end": "2026-11-27", "today": "2026-11-28", "daysLeft": null },
+    { "end": "2026-12-02", "today": "2026-11-30", "daysLeft": 3 },
+    { "end": "2027-01-01", "today": "2026-12-31", "daysLeft": 2 },
+    { "end": "2026-11-27", "today": "2026-11-20", "daysLeft": 7 }
+  ]
+}

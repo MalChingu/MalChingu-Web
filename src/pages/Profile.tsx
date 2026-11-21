@@ -4,6 +4,7 @@ import { ACHIEVEMENTS, shownTitle } from "../core/achievements";
 import { levelLabel } from "../core/progress";
 import { BUILT_IN } from "../core/wordBank";
 import { Icon } from "../components/Icon";
+import { FriendsCard, UsernameSheet } from "../components/Friends";
 import { Button, Card, ConfirmDialog, Logo, Page, SectionTitle, Segmented, Toggle, copyText } from "../components/ui";
 import { avatarSrc, squareJPEGBase64 } from "../lib/avatar";
 import { initials } from "../lib/settings";
@@ -27,6 +28,7 @@ export function Profile() {
   const [confirming, setConfirming] = useState<"turnOff" | "signOut" | null>(null);
   // About (you, the app, Sign Out) or Settings (the app's and the account's settings).
   const [part, setPart] = useState<"about" | "settings">("about");
+  const [choosingUsername, setChoosingUsername] = useState(false);
   const file = useRef<HTMLInputElement>(null);
   const voice = useKoreanVoice();
   const [appearance, setAppearance] = useAppearance();
@@ -114,6 +116,8 @@ export function Profile() {
           </Card>
         )}
 
+        <FriendsCard />
+
         <Card>
           <SectionTitle>About the App</SectionTitle>
           <div className="about-app">
@@ -153,6 +157,15 @@ export function Profile() {
           <SectionTitle>Appearance</SectionTitle>
           <Segmented label="Appearance" value={appearance} onChange={setAppearance}
             options={(["system", "light", "dark"] as Appearance[]).map((o) => ({ value: o, label: o[0].toUpperCase() + o.slice(1) }))} />
+        </Card>
+
+        <Card>
+          <SectionTitle>Username</SectionTitle>
+          <button type="button" className="row toggle-row doc-link username-row" onClick={() => setChoosingUsername(true)}>
+            <span>{store.username ? `@${store.username}` : "None yet"}</span>
+            <span className="accent strong">{store.username ? "Change" : "Choose"}</span>
+          </button>
+          <p className="small muted">Friends find you by your username. Anyone signed in can find your username, picture and level; only friends see your name.</p>
         </Card>
 
         <Card>
@@ -203,6 +216,7 @@ export function Profile() {
         </>
       )}
 
+      {choosingUsername && <UsernameSheet onClose={() => setChoosingUsername(false)} />}
       {confirming === "turnOff" && (
         <ConfirmDialog title="Turn Off the Connector?" message="The link stops working in Claude. You can create a new link afterwards and add it to Claude again."
           confirmLabel="Turn Off" onCancel={() => setConfirming(null)}
