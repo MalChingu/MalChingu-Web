@@ -65,12 +65,10 @@ export function FriendsCard() {
               </button>
             );
           })}
-          {store.friendsLoaded && rows.length === 0 && <span className="small muted friends-empty">Add friends with +</span>}
         </div>
         <button type="button" className="friend" aria-label="Add Friend" title="Add Friend"
           onClick={() => setSheet(store.username ? "add" : "usernameThenAdd")}>
           <span className="friend-picture friend-add"><Icon name="plus" size={24} strokeWidth={2.4} /></span>
-          <span className="friend-caption">Add</span>
         </button>
       </div>
       {store.friendsError && <p className="error small" role="alert">{store.friendsError}</p>}
@@ -134,7 +132,7 @@ function FriendSheet({ friend, onClose }: { friend: FriendRow; onClose: () => vo
           <p className="center muted">
             {friend.user_id
               ? `Request sent. ${first} can accept it in Profile.`
-              : "Request sent. It reaches them when they sign in to Malchingu with this email."}
+              : "Request sent. It reaches them when they sign in to Korimal with this email."}
           </p>
           <Button kind="danger" icon="x" full disabled={busy} onClick={() => run(() => store.removeFriend(friend.id)).then((ok) => ok && onClose())}>
             Cancel Request
@@ -295,7 +293,7 @@ function AddFriendSheet({ onClose }: { onClose: () => void }) {
     setMessage(outcome.result === "friends"
       ? { text: `You're now friends with ${shown}.`, good: true }
       : email
-        ? { text: `Request sent to ${shown}. If they don't use Malchingu yet, it reaches them when they sign up with that email.`, good: true }
+        ? { text: `Request sent to ${shown}. If they don't use Korimal yet, it reaches them when they sign up with that email.`, good: true }
         : { text: `Request sent to ${shown}.`, good: true });
     if (email) setText("");
   };
@@ -343,7 +341,6 @@ function AddFriendSheet({ onClose }: { onClose: () => void }) {
           </div>
         )}
         {message && <p className={`small ${message.good ? "good" : "error"}`} role={message.good ? "status" : "alert"}>{message.text}</p>}
-        <p className="small muted">They'll see your request in Profile and can accept or decline it. Friends see each other's name, picture and level.</p>
       </div>
     </Sheet>
   );
@@ -408,7 +405,7 @@ export function UsernameSheet({ onClose }: { onClose: () => void }) {
   return (
     <Sheet title={current ? "Change Username" : "Choose a Username"} onClose={onClose}>
       <form className="stack" onSubmit={(e) => { e.preventDefault(); if (state === "free" || state === "unknown" || state === "current") save(); }}>
-        <p className="muted">Friends find you by your username. Anyone signed in to Malchingu can find your username, picture and level; only friends see your name.</p>
+        <p className="muted">Friends find you by your username. Anyone signed in to Korimal can find your username, picture and level; only friends see your name.</p>
         <label className="username-field">
           <span className="muted" aria-hidden="true">@</span>
           <input value={text} aria-label="Username" autoFocus maxLength={21} autoCapitalize="off" autoCorrect="off" spellCheck={false}

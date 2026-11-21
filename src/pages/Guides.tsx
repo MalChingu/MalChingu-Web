@@ -273,7 +273,7 @@ function CreateGuide({ onClose }: { onClose: () => void }) {
         <Card>
           <div className="stack">
             <strong><Icon name="link" size={16} /> Connect Claude First</strong>
-            <p className="muted small">Guides are written by Claude and saved to Malchingu through a connector. Set it up once in Profile → Claude Connector.</p>
+            <p className="muted small">Guides are written by Claude and saved to Korimal through a connector. Set it up once in Profile → Claude Connector.</p>
           </div>
         </Card>
       )}

@@ -395,6 +395,12 @@ kbd { font: inherit; font-size: 0.85rem; font-weight: 600; min-width: 28px; text
   position: absolute; right: -2px; bottom: -2px; width: 30px; height: 30px; border-radius: 50%; background: var(--accent-fill);
   color: #fff; display: flex; align-items: center; justify-content: center; border: 2px solid var(--base);
 }
+.avatar-box { position: relative; }
+.avatar-remove {
+  position: absolute; left: -2px; bottom: -2px; width: 30px; height: 30px; border-radius: 50%; background: var(--red-fill);
+  color: #fff; display: flex; align-items: center; justify-content: center; border: 2px solid var(--base); padding: 0; cursor: pointer;
+}
+.profile-username { margin-top: -8px; font-weight: 500; }
 .name-input { border: 0; background: none; text-align: center; font-size: 1.5rem; font-weight: 650; outline: none; width: 100%; }
 .level-tag { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 999px; background: var(--accent-soft); font-weight: 600; font-size: 0.9rem; }
 .toggle-row { justify-content: space-between; min-height: 40px; }
@@ -728,7 +734,7 @@ a.easter-egg, a.easter-egg:hover, .legal-footer a.easter-egg, .legal-footer a.ea
 
 /* Friends (Profile → About): a row of pictures with + at the end, each friend's page, and adding friends. */
 .friends-row { display: flex; align-items: flex-start; gap: 12px; }
-.friends-scroll { flex: 1; min-width: 0; display: flex; gap: 12px; overflow-x: auto; scrollbar-width: none; padding: 2px; min-height: 76px; }
+.friends-scroll { flex: 1; min-width: 0; display: flex; gap: 12px; overflow-x: auto; scrollbar-width: none; padding: 2px; min-height: 56px; }
 .friends-scroll::-webkit-scrollbar { display: none; }
 .friend { flex: none; width: 60px; display: flex; flex-direction: column; align-items: center; gap: 4px; border: 0; background: none;
   padding: 0; font: inherit; color: inherit; cursor: pointer; }
@@ -740,7 +746,6 @@ a.easter-egg, a.easter-egg:hover, .legal-footer a.easter-egg, .legal-footer a.ea
 .friend:hover .friend-add { background: color-mix(in srgb, var(--accent) 24%, transparent); }
 .friend-dot { position: absolute; top: 0; right: 0; width: 13px; height: 13px; border-radius: 50%; background: var(--red-fill); border: 2px solid var(--base); }
 .friend-caption { font-size: 0.75rem; max-width: 60px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-2); }
-.friends-empty { align-self: center; padding-bottom: 20px; }
 .person-picture { border-radius: 50%; object-fit: cover; flex: none; display: inline-flex; align-items: center; justify-content: center; }
 .person-picture.placeholder { background: linear-gradient(135deg, #5b4fe9, #22b8c7); color: #fff; font-weight: 800; }
 .friend-page { padding: 4px 0 16px; gap: 6px; }

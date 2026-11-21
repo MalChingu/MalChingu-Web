@@ -515,7 +515,8 @@ function ShortcutsSheet({ onClose }: { onClose: () => void }) {
   );
 }
 
-/** The card's hint: an example sentence (Korean, romanization and English), or the answer's first letter. */
+/** The card's hint: an example sentence in Korean with its romanization (not the English, which would give the answer
+ *  away), or the answer's first letter. */
 function HintView({ hint }: { hint: FlashcardHint }) {
   if (hint.kind === "start") return <p className="hint small" role="status">Starts with “<strong>{hint.text}</strong>…”</p>;
   const { example } = hint;
@@ -526,7 +527,6 @@ function HintView({ hint }: { hint: FlashcardHint }) {
         <SpeakButton text={example.korean} size={16} />
       </div>
       {example.romanization && <span className="small muted">{example.romanization}</span>}
-      <span className="small">{example.english}</span>
     </div>
   );
 }

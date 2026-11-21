@@ -69,7 +69,7 @@ export function App() {
   return (
     <div className="app-background app">
       <nav className="tabs glass" aria-label="Sections">
-        <div className="tabs-brand"><Logo size={32} blink="hover" className="brand-logo" /> Malchingu</div>
+        <div className="tabs-brand"><Logo size={32} blink="hover" className="brand-logo" /> Korimal</div>
         {TABS.map((t) => (
           <button key={t.id} type="button" className={`tab ${tab === t.id ? "on" : ""}`} aria-current={tab === t.id ? "page" : undefined}
             onClick={() => go(t.id)}>

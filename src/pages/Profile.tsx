@@ -25,7 +25,7 @@ export function Profile() {
   const [name, setName] = useState(settings.profile.name);
   const [copied, setCopied] = useState(false);
   const [working, setWorking] = useState(false);
-  const [confirming, setConfirming] = useState<"turnOff" | "signOut" | null>(null);
+  const [confirming, setConfirming] = useState<"turnOff" | "signOut" | "removePicture" | null>(null);
   // About (you, the app, Sign Out) or Settings (the app's and the account's settings).
   const [part, setPart] = useState<"about" | "settings">("about");
   const [choosingUsername, setChoosingUsername] = useState(false);
@@ -62,12 +62,21 @@ export function Profile() {
         {/* The card's border takes the colour of the level badge. */}
         <div className={`glass card profile-card level-${store.level}`} style={{ padding: 22 }}>
           <div className="center stack">
-            <button type="button" className="avatar-button" aria-label="Change profile picture" onClick={() => file.current?.click()}>
-              {settings.profile.avatar
-                ? <img className="avatar" src={avatarSrc(settings.profile.avatar)} alt="" />
-                : <span className="avatar placeholder">{initials(settings.profile.name) || <Icon name="person" size={40} />}</span>}
-              <span className="avatar-camera"><Icon name="camera" size={16} /></span>
-            </button>
+            {/* The camera (bottom right) changes the picture; the ✕ (bottom left) removes it, after asking. */}
+            <div className="avatar-box">
+              <button type="button" className="avatar-button" aria-label="Change profile picture" onClick={() => file.current?.click()}>
+                {settings.profile.avatar
+                  ? <img className="avatar" src={avatarSrc(settings.profile.avatar)} alt="" />
+                  : <span className="avatar placeholder">{initials(settings.profile.name) || <Icon name="person" size={40} />}</span>}
+                <span className="avatar-camera"><Icon name="camera" size={16} /></span>
+              </button>
+              {settings.profile.avatar && (
+                <button type="button" className="avatar-remove" aria-label="Remove picture" title="Remove Picture"
+                  onClick={() => setConfirming("removePicture")}>
+                  <Icon name="x" size={15} strokeWidth={2.8} />
+                </button>
+              )}
+            </div>
             <input ref={file} type="file" accept="image/*" hidden onChange={async (e) => {
               const picked = e.target.files?.[0];
               e.target.value = "";
@@ -75,14 +84,10 @@ export function Profile() {
               try { store.updateSettings({ profile: { ...settings.profile, avatar: await squareJPEGBase64(picked) } }); }
               catch { store.setError("Couldn't read that picture."); }
             }} />
-            {settings.profile.avatar && (
-              <button type="button" className="link small" onClick={() => store.updateSettings({ profile: { ...settings.profile, avatar: null } })}>
-                Remove Picture
-              </button>
-            )}
             <input className="name-input" value={name} placeholder="Your Name" aria-label="Your name"
               onChange={(e) => setName(e.target.value)} onBlur={saveName}
               onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }} />
+            {store.username && <span className="profile-username muted">@{store.username}</span>}
             {title && <span className="profile-title muted">{title.title}</span>}
             <span className={`level-tag level-${store.level}`}><Icon name="cap" size={16} className="level-icon" /> {levelLabel[store.level]}</span>
             {store.error && <p className="error small" role="alert">{store.error}</p>}
@@ -122,7 +127,7 @@ export function Profile() {
           <SectionTitle>About the App</SectionTitle>
           <div className="about-app">
             <Logo size={80} blink="hover" className="about-logo" />
-            <div className="about-name">Malchingu</div>
+            <div className="about-name">Korimal</div>
             <div className="small muted">Version {__APP_VERSION__}</div>
           </div>
           <div className="row toggle-row"><span>Built-In Words</span><span className="muted">{BUILT_IN.length}</span></div>
@@ -211,7 +216,7 @@ export function Profile() {
           ) : (
             <Button kind="prominent" icon="link" full disabled={working} onClick={() => run(store.createConnectorLink)}>Create Connector Link</Button>
           )}
-          <p className="small muted">In Claude, open Settings → Connectors → Add custom connector, name it Malchingu and paste this link. Then share your notes, PDFs or screenshots in a chat and ask for a study guide or to add words. Treat the link like a password: anyone who has it can add to your Malchingu.</p>
+          <p className="small muted">In Claude, open Settings → Connectors → Add custom connector, name it Korimal and paste this link. Then share your notes, PDFs or screenshots in a chat and ask for a study guide or to add words. Treat the link like a password: anyone who has it can add to your Malchingu.</p>
         </Card>
         </>
       )}
@@ -221,6 +226,11 @@ export function Profile() {
         <ConfirmDialog title="Turn Off the Connector?" message="The link stops working in Claude. You can create a new link afterwards and add it to Claude again."
           confirmLabel="Turn Off" onCancel={() => setConfirming(null)}
           onConfirm={() => { setConfirming(null); run(store.revokeConnectorLink); }} />
+      )}
+      {confirming === "removePicture" && (
+        <ConfirmDialog title="Remove Picture?" message="Your picture is removed from your profile on every device."
+          confirmLabel="Remove" onCancel={() => setConfirming(null)}
+          onConfirm={() => { setConfirming(null); store.updateSettings({ profile: { ...settings.profile, avatar: null } }); }} />
       )}
       {confirming === "signOut" && (
         <ConfirmDialog title="Sign Out?" message="Your words, stats and guides stay in your account and come back when you sign in again."

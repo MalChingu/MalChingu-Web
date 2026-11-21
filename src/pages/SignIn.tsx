@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Copyright, Logo } from "../components/ui";
 import { useStore } from "../lib/store";
 
-/** What Malchingu does, typed out one at a time on the home page. */
+/** What Korimal does, typed out one at a time on the home page. */
 const FEATURES = ["Word of the Day", "Flashcards", "Study Guides", "Notes", "Translator", "Voice Mode"];
 
 /** Types each phrase, holds it, backspaces it, then types the next, round and round. With reduced motion on, the
@@ -50,8 +50,8 @@ export function SignIn() {
       <div className="sign-in-main">
         <div className="sign-in-top">
           <Logo size={132} blink="loop" />
-          <h1 className="brand">Malchingu</h1>
-          <p className="lead korean-name" lang="ko">말친구</p>
+          <h1 className="brand">Korimal</h1>
+          <p className="lead korean-name" lang="ko">코리말</p>
           <p className="lead">Your Korean Talking Buddy</p>
           <p className="typed" aria-label={FEATURES.join(", ")}>
             <span aria-hidden="true">{typed}</span><span className="caret" aria-hidden="true" />

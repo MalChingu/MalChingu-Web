@@ -98,7 +98,7 @@ export function MyWords({ onBack }: { onBack: () => void }) {
   );
 }
 
-const REQUEST = "Add these words to Malchingu: 도서관, 운동하다, 맛있다";
+const REQUEST = "Add these words to Korimal: 도서관, 운동하다, 맛있다";
 
 function AddWordsHelp({ onClose }: { onClose: () => void }) {
   const store = useStore();
@@ -111,7 +111,7 @@ function AddWordsHelp({ onClose }: { onClose: () => void }) {
         <Steps steps={[
           { title: "Connect Claude Once", text: connected ? "Done. Your connector link is set up."
             : "Create your connector link in Profile → Claude Connector and add it in Claude." },
-          { title: "Ask Claude to Add Them", text: "In a Claude chat, write \"Add these words to Malchingu:\" followed by your words. Claude fills in the rest and can add many at once." },
+          { title: "Ask Claude to Add Them", text: "In a Claude chat, write \"Add these words to Korimal:\" followed by your words. Claude fills in the rest and can add many at once." },
           { title: "Refresh Here", text: "When Claude says they are saved, come back to this page. They show up here, in flashcards and in the word of the day." },
         ]} />
       </Card>

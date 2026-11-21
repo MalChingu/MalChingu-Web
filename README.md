@@ -1,6 +1,6 @@
-# MalChingu Web
+# Korimal Web
 
-Malchingu (말친구, "talking buddy") in the browser: the same Korean study app as the iPhone, iPad and Mac version ([MalChingu-Swift](https://github.com/MalChingu/MalChingu-Swift)), on the same accounts and data.
+Korimal (코리말, formerly Malchingu) in the browser: the same Korean study app as the iPhone, iPad and Mac version ([MalChingu-Swift](https://github.com/MalChingu/MalChingu-Swift)), on the same accounts and data.
 
 - **Today**: a greeting, your streak, and the word of the day with its quiz (red X to give up, green ✓ to check, three tap-to-reveal hints). It's the same word the app shows that day, and the quiz itself is shared: hints and the result carry over between the web and the app.
 - **Flashcards**: built-in words, your own words or a mix; drag or swipe the card (or use the arrow keys), segmented progress, and every card turns over after you answer.
@@ -67,7 +67,7 @@ The site is a static build (`npm run build` → `dist/`). On Vercel, import this
 
 The app's native sign-in already works. The web needs a few more pieces, done once:
 
-1. **Apple Developer → Certificates, Identifiers & Profiles → Identifiers → +** → **Services IDs**. Description `Malchingu Web`, identifier e.g. `com.rezpoint.ktalk.web`. Enable **Sign in with Apple** → **Configure**: primary App ID `com.rezpoint.ktalk`; **Domains** `nxlsnpzfbazwlccxtwpt.supabase.co`; **Return URLs** `https://nxlsnpzfbazwlccxtwpt.supabase.co/auth/v1/callback`. Save.
+1. **Apple Developer → Certificates, Identifiers & Profiles → Identifiers → +** → **Services IDs**. Description `Korimal Web`, identifier e.g. `com.rezpoint.ktalk.web`. Enable **Sign in with Apple** → **Configure**: primary App ID `com.rezpoint.ktalk`; **Domains** `nxlsnpzfbazwlccxtwpt.supabase.co`; **Return URLs** `https://nxlsnpzfbazwlccxtwpt.supabase.co/auth/v1/callback`. Save.
 2. **Keys → +**: enable **Sign in with Apple** (configure it with the same primary App ID), download the `.p8` file, and note the Key ID and your Team ID.
 3. **Supabase → Authentication → Sign In / Providers → Apple**: in **Client IDs** add the Services ID next to the app's bundle ID, e.g. `com.rezpoint.ktalk,com.rezpoint.ktalk.web`. In **Secret Key (for OAuth)** paste a client secret generated from the `.p8` key, Key ID, Team ID and Services ID (Supabase's Apple guide links a generator). Save.
 4. **Supabase → Authentication → URL Configuration**: set **Site URL** to the web address, and add it plus `http://localhost:5173` under **Redirect URLs**.

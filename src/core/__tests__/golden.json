@@ -7282,231 +7282,231 @@
       "days" : 1,
       "focus" : "",
       "minutes" : 30,
-      "out" : "Create a guide in Malchingu for a day, learning 30 minutes a day, starting today.",
+      "out" : "Create a guide in Korimal for a day, learning 30 minutes a day, starting today.",
       "startOffset" : 0
     },
     {
       "days" : 1,
       "focus" : "past tense",
       "minutes" : 30,
-      "out" : "Create a guide in Malchingu for a day, learning 30 minutes a day, starting tomorrow. Focus on past tense.",
+      "out" : "Create a guide in Korimal for a day, learning 30 minutes a day, starting tomorrow. Focus on past tense.",
       "startOffset" : 1
     },
     {
       "days" : 1,
       "focus" : "",
       "minutes" : 30,
-      "out" : "Create a guide in Malchingu for a day, learning 30 minutes a day, starting on 2026-11-20.",
+      "out" : "Create a guide in Korimal for a day, learning 30 minutes a day, starting on 2026-11-20.",
       "startOffset" : 4
     },
     {
       "days" : 7,
       "focus" : "",
       "minutes" : 30,
-      "out" : "Create a guide in Malchingu for a week, learning 30 minutes a day, starting today.",
+      "out" : "Create a guide in Korimal for a week, learning 30 minutes a day, starting today.",
       "startOffset" : 0
     },
     {
       "days" : 7,
       "focus" : "past tense",
       "minutes" : 30,
-      "out" : "Create a guide in Malchingu for a week, learning 30 minutes a day, starting tomorrow. Focus on past tense.",
+      "out" : "Create a guide in Korimal for a week, learning 30 minutes a day, starting tomorrow. Focus on past tense.",
       "startOffset" : 1
     },
     {
       "days" : 7,
       "focus" : "",
       "minutes" : 30,
-      "out" : "Create a guide in Malchingu for a week, learning 30 minutes a day, starting on 2026-11-20.",
+      "out" : "Create a guide in Korimal for a week, learning 30 minutes a day, starting on 2026-11-20.",
       "startOffset" : 4
     },
     {
       "days" : 10,
       "focus" : "",
       "minutes" : 30,
-      "out" : "Create a guide in Malchingu for 10 days, learning 30 minutes a day, starting today.",
+      "out" : "Create a guide in Korimal for 10 days, learning 30 minutes a day, starting today.",
       "startOffset" : 0
     },
     {
       "days" : 10,
       "focus" : "past tense",
       "minutes" : 30,
-      "out" : "Create a guide in Malchingu for 10 days, learning 30 minutes a day, starting tomorrow. Focus on past tense.",
+      "out" : "Create a guide in Korimal for 10 days, learning 30 minutes a day, starting tomorrow. Focus on past tense.",
       "startOffset" : 1
     },
     {
       "days" : 10,
       "focus" : "",
       "minutes" : 30,
-      "out" : "Create a guide in Malchingu for 10 days, learning 30 minutes a day, starting on 2026-11-20.",
+      "out" : "Create a guide in Korimal for 10 days, learning 30 minutes a day, starting on 2026-11-20.",
       "startOffset" : 4
     },
     {
       "days" : 14,
       "focus" : "",
       "minutes" : 30,
-      "out" : "Create a guide in Malchingu for 2 weeks, learning 30 minutes a day, starting today.",
+      "out" : "Create a guide in Korimal for 2 weeks, learning 30 minutes a day, starting today.",
       "startOffset" : 0
     },
     {
       "days" : 14,
       "focus" : "past tense",
       "minutes" : 30,
-      "out" : "Create a guide in Malchingu for 2 weeks, learning 30 minutes a day, starting tomorrow. Focus on past tense.",
+      "out" : "Create a guide in Korimal for 2 weeks, learning 30 minutes a day, starting tomorrow. Focus on past tense.",
       "startOffset" : 1
     },
     {
       "days" : 14,
       "focus" : "",
       "minutes" : 30,
-      "out" : "Create a guide in Malchingu for 2 weeks, learning 30 minutes a day, starting on 2026-11-20.",
+      "out" : "Create a guide in Korimal for 2 weeks, learning 30 minutes a day, starting on 2026-11-20.",
       "startOffset" : 4
     },
     {
       "days" : 21,
       "focus" : "",
       "minutes" : 30,
-      "out" : "Create a guide in Malchingu for 3 weeks, learning 30 minutes a day, starting today.",
+      "out" : "Create a guide in Korimal for 3 weeks, learning 30 minutes a day, starting today.",
       "startOffset" : 0
     },
     {
       "days" : 21,
       "focus" : "past tense",
       "minutes" : 30,
-      "out" : "Create a guide in Malchingu for 3 weeks, learning 30 minutes a day, starting tomorrow. Focus on past tense.",
+      "out" : "Create a guide in Korimal for 3 weeks, learning 30 minutes a day, starting tomorrow. Focus on past tense.",
       "startOffset" : 1
     },
     {
       "days" : 21,
       "focus" : "",
       "minutes" : 30,
-      "out" : "Create a guide in Malchingu for 3 weeks, learning 30 minutes a day, starting on 2026-11-20.",
+      "out" : "Create a guide in Korimal for 3 weeks, learning 30 minutes a day, starting on 2026-11-20.",
       "startOffset" : 4
     },
     {
       "days" : 28,
       "focus" : "",
       "minutes" : 30,
-      "out" : "Create a guide in Malchingu for 4 weeks, learning 30 minutes a day, starting today.",
+      "out" : "Create a guide in Korimal for 4 weeks, learning 30 minutes a day, starting today.",
       "startOffset" : 0
     },
     {
       "days" : 28,
       "focus" : "past tense",
       "minutes" : 30,
-      "out" : "Create a guide in Malchingu for 4 weeks, learning 30 minutes a day, starting tomorrow. Focus on past tense.",
+      "out" : "Create a guide in Korimal for 4 weeks, learning 30 minutes a day, starting tomorrow. Focus on past tense.",
       "startOffset" : 1
     },
     {
       "days" : 28,
       "focus" : "",
       "minutes" : 30,
-      "out" : "Create a guide in Malchingu for 4 weeks, learning 30 minutes a day, starting on 2026-11-20.",
+      "out" : "Create a guide in Korimal for 4 weeks, learning 30 minutes a day, starting on 2026-11-20.",
       "startOffset" : 4
     },
     {
       "days" : 30,
       "focus" : "",
       "minutes" : 30,
-      "out" : "Create a guide in Malchingu for a month, learning 30 minutes a day, starting today.",
+      "out" : "Create a guide in Korimal for a month, learning 30 minutes a day, starting today.",
       "startOffset" : 0
     },
     {
       "days" : 30,
       "focus" : "past tense",
       "minutes" : 30,
-      "out" : "Create a guide in Malchingu for a month, learning 30 minutes a day, starting tomorrow. Focus on past tense.",
+      "out" : "Create a guide in Korimal for a month, learning 30 minutes a day, starting tomorrow. Focus on past tense.",
       "startOffset" : 1
     },
     {
       "days" : 30,
       "focus" : "",
       "minutes" : 30,
-      "out" : "Create a guide in Malchingu for a month, learning 30 minutes a day, starting on 2026-11-20.",
+      "out" : "Create a guide in Korimal for a month, learning 30 minutes a day, starting on 2026-11-20.",
       "startOffset" : 4
     },
     {
       "days" : 56,
       "focus" : "",
       "minutes" : 30,
-      "out" : "Create a guide in Malchingu for 8 weeks, learning 30 minutes a day, starting today.",
+      "out" : "Create a guide in Korimal for 8 weeks, learning 30 minutes a day, starting today.",
       "startOffset" : 0
     },
     {
       "days" : 56,
       "focus" : "past tense",
       "minutes" : 30,
-      "out" : "Create a guide in Malchingu for 8 weeks, learning 30 minutes a day, starting tomorrow. Focus on past tense.",
+      "out" : "Create a guide in Korimal for 8 weeks, learning 30 minutes a day, starting tomorrow. Focus on past tense.",
       "startOffset" : 1
     },
     {
       "days" : 56,
       "focus" : "",
       "minutes" : 30,
-      "out" : "Create a guide in Malchingu for 8 weeks, learning 30 minutes a day, starting on 2026-11-20.",
+      "out" : "Create a guide in Korimal for 8 weeks, learning 30 minutes a day, starting on 2026-11-20.",
       "startOffset" : 4
     },
     {
       "days" : 60,
       "focus" : "",
       "minutes" : 30,
-      "out" : "Create a guide in Malchingu for 2 months, learning 30 minutes a day, starting today.",
+      "out" : "Create a guide in Korimal for 2 months, learning 30 minutes a day, starting today.",
       "startOffset" : 0
     },
     {
       "days" : 60,
       "focus" : "past tense",
       "minutes" : 30,
-      "out" : "Create a guide in Malchingu for 2 months, learning 30 minutes a day, starting tomorrow. Focus on past tense.",
+      "out" : "Create a guide in Korimal for 2 months, learning 30 minutes a day, starting tomorrow. Focus on past tense.",
       "startOffset" : 1
     },
     {
       "days" : 60,
       "focus" : "",
       "minutes" : 30,
-      "out" : "Create a guide in Malchingu for 2 months, learning 30 minutes a day, starting on 2026-11-20.",
+      "out" : "Create a guide in Korimal for 2 months, learning 30 minutes a day, starting on 2026-11-20.",
       "startOffset" : 4
     },
     {
       "days" : 63,
       "focus" : "",
       "minutes" : 30,
-      "out" : "Create a guide in Malchingu for 63 days, learning 30 minutes a day, starting today.",
+      "out" : "Create a guide in Korimal for 63 days, learning 30 minutes a day, starting today.",
       "startOffset" : 0
     },
     {
       "days" : 63,
       "focus" : "past tense",
       "minutes" : 30,
-      "out" : "Create a guide in Malchingu for 63 days, learning 30 minutes a day, starting tomorrow. Focus on past tense.",
+      "out" : "Create a guide in Korimal for 63 days, learning 30 minutes a day, starting tomorrow. Focus on past tense.",
       "startOffset" : 1
     },
     {
       "days" : 63,
       "focus" : "",
       "minutes" : 30,
-      "out" : "Create a guide in Malchingu for 63 days, learning 30 minutes a day, starting on 2026-11-20.",
+      "out" : "Create a guide in Korimal for 63 days, learning 30 minutes a day, starting on 2026-11-20.",
       "startOffset" : 4
     },
     {
       "days" : 90,
       "focus" : "",
       "minutes" : 30,
-      "out" : "Create a guide in Malchingu for 90 days, learning 30 minutes a day, starting today.",
+      "out" : "Create a guide in Korimal for 90 days, learning 30 minutes a day, starting today.",
       "startOffset" : 0
     },
     {
       "days" : 90,
       "focus" : "past tense",
       "minutes" : 30,
-      "out" : "Create a guide in Malchingu for 90 days, learning 30 minutes a day, starting tomorrow. Focus on past tense.",
+      "out" : "Create a guide in Korimal for 90 days, learning 30 minutes a day, starting tomorrow. Focus on past tense.",
       "startOffset" : 1
     },
     {
       "days" : 90,
       "focus" : "",
       "minutes" : 30,
-      "out" : "Create a guide in Malchingu for 90 days, learning 30 minutes a day, starting on 2026-11-20.",
+      "out" : "Create a guide in Korimal for 90 days, learning 30 minutes a day, starting on 2026-11-20.",
       "startOffset" : 4
     }
   ],
