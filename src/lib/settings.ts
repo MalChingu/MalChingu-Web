@@ -25,6 +25,8 @@ export interface Settings {
   flashcardForms: CardForm[];
   /** Seconds per card; 0 is no timer. */
   flashcardSeconds: number;
+  /** Whether a card offers one hint (an example sentence). */
+  flashcardHints: boolean;
   profile: Profile;
 }
 
@@ -44,6 +46,7 @@ export function readSettings(raw: RawSettings): Settings {
       return forms.length ? forms : ["dictionary"];
     })(),
     flashcardSeconds: [10, 20, 30].includes(raw.flashcard_seconds as number) ? (raw.flashcard_seconds as number) : 0,
+    flashcardHints: raw.flashcard_hints !== false,
     profile: { name: (profile.name as string) ?? "", avatar: (profile.avatar as string) ?? null, title: (profile.title as string) ?? null },
   };
 }
@@ -59,6 +62,7 @@ export function settingsPatch(change: Partial<Settings>, raw: RawSettings): RawS
   if (change.flashcardTypes !== undefined) patch.flashcard_types = change.flashcardTypes;
   if (change.flashcardForms !== undefined) patch.flashcard_forms = change.flashcardForms;
   if (change.flashcardSeconds !== undefined) patch.flashcard_seconds = change.flashcardSeconds;
+  if (change.flashcardHints !== undefined) patch.flashcard_hints = change.flashcardHints;
   if (change.profile !== undefined) {
     patch.profile = { ...((raw.profile ?? {}) as object), name: change.profile.name, avatar: change.profile.avatar,
       ...(change.profile.title !== undefined ? { title: change.profile.title } : {}) };

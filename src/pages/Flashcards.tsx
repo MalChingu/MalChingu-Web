@@ -4,8 +4,9 @@ import { PARTS_OF_SPEECH, posPlural, type PartOfSpeech, type Word } from "../cor
 import { buildDeck } from "../core/progress";
 import { BUILT_IN } from "../core/wordBank";
 import { Icon } from "../components/Icon";
-import { Button, Card, KoreanHeadline, Page, PosTag, RoundButton, Segmented, Sheet, SpeakButton, Stepper, WordRow } from "../components/ui";
+import { Button, Card, KoreanHeadline, Page, PosTag, RoundButton, Segmented, Sheet, SpeakButton, Stepper, Toggle, WordRow } from "../components/ui";
 import { formAnswerRight, formsFor, shownForForm, type CardForm } from "../core/englishForms";
+import { flashcardHint, type FlashcardHint } from "../core/flashcardHint";
 import type { FlashcardSource } from "../lib/settings";
 import { speak } from "../lib/speech";
 import { useStore } from "../lib/store";
@@ -91,6 +92,8 @@ function Setup({ start, openMyWords }: { start: (deck: Deck) => void; openMyWord
           <div className="small muted">Timer</div>
           <Segmented label="Timer" value={String(seconds)} onChange={(v) => store.updateSettings({ flashcardSeconds: Number(v) })}
             options={[{ value: "0", label: "Off" }, { value: "10", label: "10 s" }, { value: "20", label: "20 s" }, { value: "30", label: "30 s" }]} />
+          <Toggle label="Hints: One per Card" checked={store.settings.flashcardHints}
+            onChange={(on) => store.updateSettings({ flashcardHints: on })} />
           <div className="row">
             <span className="grow">Cards per Round: {deckSize}</span>
             <Stepper minusLabel="Fewer cards" plusLabel="More cards" minusDisabled={deckSize <= 5} plusDisabled={deckSize >= 40}
@@ -156,6 +159,8 @@ export function Round({ words, onClose, mode = "meaning", doneLabel = "New Round
   const drag = useRef<{ x: number; id: number } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [helpOpen, setHelpOpen] = useState(false);
+  /** Whether this card's one hint is showing. */
+  const [hintShown, setHintShown] = useState(false);
   /** What the microphone heard for this card, put in the answer box to check before submitting. */
   const [heard, setHeard] = useState<string | null>(null);
   /** Milliseconds left on this card's timer. */
@@ -167,10 +172,12 @@ export function Round({ words, onClose, mode = "meaning", doneLabel = "New Round
   // The form this card shows: 갔어요 for a Past card. (The guide's Past Form drill asks for it instead.)
   const form: CardForm = mode === "past" ? "dictionary" : forms?.[index] ?? "dictionary";
   const shown = (form === "past" ? word?.tenses?.past : form === "present" ? word?.tenses?.present : undefined) ?? word?.hangul ?? "";
+  // One hint per card, when hints are on (Flashcards → Hints).
+  const hint = word && store.settings.flashcardHints ? flashcardHint(word, shown, mode === "past") : null;
 
   const finish = (correct: boolean, gaveUp = false) => {
     if (!word) return;
-    store.record(word.id, { correct, source: "flashcard", gaveUp });
+    store.record(word.id, { correct, source: "flashcard", gaveUp, hints: hintShown ? 1 : 0 });
     setResults((r) => [...r, { word, correct }]);
     setNudge(null);
   };
@@ -182,6 +189,7 @@ export function Round({ words, onClose, mode = "meaning", doneLabel = "New Round
     setNudge(null);
     setRemaining(seconds * 1000);   // with the new card, so it doesn't start out of time
     setHeard(null);
+    setHintShown(false);
   };
 
   const check = (given: string) => mode === "past"
@@ -376,6 +384,11 @@ export function Round({ words, onClose, mode = "meaning", doneLabel = "New Round
                       }} />
                     )}
                   </div>
+                  {hint && (hintShown ? <HintView hint={hint} /> : (
+                    <button type="button" className="link small hint-button" onClick={() => { setHintShown(true); inputRef.current?.focus(); }}>
+                      <Icon name="bulb" size={16} /> Show Hint
+                    </button>
+                  ))}
                 </div>
               ) : (
                 <div className="center stack small-gap">
@@ -454,5 +467,21 @@ function ShortcutsSheet({ onClose }: { onClose: () => void }) {
         ))}
       </div>
     </Sheet>
+  );
+}
+
+/** The card's hint: an example sentence (Korean, romanization and English), or the answer's first letter. */
+function HintView({ hint }: { hint: FlashcardHint }) {
+  if (hint.kind === "start") return <p className="hint small" role="status">Starts with “<strong>{hint.text}</strong>…”</p>;
+  const { example } = hint;
+  return (
+    <div className="hint" role="status">
+      <div className="row center-row">
+        <span lang="ko"><KoreanText text={example.korean} /></span>
+        <SpeakButton text={example.korean} size={16} />
+      </div>
+      {example.romanization && <span className="small muted">{example.romanization}</span>}
+      <span className="small">{example.english}</span>
+    </div>
   );
 }

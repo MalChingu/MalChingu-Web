@@ -3,6 +3,7 @@ import { buildDeck, computeStats, emptyDay, emptyProgress, recordOnDay, recordOn
 import { activeCustomWords } from "../wordBank";
 import { BUILT_IN } from "../wordBank";
 import type { CustomWordRow } from "../models";
+import { flashcardHint } from "../flashcardHint";
 
 describe("progress recording", () => {
   it("records streaks, don't-knows, hints and first review", () => {
@@ -146,5 +147,20 @@ describe("English for past and present forms (shared cases)", () => {
       expect(formsFor(w, ["past", "present"]), w.hangul).toEqual(["past", "present"]);
     }
     expect(formsFor({ pos: "noun", tenses: null }, ["dictionary", "past"])).toEqual(["dictionary"]);
+  });
+});
+
+describe("flashcard hints", () => {
+  const go = { hangul: "가다", meanings: ["to go"], tenses: { past: "갔어요", present: "가요", future: "갈 거예요" },
+    examples: [{ korean: "학교에 가요.", romanization: "", english: "I go to school." }, { korean: "어제 갔어요.", romanization: "", english: "I went yesterday." }] };
+  it("prefers an example with the form on the card", () => {
+    expect(flashcardHint(go, "갔어요")).toEqual({ kind: "example", example: go.examples[1] });
+    expect(flashcardHint(go, "가다")).toEqual({ kind: "example", example: go.examples[0] });
+  });
+  it("gives the first syllable in the Past Form drill", () => {
+    expect(flashcardHint(go, "가다", true)).toEqual({ kind: "start", text: "갔" });
+  });
+  it("falls back to the meaning's first letter", () => {
+    expect(flashcardHint({ ...go, examples: [] }, "가다")).toEqual({ kind: "start", text: "g" });
   });
 });

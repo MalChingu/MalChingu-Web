@@ -720,3 +720,8 @@ a.easter-egg, a.easter-egg:hover, .legal-footer a.easter-egg, .legal-footer a.ea
   color: inherit; font-weight: inherit; text-decoration: none; cursor: text;
 }
 @media (min-width: 700px) { .legal { padding: 32px 24px 56px; } .legal-card { padding: 44px 48px; } }
+
+/* Flashcards: the one hint per card. */
+.hint-button { display: inline-flex; align-items: center; gap: 4px; align-self: center; margin-top: 4px; }
+.hint { display: flex; flex-direction: column; align-items: center; gap: 2px; margin-top: 6px; padding: 10px 12px; border-radius: 14px;
+  background: var(--accent-soft); text-align: center; }
