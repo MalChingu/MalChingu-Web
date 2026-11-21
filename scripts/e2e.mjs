@@ -174,8 +174,8 @@ try {
       check(true, "quiz result is kept after a reload");
 
       // Guide task toggles.
-      await page.getByRole("button", { name: "Read the greetings list" }).click();
-      check(await page.getByRole("button", { name: "Read the greetings list" }).getAttribute("aria-pressed") === "true", "guide task ticks");
+      await page.getByRole("checkbox", { name: "Read the greetings list" }).click();
+      check(await page.getByRole("checkbox", { name: "Read the greetings list" }).getAttribute("aria-checked") === "true", "guide task ticks");
 
       // Flashcards: a three-card round.
       await page.getByRole("button", { name: "Flashcards" }).click();
@@ -184,13 +184,18 @@ try {
       await page.getByRole("heading", { name: /1 \/ \d+/ }).waitFor();
       await page.screenshot({ path: `screenshots/flashcard-${label}.png` });
       const total = Number((await page.getByRole("heading", { name: /1 \/ \d+/ }).textContent()).split("/")[1]);
+      const answerBox = page.getByLabel("Meaning of the dictionary form, in English");
       for (let i = 0; i < total; i++) {
         if (i % 2 === 0) {
           await page.getByRole("button", { name: "I don't know" }).click();
+        } else if (i === 1) {
+          // Return submits the answer (and shows it, since it's wrong).
+          await answerBox.fill("definitely wrong");
+          await page.keyboard.press("Enter");
+          await page.getByText("Your answer: “definitely wrong”").waitFor();
+          check(await answerBox.count() === 0, "Return submits a flashcard");
         } else {
-          await page.getByLabel("Meaning in English").fill("definitely wrong");
-          await page.keyboard.press("Enter");   // closes the keyboard only, must not submit
-          check(await page.getByLabel("Meaning in English").isVisible(), "Return doesn't submit a flashcard");
+          await answerBox.fill("definitely wrong");
           await page.getByRole("button", { name: "Submit answer" }).click();
         }
         await page.getByRole("button", { name: i === total - 1 ? "Finish round" : "Next card" }).click();
@@ -204,6 +209,19 @@ try {
     for (const tab of ["Guides", "Stats", "Profile"]) {
       await page.getByRole("button", { name: tab, exact: true }).click();
       await page.waitForTimeout(400);
+      if (tab === "Profile") {
+        // A new account is asked once for a username, with one suggested from the name; Not Now counts as asked.
+        const ask = page.getByRole("dialog", { name: "Choose a Username" });
+        if (label === "phone") {
+          await ask.getByText("Available").waitFor();
+          const suggested = await ask.getByLabel("Username").inputValue();
+          check(suggested === "testlearner", `Profile asks for a username, suggesting one from the name (${suggested})`);
+          await ask.getByRole("button", { name: "Not Now" }).click();
+          await ask.waitFor({ state: "detached" });
+        } else {
+          check(await ask.count() === 0, `${label}: the username is only asked for once`);
+        }
+      }
       await page.screenshot({ path: `screenshots/${tab.toLowerCase()}-${label}.png`, fullPage: label === "desktop" });
     }
     await page.getByRole("button", { name: "Guides", exact: true }).click();
@@ -232,6 +250,8 @@ try {
       card: getComputedStyle(document.querySelector(".profile-card")).borderTopColor,
       badge: getComputedStyle(document.querySelector(".level-tag .level-icon")).color }));
     check(borders.card === borders.badge, `${label}: profile card border matches the level badge (${JSON.stringify(borders)})`);
+    await page.getByRole("radio", { name: "Settings", exact: true }).click();
+    await page.getByText("Claude Connector", { exact: true }).waitFor();
     check(await page.getByRole("button", { name: "Create a New Link" }).count() === 0, `${label}: no way to replace an active link`);
     check(errors.length === 0, `${label}: no page errors${errors.length ? ": " + errors.join("; ") : ""}`);
     await page.waitForLoadState("networkidle");   // let the last saves finish before closing
@@ -245,13 +265,17 @@ try {
     await context.addInitScript((value) => localStorage.setItem("sb-nxlsnpzfbazwlccxtwpt-auth-token", value), JSON.stringify(session));
     const page = await context.newPage();
     const base = () => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--base").trim());
+    // Appearance is under Profile → Settings.
+    const settingsPart = () => page.getByRole("radio", { name: "Settings", exact: true }).click({ timeout: 15000 });
     await page.goto("http://localhost:4173/#profile");
+    await settingsPart();
     await page.getByRole("radio", { name: "System" }).waitFor({ timeout: 15000 });
     check(await base() === "#0e0d1c", "System follows a dark device");
     await page.screenshot({ path: "screenshots/profile-dark-system.png" });
     await page.getByRole("radio", { name: "Light" }).click();
     check(await base() === "#f4f3fb", "Light overrides a dark device");
     await page.reload();
+    await settingsPart();
     await page.getByRole("radio", { name: "Light" }).waitFor({ timeout: 15000 });
     check(await base() === "#f4f3fb" && await page.getByRole("radio", { name: "Light" }).getAttribute("aria-checked") === "true",
       "Light is kept after a reload");
@@ -262,6 +286,7 @@ try {
     check(await base() === "#0e0d1c", "Dark applies across pages");
     await page.screenshot({ path: "screenshots/today-dark.png" });
     await page.goto("http://localhost:4173/#profile");
+    await settingsPart();
     await page.getByRole("radio", { name: "System" }).click();
     check(await page.evaluate(() => localStorage.getItem("malchingu.theme")) === null, "System clears the override");
     await page.waitForLoadState("networkidle");
@@ -329,6 +354,8 @@ try {
     await page.getByRole("button", { name: "Delete Guide" }).click();
     await audit("Delete confirmation", "confirm");
     await page.getByRole("button", { name: "Cancel" }).click();
+    // A day's vocabulary is a section that starts closed.
+    await page.getByRole("button", { name: "Vocabulary · 1" }).click();
     await page.locator(".guide-main .word-row").first().click();
     await audit("Word page", "word");
     await page.keyboard.press("Escape");
@@ -354,14 +381,20 @@ try {
 
     await tab("Profile");
     await audit("Profile", "profile"); await width("Profile");
-    check(await page.locator("select").count() === 0, `${scheme}: no native select boxes`);
+    const selectsOnAbout = await page.locator("select").count();
     await page.getByRole("button", { name: "Sign Out" }).click();
     await audit("Sign-out confirmation");
     await page.getByRole("button", { name: "Cancel" }).click();
+    // Profile → Settings: appearance, username, word of the day, voice and the connector.
+    const settingsPart = () => page.getByRole("radio", { name: "Settings", exact: true }).click();
+    await settingsPart();
+    await audit("Profile settings", "profile-settings");
+    check(selectsOnAbout === 0 && await page.locator("select").count() === 0, `${scheme}: no native select boxes`);
 
     // Connector: one link per account. Creating shows it; the only way to a new one is to turn it off first.
     db.connector_tokens = [];
     await page.reload();
+    await settingsPart();
     await page.getByRole("button", { name: "Create Connector Link" }).click();
     await page.getByRole("button", { name: "Copy Connector Link" }).waitFor();
     check(await page.getByText("kt_e2etestkey").isVisible() && await page.getByRole("button", { name: /Create/ }).count() === 0,
@@ -375,6 +408,7 @@ try {
     // A link made on another device shows here too.
     db.connector_tokens = [{ user_id: USER, token: "kt_otherdevice" }];
     await page.reload();
+    await settingsPart();
     await page.getByText("kt_otherdevice").waitFor({ timeout: 10000 });
     check(true, `${scheme}: a link made on another device shows here`);
     db.connector_tokens = [];
