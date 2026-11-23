@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { nextZoom, useZoom } from "./lib/zoom";
+import { nextZoom, useCompact, useZoom } from "./lib/zoom";
 import type { Word } from "./core/models";
 import { Icon, type IconName } from "./components/Icon";
-import { Logo } from "./components/ui";
+import { Logo, RoundButton } from "./components/ui";
 import { useStore } from "./lib/store";
 import { Flashcards, Round, type PracticeMode } from "./pages/Flashcards";
 import { Guides } from "./pages/Guides";
@@ -48,6 +48,16 @@ export function App() {
   const [guideID, setGuideID] = useState<string | null>(null);
   // Flashcards started from a guide: they come back to it.
   const [practice, setPractice] = useState<{ words: Word[]; mode: PracticeMode } | null>(null);
+  // Zoomed in on a laptop-sized window: the sidebar is a drawer, opened from ☰.
+  const compact = useCompact();
+  const [drawer, setDrawer] = useState(false);
+  useEffect(() => { if (!compact) setDrawer(false); }, [compact]);
+  useEffect(() => {
+    if (!drawer) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setDrawer(false); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [drawer]);
 
   useEffect(() => {
     const onHash = () => setTab(tabFromHash());
@@ -58,6 +68,7 @@ export function App() {
   const go = (next: Tab) => {
     setTab(next);
     setPractice(null);
+    setDrawer(false);
     if (next !== "guides") setGuideID(null);
     if (window.location.hash !== `#${next}`) history.replaceState(null, "", `#${next}`);
     window.scrollTo({ top: 0 });
@@ -68,7 +79,18 @@ export function App() {
 
   return (
     <div className="app-background app">
-      <nav className="tabs glass" aria-label="Sections">
+      {compact && (
+        <div className="compact-bar">
+          <span className="menu-button">
+            <RoundButton icon="menu" tint="glass" label="Menu" onClick={() => setDrawer(true)} size={40} />
+            {store.friendsWaiting > 0 && <span className="tab-dot" />}
+          </span>
+          <Logo size={30} blink="hover" className="brand-logo" /> <span className="compact-brand">Korimal</span>
+        </div>
+      )}
+      {drawer && <div className="drawer-backdrop" onMouseDown={() => setDrawer(false)} />}
+      <nav className={`tabs glass ${drawer ? "open" : ""}`} aria-label="Sections" aria-hidden={compact && !drawer ? true : undefined}
+        inert={compact && !drawer ? true : undefined}>
         <div className="tabs-brand"><Logo size={32} blink="hover" className="brand-logo" /> Korimal</div>
         {TABS.map((t) => (
           <button key={t.id} type="button" className={`tab ${tab === t.id ? "on" : ""}`} aria-current={tab === t.id ? "page" : undefined}

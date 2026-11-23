@@ -774,3 +774,28 @@ a.easter-egg, a.easter-egg:hover, .legal-footer a.easter-egg, .legal-footer a.ea
 .tab-icon { position: relative; display: inline-flex; flex: none; }
 .tab-dot { position: absolute; top: -2px; right: -4px; width: 9px; height: 9px; border-radius: 50%; background: var(--red-fill); border: 1.5px solid var(--base); }
 .text-input.sheet-input { flex: none; }
+
+/* Zoomed in (150% / 200%) on a laptop-sized window (see lib/zoom.ts isCompact): no sidebar, but ☰ at the top opens
+   it as a drawer over the page; guides have no side column (Translate opens from its own button). */
+.compact-bar { display: none; }
+:root[data-compact] .app { display: block; max-width: 900px; padding: 20px 28px 40px; }
+:root[data-compact] .compact-bar { display: flex; align-items: center; gap: 12px; font-weight: 700; font-size: 1.15rem; }
+.menu-button { position: relative; display: inline-flex; }
+.menu-button .tab-dot { top: 0; right: 0; }
+:root[data-compact] .tabs {
+  position: fixed; z-index: 50; top: 16px; left: 16px; bottom: 16px; height: auto; width: 260px; overflow-y: auto;
+  transform: translateX(calc(-100% - 24px)); visibility: hidden; transition: transform 0.22s ease-out, visibility 0.22s;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+:root[data-compact] .tabs.open { transform: none; visibility: visible; }
+:root[data-compact] .tabs:not(.open) .tabs-brand { display: flex; }
+.drawer-backdrop { position: fixed; inset: 0; z-index: 45; background: rgba(10, 8, 30, 0.35); animation: fade 0.18s ease-out; }
+:root[data-compact] .page-header { padding: 20px 0 24px; }
+:root[data-compact] .guide-layout { display: flex; }
+:root[data-compact] .fab-translate { bottom: 112px; }
+.fab-translate { bottom: calc(172px + env(safe-area-inset-bottom)); }
+@media (min-width: 900px) { .fab-translate { bottom: 112px; } }
+@media (prefers-reduced-motion: reduce) { :root[data-compact] .tabs { transition: none; } }
+/* Both floating panels sit above both buttons when zoomed in on a laptop. */
+:root[data-compact] .floating-panel { bottom: 184px; max-height: calc(100dvh / var(--zoom, 1) - 220px); }
+.translate-card.in-panel { padding: 16px; }

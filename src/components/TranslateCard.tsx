@@ -37,8 +37,12 @@ const NAME: Record<Language, string> = { ko: "Korean", en: "English" };
 
 /** Korean → English or English → Korean: what the app knows, plus the browser's own translation (Chrome and
  *  Edge). 🎤 to say it, 🔊 to hear the Korean, Save to keep it (tagged with this guide and day). */
-export function TranslateCard({ guideID, dayNumber, openSaved }: {
+export function TranslateCard({ guideID, dayNumber, openSaved, initial, inPanel }: {
   guideID: string | null; dayNumber: number | null; openSaved: () => void;
+  /** Text to translate as soon as it opens (a right-click → Translate that opened the panel). */
+  initial?: string;
+  /** Inside the Translate panel (zoomed in on a laptop), which has its own title and background. */
+  inPanel?: boolean;
 }) {
   const store = useStore();
   const words = useKnownWords();
@@ -81,6 +85,15 @@ export function TranslateCard({ guideID, dayNumber, openSaved }: {
     else if (/[A-Za-z]/.test(value)) setFrom("en");
   };
 
+  // Opened by a right-click "Translate": translate that text straight away.
+  useEffect(() => {
+    if (!initial) return;
+    const source: Language = containsHangul(initial) ? "ko" : "en";
+    setText(initial);
+    setFrom(source);
+    void run(initial, source);
+  }, []);   // eslint-disable-line react-hooks/exhaustive-deps
+
   // Text sent here by a right-click "Translate" on a guide.
   useEffect(() => {
     const receive = (e: Event) => {
@@ -105,9 +118,9 @@ export function TranslateCard({ guideID, dayNumber, openSaved }: {
 
   const koreanOut = result && result.from === "en" ? result.translation : null;
   return (
-    <form className="glass card translate-card" onSubmit={submit} ref={card}>
+    <form className={inPanel ? "stack translate-card in-panel" : "glass card translate-card"} onSubmit={submit} ref={card}>
       <div className="row">
-        <div className="section-title grow">Translate</div>
+        <div className="section-title grow">{inPanel ? "" : "Translate"}</div>
         <button type="button" className="link small" onClick={openSaved}>Saved Translations</button>
       </div>
       <div className="translate-direction">

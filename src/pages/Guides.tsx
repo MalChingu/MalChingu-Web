@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { guideRequest } from "../core/guideRequest";
 import type { GuideSessionRow, StudyGuideRow, Word } from "../core/models";
 import { customToWord } from "../core/wordBank";
@@ -6,13 +6,14 @@ import { addDays, dayString } from "../core/wordOfDay";
 import { Icon } from "../components/Icon";
 import { CheckYourself, GuideNotes, GuideSection } from "../components/GuideNotes";
 import { TranslateCard } from "../components/TranslateCard";
-import { Button, Card, ConfirmDialog, Page, RoundButton, SectionTitle, Segmented, Sheet, Stepper, WordRow, copyText } from "../components/ui";
+import { Button, Card, ConfirmDialog, FloatingPanel, Page, RoundButton, SectionTitle, Segmented, Sheet, Stepper, WordRow, copyText } from "../components/ui";
 import { overviewPoints } from "../core/guideOverview";
 import { useStore } from "../lib/store";
 import { formatDay, guideDate, guideDayNumber } from "./guideDates";
 import { TaskList } from "./Today";
 import { KoreanText } from "../components/KoreanText";
-import { NoteFab, NoteMenuProvider, NotesPanel, useNoteMenu, type NoteDraft } from "../components/NoteMenu";
+import { NoteFab, NoteMenuProvider, NotesPanel, TRANSLATE_EVENT, useNoteMenu, type NoteDraft } from "../components/NoteMenu";
+import { useCompact } from "../lib/zoom";
 import { Notebook } from "./Notebook";
 import type { Practice } from "./Flashcards";
 
@@ -24,6 +25,18 @@ export function Guides({ openGuideID, setOpenGuideID, practice }: {
   const [notebook, setNotebook] = useState<"notes" | "translations" | null>(null);
   // The Notes panel: its list (this guide's notes inside a guide) or the note being written.
   const [notesPanel, setNotesPanel] = useState<{ guideID: string | null; day: number | null; draft: NoteDraft | null } | null>(null);
+  // Zoomed in on a laptop: Translate opens from its own button instead of the side column, one panel at a time.
+  const compact = useCompact();
+  const [translatePanel, setTranslatePanel] = useState<{ initial?: string } | null>(null);
+  useEffect(() => { if (notesPanel) setTranslatePanel(null); }, [notesPanel]);
+  useEffect(() => { if (!compact) setTranslatePanel(null); }, [compact]);
+  // Right-click → Translate with the panel closed: open it with that text (an open panel takes it itself).
+  useEffect(() => {
+    if (!compact || translatePanel) return;
+    const receive = (e: Event) => { setNotesPanel(null); setTranslatePanel({ initial: (e as CustomEvent<string>).detail }); };
+    window.addEventListener(TRANSLATE_EVENT, receive);
+    return () => window.removeEventListener(TRANSLATE_EVENT, receive);
+  }, [compact, translatePanel]);
   const guides = store.data.guides.filter((g) => !g.deleted_at).sort((a, b) => b.created_at.localeCompare(a.created_at));
   const open = guides.find((g) => g.id === openGuideID);
   const noteCount = store.data.notes.filter((n) => !n.deleted_at).length + store.data.savedTranslations.filter((t) => !t.deleted_at).length;
@@ -57,7 +70,9 @@ export function Guides({ openGuideID, setOpenGuideID, practice }: {
     return (
       <>
         <GuideDetail guide={open} onBack={() => setOpenGuideID(null)} practice={practice} addNote={addNote}
-          openNotes={(day) => openNotes(open.id, day)} openNotebook={setNotebook} />
+          openNotes={(day) => openNotes(open.id, day)} openNotebook={setNotebook} compact={compact}
+          openTranslate={() => { setNotesPanel(null); setTranslatePanel((p) => p ?? {}); }}
+          translatePanel={translatePanel} closeTranslate={() => setTranslatePanel(null)} />
         {panel(false)}
       </>
     );
@@ -116,9 +131,11 @@ function startingDay(guide: StudyGuideRow, days: number[]): number {
   return days[days.length - 1];
 }
 
-function GuideDetail({ guide, onBack, practice, addNote, openNotes, openNotebook }: {
+function GuideDetail({ guide, onBack, practice, addNote, openNotes, openNotebook, compact, openTranslate, translatePanel, closeTranslate }: {
   guide: StudyGuideRow; onBack: () => void; practice: Practice;
   addNote: (draft: NoteDraft) => void; openNotes: (day: number | null) => void; openNotebook: (tab: "notes" | "translations") => void;
+  /** Zoomed in on a laptop: no side column; Translate is a button above Notes that opens a floating panel. */
+  compact: boolean; openTranslate: () => void; translatePanel: { initial?: string } | null; closeTranslate: () => void;
 }) {
   const store = useStore();
   const today = guideDayNumber(guide);
@@ -171,7 +188,7 @@ function GuideDetail({ guide, onBack, practice, addNote, openNotes, openNotebook
           )}
         </div>
 
-        <aside className="guide-side">
+        {!compact && <aside className="guide-side">
         <nav className="glass card day-list" aria-label="Days">
           <div className="section-title">Days</div>
           {sessions.map((s) => {
@@ -196,10 +213,21 @@ function GuideDetail({ guide, onBack, practice, addNote, openNotes, openNotebook
           })}
         </nav>
         <TranslateCard guideID={guide.id} dayNumber={session?.day_number ?? null} openSaved={() => openNotebook("translations")} />
-        </aside>
+        </aside>}
       </div>
       </NoteMenuProvider>
 
+      {compact && (
+        <button type="button" className="fab fab-translate" aria-label="Open Translate" title="Translate" onClick={openTranslate}>
+          <Icon name="swap" size={24} strokeWidth={2.2} />
+        </button>
+      )}
+      {compact && translatePanel && (
+        <FloatingPanel title="Translate" onClose={closeTranslate}>
+          <TranslateCard guideID={guide.id} dayNumber={session?.day_number ?? null} initial={translatePanel.initial} inPanel
+            openSaved={() => { closeTranslate(); openNotebook("translations"); }} />
+        </FloatingPanel>
+      )}
       <NoteFab onClick={() => openNotes(session?.day_number ?? null)} />
       {confirmingDelete && (
         <ConfirmDialog title="Delete This Guide?" message="Its days and tasks are removed on all your devices. Its vocabulary stays in My Words."
