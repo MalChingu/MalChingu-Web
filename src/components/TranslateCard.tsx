@@ -149,7 +149,13 @@ export function TranslateCard({ guideID, dayNumber, openSaved, initial, inPanel 
 
       {result && (
         <div className="translate-results">
-          {result.from === "ko" && <span className="small muted">{romanize(result.query)}</span>}
+          {/* What was typed, read aloud: its romanization with Listen at the far right. */}
+          {result.from === "ko" && (
+            <div className="translate-line">
+              <span className="small muted grow">{romanize(result.query)}</span>
+              <SpeakButton text={result.query} size={18} />
+            </div>
+          )}
           {/* From Your Words when your words know it; otherwise the translator's Translation. */}
           {(result.known || result.matches.length > 0) ? (
           <div className="stack small-gap">
@@ -157,10 +163,11 @@ export function TranslateCard({ guideID, dayNumber, openSaved, initial, inPanel 
             {result.known && (
               <div className="translate-line">
                 <span className="translate-known grow">
-                  <strong lang="ko">{result.known.form}</strong>
+                  {/* The form only when it isn't just what was typed (e.g. a word picked out of a sentence). */}
+                  {result.known.form !== result.query && <strong lang="ko">{result.known.form}</strong>}
                   <MeaningLines meaning={result.known.meaning} />
                 </span>
-                <SpeakButton text={result.known.form.replace(/^-/, "")} size={18} />
+                {result.known.form !== result.query && <SpeakButton text={result.known.form.replace(/^-/, "")} size={18} />}
               </div>
             )}
             {result.matches.length > 0 && (
