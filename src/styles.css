@@ -818,4 +818,4 @@ a.easter-egg, a.easter-egg:hover, .legal-footer a.easter-egg, .legal-footer a.ea
 .answer-legend { display: flex; flex-wrap: wrap; gap: 8px 20px; }
 .answer-legend span { display: inline-flex; align-items: center; gap: 6px; }
 .answer-legend i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
-.unknown-text { color: #ca8a04; }
+.unknown-text { color: var(--yellow); }
