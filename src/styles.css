@@ -173,6 +173,7 @@ button:disabled { cursor: default; opacity: 0.45; }
 }
 .round-button.red { background: var(--red-fill); }
 .round-button.green { background: var(--green-fill); }
+.round-button.yellow { background: #eab308; color: #3b2a00; }
 .round-button.accent { background: var(--accent-fill); }
 .round-button.glass { background: var(--glass-strong); color: var(--text); border: 1px solid var(--glass-border); }
 .icon-button { border: 0; background: none; color: var(--accent); padding: 6px; border-radius: 50%; display: inline-flex; }
@@ -368,6 +369,7 @@ kbd { font: inherit; font-size: 0.85rem; font-weight: 600; min-width: 28px; text
 .segment.current { background: var(--accent-fill); }
 .segment.good { background: var(--green); }
 .segment.bad { background: var(--red); }
+.segment.unknown { background: #eab308; }
 .round-center { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 16px; padding: 16px 0; }
 .flashcard {
   position: relative; border-radius: 32px; min-height: 340px; display: flex; flex-direction: column; touch-action: pan-y;
@@ -383,6 +385,7 @@ kbd { font: inherit; font-size: 0.85rem; font-weight: 600; min-width: 28px; text
 }
 .swipe-badge.green { background: var(--green-fill); }
 .swipe-badge.red { background: var(--red-fill); }
+.swipe-badge.yellow { background: #eab308; color: #3b2a00; }
 .swipe-badge.accent { background: var(--accent-fill); }
 .round-controls { display: flex; justify-content: space-between; padding: 0 8px; }
 .big-number { font-size: 4rem; font-weight: 800; font-family: ui-rounded, inherit; }
@@ -806,3 +809,13 @@ a.easter-egg, a.easter-egg:hover, .legal-footer a.easter-egg, .legal-footer a.ea
   padding: 0; font: inherit; color: inherit; cursor: pointer; }
 .translate-line:has(.item-tools) { align-items: flex-start; }
 .item-tools { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+/* Stats → Answers: right, wrong and "I don't know" in one bar, with their counts. */
+.answer-bar { display: flex; height: 12px; border-radius: 6px; overflow: hidden; background: var(--divider); }
+.answer-bar span { height: 100%; }
+.answer-bar .right { background: var(--green); }
+.answer-bar .wrong { background: var(--red); }
+.answer-bar .unknown { background: #eab308; }
+.answer-legend { display: flex; flex-wrap: wrap; gap: 8px 20px; }
+.answer-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.answer-legend i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.unknown-text { color: #ca8a04; }

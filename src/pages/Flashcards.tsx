@@ -156,7 +156,8 @@ export function Round({ words, onClose, mode = "meaning", doneLabel = "New Round
   const [index, setIndex] = useState(0);
   const [phase, setPhase] = useState<Phase>({ kind: "answering" });
   const [answer, setAnswer] = useState("");
-  const [results, setResults] = useState<{ word: Word; correct: boolean }[]>([]);
+  /** Each card's result; `dontKnow` when "I don't know" was chosen (no answer tried). */
+  const [results, setResults] = useState<{ word: Word; correct: boolean; dontKnow?: boolean }[]>([]);
   const [nudge, setNudge] = useState<string | null>(null);
   const [dragX, setDragX] = useState(0);
   const drag = useRef<{ x: number; id: number } | null>(null);
@@ -196,7 +197,7 @@ export function Round({ words, onClose, mode = "meaning", doneLabel = "New Round
   const finish = (correct: boolean, gaveUp = false) => {
     if (!word) return;
     store.record(word.id, { correct, source: "flashcard", gaveUp, hints: hintShown ? 1 : 0 });
-    setResults((r) => [...r, { word, correct }]);
+    setResults((r) => [...r, { word, correct, dontKnow: gaveUp }]);
     setNudge(null);
   };
 
@@ -335,7 +336,8 @@ export function Round({ words, onClose, mode = "meaning", doneLabel = "New Round
             <div className="divided">
               {results.map((r, i) => (
                 <div key={i} className="row">
-                  <Icon name={r.correct ? "checkCircle" : "x"} size={20} className={r.correct ? "good" : "bad"} />
+                  <Icon name={r.correct ? "checkCircle" : r.dontKnow ? "question" : "x"} size={20}
+                    className={r.correct ? "good" : r.dontKnow ? "unknown-text" : "bad"} />
                   <WordRow word={r.word} progress={store.progressFor(r.word.id)} onClick={() => store.openWord(r.word)} />
                   <SpeakButton text={r.word.hangul} size={18} />
                 </div>
@@ -349,7 +351,7 @@ export function Round({ words, onClose, mode = "meaning", doneLabel = "New Round
   }
 
   const badge = dragX > 8 ? (answering ? ["Submit", "green"] : [last ? "Finish" : "Next", "accent"])
-    : dragX < -8 ? (answering ? ["Don't Know", "red"] : [last ? "Finish" : "Next", "accent"]) : null;
+    : dragX < -8 ? (answering ? ["Don't Know", "yellow"] : [last ? "Finish" : "Next", "accent"]) : null;
 
   return (
     <div className="page round">
@@ -357,7 +359,7 @@ export function Round({ words, onClose, mode = "meaning", doneLabel = "New Round
       <div className="round-body">
         <div className="segments" aria-label={`Card ${index + 1} of ${words.length}`}>
           {words.map((_, i) => (
-            <span key={i} className={`segment ${i < results.length ? (results[i].correct ? "good" : "bad") : i === index ? "current" : ""}`} />
+            <span key={i} className={`segment ${i < results.length ? (results[i].correct ? "good" : results[i].dontKnow ? "unknown" : "bad") : i === index ? "current" : ""}`} />
           ))}
         </div>
         {seconds > 0 && (
@@ -432,7 +434,7 @@ export function Round({ words, onClose, mode = "meaning", doneLabel = "New Round
                       ? <span className="bad"><Icon name="x" size={14} /> {phase.spoken ? "You said" : "Your answer:"} “{phase.given}”</span>
                       : phase.timedOut
                         ? <span className="bad"><Icon name="x" size={14} /> Time's up.</span>
-                        : <span className="muted">You skipped this one.</span>}
+                        : <span className="unknown-text"><Icon name="question" size={14} /> You didn't know this one.</span>}
                   <ExampleLine word={word} prefer={mode === "past" ? word.tenses?.past : form !== "dictionary" ? shown : undefined} />
                 </div>
               )}
@@ -445,7 +447,7 @@ export function Round({ words, onClose, mode = "meaning", doneLabel = "New Round
           <div className="round-controls">
             {answering ? (
               <>
-                <RoundButton icon="x" tint="red" label="I don't know" onClick={swipeLeft} size={56} />
+                <RoundButton icon="questionMark" tint="yellow" label="I don't know" onClick={swipeLeft} size={56} />
                 <RoundButton icon="check" tint="green" label="Submit answer" onClick={swipeRight} size={56} disabled={!answer.trim()} />
               </>
             ) : (

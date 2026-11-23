@@ -107,7 +107,7 @@ export function Button({ children, icon, kind = "glass", onClick, disabled, full
 
 /** Round button: red X, green check, accent arrow. */
 export function RoundButton({ icon, tint, label, onClick, disabled, size = 44 }: {
-  icon: IconName; tint: "red" | "green" | "accent" | "glass"; label: string; onClick: () => void; disabled?: boolean; size?: number;
+  icon: IconName; tint: "red" | "green" | "yellow" | "accent" | "glass"; label: string; onClick: () => void; disabled?: boolean; size?: number;
 }) {
   return (
     <button type="button" className={`round-button ${tint}`} style={{ width: size, height: size }} aria-label={label}

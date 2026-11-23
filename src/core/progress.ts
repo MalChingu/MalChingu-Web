@@ -104,7 +104,12 @@ export interface Stats {
   wordsPracticed: number;
   wordsMastered: number;
   totalCorrect: number;
+  /** Every answer that wasn't right: wrong ones and "I don't know"s together. */
   totalWrong: number;
+  /** Of those, the "I don't know"s (no answer tried) … */
+  totalDontKnow: number;
+  /** … and the answers that were tried but wrong. */
+  totalMissed: number;
   accuracy: number | null;
 }
 
@@ -112,7 +117,10 @@ export function computeStats(progress: WordProgress[], days: StudyDay[], today: 
   const studied = new Set(days.filter((d) => d.reviews > 0).map((d) => d.day));
   const totalCorrect = progress.reduce((n, p) => n + p.correct, 0);
   const totalWrong = progress.reduce((n, p) => n + p.wrong, 0);
+  const totalDontKnow = progress.reduce((n, p) => n + Math.min(p.dont_know, p.wrong), 0);
   return {
+    totalDontKnow,
+    totalMissed: totalWrong - totalDontKnow,
     dailyStreak: dailyStreak(studied, today),
     daysStudied: studied.size,
     wordsPracticed: progress.filter((p) => attempts(p) > 0).length,

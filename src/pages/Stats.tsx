@@ -27,6 +27,7 @@ export function Stats() {
         <StatTile title="Accuracy" value={stats.accuracy === null ? "–" : `${Math.round(stats.accuracy * 100)}%`} icon="scope" tone="yellow" />
         <StatTile title="Answers" value={String(stats.totalCorrect + stats.totalWrong)} icon="keyboard" tone="text" />
       </div>
+      {stats.totalCorrect + stats.totalWrong > 0 && <AnswersCard />}
       <Card>
         <SectionTitle>Last 14 Days</SectionTitle>
         <div className="chart">
@@ -80,6 +81,28 @@ function BestStreaks({ items }: { items: { word: Word; progress: WordProgress }[
       </div>
       <div key={current} className={`divided best-list ${direction ? `slide-${direction}` : ""}`} {...swipe}>
         {shown.map(({ word, progress }) => <WordRow key={word.id} word={word} progress={progress} onClick={() => store.openWord(word)} />)}
+      </div>
+    </Card>
+  );
+}
+
+/** Every answer so far, split three ways: right, wrong (an answer was tried) and "I don't know" (none was). */
+function AnswersCard() {
+  const { stats } = useStore();
+  const total = stats.totalCorrect + stats.totalWrong;
+  const parts = [
+    { key: "right", label: "Right", value: stats.totalCorrect, color: "var(--green)" },
+    { key: "wrong", label: "Wrong", value: stats.totalMissed, color: "var(--red)" },
+    { key: "unknown", label: "Didn't Know", value: stats.totalDontKnow, color: "#eab308" },
+  ];
+  return (
+    <Card>
+      <SectionTitle>Answers</SectionTitle>
+      <div className="answer-bar" role="img" aria-label={parts.map((p) => `${p.label} ${p.value}`).join(", ")}>
+        {parts.map((p) => p.value > 0 && <span key={p.key} className={p.key} style={{ width: `${(100 * p.value) / total}%` }} />)}
+      </div>
+      <div className="answer-legend small">
+        {parts.map((p) => <span key={p.key}><i style={{ background: p.color }} />{p.label} <strong>{p.value}</strong></span>)}
       </div>
     </Card>
   );
