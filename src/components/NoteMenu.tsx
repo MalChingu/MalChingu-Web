@@ -5,7 +5,7 @@ import { useStore } from "../lib/store";
 import { pageZoom } from "../lib/zoom";
 import { Icon } from "./Icon";
 import { KoreanText } from "./KoreanText";
-import { Card, FloatingPanel, RoundButton, SectionTitle, Segmented, Sheet, SpeakButton, copyText, useSwipe, useWide } from "./ui";
+import { Card, ConfirmDialog, FloatingPanel, RoundButton, SectionTitle, Segmented, Sheet, SpeakButton, copyText, useSwipe, useWide } from "./ui";
 import { romanize } from "../core/romanizer";
 
 export const SECTION_LABEL: Record<NoteSection, string> = {
@@ -133,6 +133,8 @@ export function NotesPanel({ guideID, dayNumber, draft, setDraft, onClose, openA
   const translations = store.data.savedTranslations.filter((t) => !t.deleted_at && (!guideID || t.guide_id === guideID))
     .sort((a, b) => b.created_at.localeCompare(a.created_at));
   const [tab, setTab] = useState<"notes" | "translations">("notes");
+  /** The note or translation waiting for Delete to be confirmed. */
+  const [deleting, setDeleting] = useState<{ kind: "note" | "translation"; id: string } | null>(null);
   const swipe = useSwipe(() => setTab("notes"), () => setTab("translations"));
   const canSave = !!draft && draft.body.trim().length > 0;
   const save = async () => {
@@ -165,11 +167,17 @@ export function NotesPanel({ guideID, dayNumber, draft, setDraft, onClose, openA
         ) : (
           <div className="notes-list">
             {notes.map((n) => (
-              <button key={n.id} type="button" className="glass card note-item" aria-label={`Edit note: ${n.body.slice(0, 60)}`}
-                onClick={() => setDraft({ id: n.id, body: n.body, guide_id: n.guide_id, day_number: n.day_number, section: n.section })}>
-                <span className="note-body note-clamp"><KoreanText text={n.body} /></span>
-                <span className="small muted">{tag(n.guide_id, n.day_number, n.section, n.created_at)}</span>
-              </button>
+              <div key={n.id} className="glass card note-item note-row">
+                <button type="button" className="note-open" aria-label={`Edit note: ${n.body.slice(0, 60)}`}
+                  onClick={() => setDraft({ id: n.id, body: n.body, guide_id: n.guide_id, day_number: n.day_number, section: n.section })}>
+                  <span className="note-body note-clamp"><KoreanText text={n.body} /></span>
+                  <span className="small muted">{tag(n.guide_id, n.day_number, n.section, n.created_at)}</span>
+                </button>
+                <button type="button" className="icon-button bad" aria-label="Delete note" title="Delete Note"
+                  onClick={() => setDeleting({ kind: "note", id: n.id })}>
+                  <Icon name="trash" size={18} />
+                </button>
+              </div>
             ))}
           </div>
         ))}
@@ -188,6 +196,10 @@ export function NotesPanel({ guideID, dayNumber, draft, setDraft, onClose, openA
                       <span className="small muted">{romanize(korean)}</span>
                     </span>
                     <SpeakButton text={korean} size={18} />
+                    <button type="button" className="icon-button bad" aria-label="Delete translation" title="Delete Translation"
+                      onClick={() => setDeleting({ kind: "translation", id: t.id })}>
+                      <Icon name="trash" size={18} />
+                    </button>
                   </div>
                   <span className="small muted">{tag(t.guide_id, t.day_number, null, t.created_at)}</span>
                 </div>
@@ -197,6 +209,16 @@ export function NotesPanel({ guideID, dayNumber, draft, setDraft, onClose, openA
         ))}
       </div>
       {openAll && <button type="button" className="link small center" onClick={openAll}>All Notes and Translations</button>}
+      {deleting && (
+        <ConfirmDialog title={deleting.kind === "note" ? "Delete Note?" : "Delete Translation?"}
+          message={deleting.kind === "note" ? "The note is deleted on every device." : "The saved translation is deleted on every device."}
+          confirmLabel="Delete" onCancel={() => setDeleting(null)}
+          onConfirm={() => {
+            const gone = deleting;
+            setDeleting(null);
+            void (gone.kind === "note" ? store.deleteNote(gone.id) : store.deleteTranslation(gone.id));
+          }} />
+      )}
     </Frame>
   );
 }
