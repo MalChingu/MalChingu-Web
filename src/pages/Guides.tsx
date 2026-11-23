@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { guideRequest } from "../core/guideRequest";
 import type { GuideSessionRow, StudyGuideRow, Word } from "../core/models";
 import { customToWord } from "../core/wordBank";
@@ -13,7 +13,7 @@ import { formatDay, guideDate, guideDayNumber } from "./guideDates";
 import { TaskList } from "./Today";
 import { KoreanText } from "../components/KoreanText";
 import { NoteFab, NoteMenuProvider, NotesPanel, TRANSLATE_EVENT, useNoteMenu, type NoteDraft } from "../components/NoteMenu";
-import { useCompact } from "../lib/zoom";
+import { pageZoom, useCompact } from "../lib/zoom";
 import { Notebook } from "./Notebook";
 import type { Practice } from "./Flashcards";
 
@@ -143,6 +143,20 @@ function GuideDetail({ guide, onBack, practice, addNote, openNotes, openNotebook
   const dayNumbers = sessions.map((s) => s.day_number);
   const [selected, setSelected] = useState(() => startingDay(guide, dayNumbers));
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  // The side column (Days, Translate) stays put while the page scrolls only when it fits in the window, so it never
+  // needs a scrollbar of its own; taller than the window, it scrolls with the page.
+  const side = useRef<HTMLElement>(null);
+  const [sideFits, setSideFits] = useState(true);
+  useEffect(() => {
+    const node = side.current;
+    if (!node) return;
+    const measure = () => setSideFits(node.offsetHeight <= window.innerHeight / pageZoom() - 64);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(node);
+    window.addEventListener("resize", measure);
+    return () => { observer.disconnect(); window.removeEventListener("resize", measure); };
+  }, [compact]);
   const vocabulary = store.data.customWords.filter((w) => !w.deleted_at && w.guide_id === guide.id);
   const tasks = store.data.tasks.filter((t) => t.guide_id === guide.id);
   const done = tasks.filter((t) => t.done).length;
@@ -188,7 +202,7 @@ function GuideDetail({ guide, onBack, practice, addNote, openNotes, openNotebook
           )}
         </div>
 
-        {!compact && <aside className="guide-side">
+        {!compact && <aside className={`guide-side ${sideFits ? "fits" : ""}`} ref={side}>
         <nav className="glass card day-list" aria-label="Days">
           <div className="section-title">Days</div>
           {sessions.map((s) => {

@@ -65,6 +65,8 @@ export function TranslateCard({ guideID, dayNumber, openSaved, initial, inPanel 
       translation: null, state: "pending",
     });
     const target: Language = korean ? "en" : "ko";
+    // What your words say is the answer when they know it; the translator is only asked otherwise.
+    if (korean ? gloss(query, words) : wordsMeaning(query, words).length) return;
     if (!(await canTranslate(source, target))) {
       setResult((r) => (r?.query === query ? { ...r, state: "none" } : r));
       return;
@@ -140,7 +142,6 @@ export function TranslateCard({ guideID, dayNumber, openSaved, initial, inPanel 
             const said = heard.said[0];
             if (said) { setText(said); void run(said, from); } else setNotice(heardNothing(heard));
           }} />
-          {from === "ko" && containsHangul(text) && <SpeakButton text={text.trim()} size={18} />}
         </div>
       </div>
       {notice && <span className="small muted">{notice}</span>}
@@ -149,13 +150,15 @@ export function TranslateCard({ guideID, dayNumber, openSaved, initial, inPanel 
       {result && (
         <div className="translate-results">
           {result.from === "ko" && <span className="small muted">{romanize(result.query)}</span>}
+          {/* From Your Words when your words know it; otherwise the translator's Translation. */}
+          {(result.known || result.matches.length > 0) ? (
           <div className="stack small-gap">
             <span className="section-title">From Your Words</span>
             {result.known && (
               <div className="translate-line">
                 <span className="translate-known grow">
                   <strong lang="ko">{result.known.form}</strong>
-                  <span>{result.known.meaning}</span>
+                  <MeaningLines meaning={result.known.meaning} />
                 </span>
                 <SpeakButton text={result.known.form.replace(/^-/, "")} size={18} />
               </div>
@@ -170,8 +173,8 @@ export function TranslateCard({ guideID, dayNumber, openSaved, initial, inPanel 
                 ))}
               </div>
             )}
-            {!result.known && result.matches.length === 0 && <span className="small muted">Not in your words.</span>}
           </div>
+          ) : (
           <div className="stack small-gap">
             <span className="section-title">Translation</span>
             {result.state === "none" && <span className="small muted">Full sentences translate in Chrome or Edge on a computer.</span>}
@@ -190,6 +193,7 @@ export function TranslateCard({ guideID, dayNumber, openSaved, initial, inPanel 
               </div>
             )}
           </div>
+          )}
           {keep && (
             <Button compact icon="bookmark" disabled={saved === result.query} onClick={save}>
               {saved === result.query ? "Saved to My Notes" : "Save"}
@@ -198,5 +202,17 @@ export function TranslateCard({ guideID, dayNumber, openSaved, initial, inPanel 
         </div>
       )}
     </form>
+  );
+}
+
+/** A form's explanation over two lines: what it is ("Past of 바쁘다"), then the English in bold ("to be busy"). */
+function MeaningLines({ meaning }: { meaning: string }) {
+  const cut = meaning.lastIndexOf(" · ");
+  if (cut < 0) return <span className="translate-text">{meaning}</span>;
+  return (
+    <>
+      <span>{meaning.slice(0, cut)}</span>
+      <span className="translate-text">{meaning.slice(cut + 3)}</span>
+    </>
   );
 }

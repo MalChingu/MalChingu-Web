@@ -195,11 +195,13 @@ export function NotesPanel({ guideID, dayNumber, draft, setDraft, onClose, openA
                       <span lang={t.source_lang === "ko" ? "en" : "ko"} className="saved-translation"><KoreanText text={t.translation} /></span>
                       <span className="small muted">{romanize(korean)}</span>
                     </span>
-                    <SpeakButton text={korean} size={18} />
-                    <button type="button" className="icon-button bad" aria-label="Delete translation" title="Delete Translation"
-                      onClick={() => setDeleting({ kind: "translation", id: t.id })}>
-                      <Icon name="trash" size={18} />
-                    </button>
+                    <span className="item-tools">
+                      <button type="button" className="icon-button bad" aria-label="Delete translation" title="Delete Translation"
+                        onClick={() => setDeleting({ kind: "translation", id: t.id })}>
+                        <Icon name="trash" size={18} />
+                      </button>
+                      <SpeakButton text={korean} size={18} />
+                    </span>
                   </div>
                   <span className="small muted">{tag(t.guide_id, t.day_number, null, t.created_at)}</span>
                 </div>

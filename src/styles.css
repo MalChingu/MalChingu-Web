@@ -575,7 +575,8 @@ kbd { font: inherit; font-size: 0.85rem; font-weight: 600; min-width: 28px; text
 .day-item-title { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @media (min-width: 1180px) {
   .guide-layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 20px; align-items: start; }
-  .guide-side { position: sticky; top: 32px; max-height: calc((100dvh - 64px * var(--zoom, 1)) / var(--zoom, 1)); overflow-y: auto; }
+  /* Stays beside the page while it scrolls, when it fits in the window (see Guides.tsx); otherwise it scrolls with the page. */
+  .guide-side.fits { position: sticky; top: 32px; }
 }
 
 /* Confirmation dialog. */
@@ -803,7 +804,5 @@ a.easter-egg, a.easter-egg:hover, .legal-footer a.easter-egg, .legal-footer a.ea
 .note-row { flex-direction: row !important; align-items: flex-start; gap: 8px; }
 .note-open { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; text-align: left; border: 0; background: none;
   padding: 0; font: inherit; color: inherit; cursor: pointer; }
-/* The guide's side column stays beside the page and scrolls on its own when Days and Translate are taller than the
-   window, without showing a scrollbar of its own. */
-.guide-side { scrollbar-width: none; }
-.guide-side::-webkit-scrollbar { display: none; }
+.translate-line:has(.item-tools) { align-items: flex-start; }
+.item-tools { display: flex; flex-direction: column; align-items: center; gap: 2px; }
