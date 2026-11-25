@@ -1,6 +1,9 @@
 import { useRef, useState } from "react";
 import { HINT_SLOTS, MAX_MISTAKES, hintAt, isHintRevealed, triesLeft, type Outcome, type QuizSession } from "../core/quiz";
 import { hintHasEnglish, hintWords } from "../core/hints";
+import { saidRight } from "../core/koreanWords";
+import type { Heard } from "../lib/listen";
+import { MicButton, heardNothing } from "./KoreanText";
 import { useStore } from "../lib/store";
 import { Icon } from "./Icon";
 import { ExampleView, RoundButton } from "./ui";
@@ -68,15 +71,35 @@ export function QuizPanel({ session, onSubmit, onGiveUp, onRevealHint }: {
   );
 }
 
-/** The result line once a quiz is over. */
+/** The result line once a quiz is over, with a microphone on the right to practice saying the word. */
 export function QuizResult({ session }: { session: QuizSession }) {
   const solved = session.state === "solved";
+  const [said, setSaid] = useState<{ right: boolean; n: number } | null>(null);
+  const [problem, setProblem] = useState<string | null>(null);
+  // Say it as many times as you like: each try shows ✓ or ✗ beside the microphone.
+  const onHeard = (heard: Heard) => {
+    if (heard.said.length === 0) { setSaid(null); setProblem(heardNothing(heard)); return; }
+    setProblem(null);
+    setSaid((s) => ({ right: heard.said.some((x) => saidRight(x, session.word.hangul)), n: (s?.n ?? 0) + 1 }));
+  };
   return (
-    <div className={`quiz-result ${solved ? "good" : "warn"}`}>
-      <Icon name={solved ? "checkCircle" : "bulb"} size={20} />
-      {solved
-        ? session.mistakes === 0 ? "Correct!" : `Correct after ${session.mistakes} miss${session.mistakes === 1 ? "" : "es"}.`
-        : `The answer is “${session.word.meanings[0]}”.`}
-    </div>
+    <>
+      <div className={`quiz-result ${solved ? "good" : "warn"}`}>
+        <Icon name={solved ? "checkCircle" : "bulb"} size={20} />
+        <span className="grow">{solved
+          ? session.mistakes === 0 ? "Correct!" : `Correct after ${session.mistakes} miss${session.mistakes === 1 ? "" : "es"}.`
+          : `The answer is “${session.word.meanings[0]}”.`}</span>
+        <span className="say-practice">
+          <MicButton lang="ko-KR" label={`Practice Saying ${session.word.hangul}`} size={20} onHeard={onHeard} />
+          {said && (
+            <span key={said.n} className={`say-mark ${said.right ? "right" : "wrong"}`} role="status"
+              aria-label={said.right ? "You said it right" : "Not quite. Try again"}>
+              <Icon name={said.right ? "check" : "x"} size={16} strokeWidth={3} />
+            </span>
+          )}
+        </span>
+      </div>
+      {problem && <p className="small muted say-problem" role="status">{problem}</p>}
+    </>
   );
 }

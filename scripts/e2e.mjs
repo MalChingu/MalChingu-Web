@@ -267,6 +267,35 @@ try {
       await page.getByText(/The answer is/).waitFor({ timeout: 15000 });
       check(true, "quiz result is kept after a reload");
 
+      // Once the guess is done: a microphone on the right of the result line to practice saying the word, as often
+      // as you like, with ✓ or ✗ beside it. (A stand-in recogniser "hears" window.__say.)
+      await page.addInitScript(() => {
+        class FakeRecognition {
+          start() { setTimeout(() => { this.onresult?.({ results: [[{ transcript: window.__say ?? "" }]] }); this.onend?.(); }, 50); }
+          stop() { this.onend?.(); }
+        }
+        window.SpeechRecognition = FakeRecognition;
+        window.webkitSpeechRecognition = FakeRecognition;
+      });
+      await page.reload();
+      const mic = page.locator(".quiz-result .say-practice .mic");
+      await mic.waitFor({ timeout: 15000 });
+      const word = (await mic.getAttribute("aria-label")).replace("Practice Saying ", "");
+      const [line, micBox] = [await page.locator(".quiz-result").boundingBox(), await mic.boundingBox()];
+      check(micBox.x + micBox.width > line.x + line.width - 40 && micBox.y < line.y + line.height && micBox.y + micBox.height > line.y,
+        "after the guess, a microphone sits on the right of the result line");
+      await page.evaluate((w) => { window.__say = w; }, word);
+      await mic.click();
+      await page.locator(".say-mark.right").waitFor({ timeout: 5000 });
+      await page.evaluate(() => { window.__say = "바나나우유"; });
+      await mic.click();
+      await page.locator(".say-mark.wrong").waitFor({ timeout: 5000 });
+      await page.evaluate((w) => { window.__say = w; }, word);
+      await mic.click();
+      await page.locator(".say-mark.right").waitFor({ timeout: 5000 });
+      check(true, `saying ${word} shows ✓, something else ✗, and it can be tried again and again`);
+      await page.locator(".quiz-result").screenshot({ path: "screenshots/say-practice.png" });
+
       // Guide task toggles.
       await page.getByRole("checkbox", { name: "Read the greetings list" }).click();
       check(await page.getByRole("checkbox", { name: "Read the greetings list" }).getAttribute("aria-checked") === "true", "guide task ticks");
@@ -654,7 +683,8 @@ try {
     check(button.x > note.x + note.width - 1 && button.y < note.y + note.height && note.y < button.y + button.height,
       "free, 2 guides: Upgrade to Pro sits to the right of the note, in line with it");
     await page.screenshot({ path: "screenshots/guides-limit-reached.png" });
-    // Upgrade to Pro floats up from the button: Coming Soon (no price until checkout is set up) and what Pro adds. ✕, a click outside or Esc closes it.
+    // Upgrade to Pro floats up from the button, inside the sidebar: Coming Soon (no price until checkout is set up) and
+    // what Pro adds, a ✓ and the feature per line. A click outside or Esc closes it.
     const fromButton = page.locator(".tabs").getByRole("button", { name: "Upgrade to Pro" });
     await fromButton.click();
     const upgrade = page.getByRole("dialog", { name: "Upgrade to Pro" });
@@ -664,6 +694,10 @@ try {
     check((await upgrade.locator(".upgrade-price").innerText()).trim() === "Coming Soon" && await upgrade.locator(".upgrade-benefits li").count() === 4
       && await upgrade.getByRole("button", { name: "Coming Soon" }).isDisabled(), "Upgrade to Pro says Coming Soon (no price yet, button off) and lists four things Pro adds");
     check(modalBox.y + modalBox.height <= buttonBox.y + 1, "Upgrade to Pro floats up above the button that opened it");
+    const sideBox = await page.locator(".tabs").boundingBox();
+    check(modalBox.x >= sideBox.x && modalBox.x + modalBox.width <= sideBox.x + sideBox.width
+      && await upgrade.locator(".upgrade-check").count() === 4 && await upgrade.getByText("Free:").count() === 0,
+      "Upgrade to Pro fits inside the sidebar, with a green ✓ and the feature on each line");
     await page.screenshot({ path: "screenshots/upgrade-modal.png" });
     await page.keyboard.press("Escape");
     await upgrade.waitFor({ state: "detached" });
@@ -683,7 +717,9 @@ try {
     check(await sheet.getByRole("radio", { name: "1 week" }).getAttribute("aria-checked") === "true",
       "free: 2 weeks opens Upgrade to Pro and keeps 1 week");
     await page.screenshot({ path: "screenshots/upgrade-from-length.png" });
-    await modal.getByRole("button", { name: "Close" }).click();
+    // No ✕: a click outside closes it.
+    check(await modal.getByRole("button", { name: "Close" }).count() === 0, "Upgrade to Pro has no ✕ (a click outside or Esc closes it)");
+    await page.mouse.click(5, 5);
     await modal.waitFor({ state: "detached" });
     await sheet.getByRole("button", { name: "More days" }).click();
     await modal.waitFor();
@@ -711,16 +747,21 @@ try {
     await page.waitForTimeout(400);
     const shine = await badge.evaluate((el) => getComputedStyle(el, "::after").transform);
     check(shine !== "none" && !shine.includes("-"), `pro: pointing at the badge sweeps a shine across it (${shine})`);
-    await badge.click();
+    // Pointing at the badge shows what Pro adds (inside the sidebar, a ✓ and the feature on each line, no price, no
+    // buttons); it goes when the pointer leaves.
     const features = page.getByRole("dialog", { name: "Korimal Pro" });
     await features.waitFor();
-    check(await features.locator(".upgrade-benefits li").count() === 4 && await features.getByText("Coming Soon").count() === 0
-      && await features.locator(".upgrade-price").count() === 0 && await features.getByRole("button").count() === 1,
-      "pro: the badge opens what Pro adds, with no price and no button but ✕");
     await page.waitForTimeout(350);
+    const [side, card] = [await page.locator(".tabs").boundingBox(), await features.boundingBox()];
+    check(await features.locator(".upgrade-benefits li").count() === 4 && await features.locator(".upgrade-check").count() === 4
+      && await features.getByText("Coming Soon").count() === 0 && await features.locator(".upgrade-price").count() === 0
+      && await features.getByRole("button").count() === 0 && await features.getByText("Free:").count() === 0,
+      "pro: hovering the badge shows what Pro adds: a ✓ and the feature per line, no price, no buttons, no ✕");
+    check(card.x >= side.x && card.x + card.width <= side.x + side.width, "pro: what Pro adds fits inside the sidebar");
     await page.screenshot({ path: "screenshots/pro-features.png" });
-    await page.keyboard.press("Escape");
+    await page.mouse.move(700, 400);
     await features.waitFor({ state: "detached" });
+    check(true, "pro: it goes when the pointer leaves the badge");
     // Sidebar buttons: a 2px border like the profile card's, and the label centred against the icon.
     const tab = page.locator(".tab.on").first();
     const [tabBox, labelBox, border] = await tab.evaluate((el) => {

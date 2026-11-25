@@ -1,6 +1,6 @@
 import { planLimit } from "../core/plan";
 import { useStore } from "../lib/store";
-import { showProFeatures, upgradeToPro } from "../lib/upgrade";
+import { hideProFeatures, showProFeatures, upgradeToPro } from "../lib/upgrade";
 import { Icon } from "./Icon";
 import { Button } from "./ui";
 
@@ -27,10 +27,16 @@ export function PlanCard({ className = "" }: { className?: string }) {
   );
 }
 
-/** A Pro account's badge: it shines when pointed at, and opens what Pro adds (no price, nothing to buy). */
+/** A pointer that can hover (a mouse or trackpad), as opposed to a touch screen. */
+const canHover = () => window.matchMedia?.("(hover: hover)").matches ?? true;
+
+/** A Pro account's badge: pointed at (or focused), it shines and shows what Pro adds, which goes when the pointer
+ *  leaves. On a touch screen a tap shows it instead. No price, nothing to buy. */
 export const ProBadge = () => (
-  <button type="button" className="pro-badge" aria-label="Korimal Pro: what Pro adds" title="What Pro adds"
-    onClick={(e) => showProFeatures(e.currentTarget)}>
+  <button type="button" className="pro-badge" aria-label="Korimal Pro: what Pro adds"
+    onMouseEnter={(e) => showProFeatures(e.currentTarget, true)} onMouseLeave={hideProFeatures}
+    onFocus={(e) => { if (e.currentTarget.matches(":focus-visible")) showProFeatures(e.currentTarget, true); }} onBlur={hideProFeatures}
+    onClick={(e) => { if (!canHover()) showProFeatures(e.currentTarget); }}>
     <Icon name="seal" size={16} /> Pro
   </button>
 );
