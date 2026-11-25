@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { nextZoom, useCompact, useZoom } from "./lib/zoom";
+import { isNewNoteShortcut, requestNewNote, shortcutBlocked } from "./lib/newNote";
 import type { Word } from "./core/models";
 import { Icon, type IconName } from "./components/Icon";
 import { Logo, RoundButton } from "./components/ui";
@@ -84,6 +85,21 @@ export function App() {
     if (window.location.hash !== `#${next}`) history.replaceState(null, "", `#${next}`);
     window.scrollTo({ top: 0 });
   };
+
+  // Alt+N (or Ctrl/⌘+N where the browser allows it): a new note, from anywhere. Guides holds the notes.
+  const goRef = useRef(go);
+  goRef.current = go;
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!isNewNoteShortcut(e) || shortcutBlocked(e) || !store.session) return;
+      e.preventDefault();
+      const onGuides = tab === "guides" && !practice;
+      requestNewNote(onGuides);
+      if (!onGuides) goRef.current("guides");
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [tab, practice, store.session]);
 
   if (!store.ready) return <div className="app-background loading-screen" aria-busy="true" />;
   if (!store.session) return <div className="app-background"><SignIn /></div>;

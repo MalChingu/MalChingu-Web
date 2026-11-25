@@ -41,11 +41,16 @@ const TABLE: Record<string, string> = {
   "나는": "I (casual, as the topic)",
 };
 
-/** Longest first, so 에서 is tried before 서… and 이랑 before 랑. */
+/** Longest first, so 에서는 is tried before 에서 and 는, and 이랑 before 랑. */
 const PARTICLES: [string, string][] = [
-  ["에서", "at / from"], ["하고", "and / with"], ["이랑", "and / with"], ["랑", "and / with"],
+  ["에서는", "at / from (as the topic)"], ["에게는", "to (as the topic)"], ["한테는", "to (as the topic)"],
+  ["께서는", "topic (polite)"], ["에서도", "at / from, too"], ["에게서", "from"],
+  ["에서", "at / from"], ["에는", "at / in (as the topic)"], ["에도", "at / to, too"], ["에게", "to"], ["한테", "to"],
+  ["께서", "subject (polite)"], ["까지", "until / to"], ["부터", "from"], ["보다", "than"], ["처럼", "like"],
+  ["으로", "by / to"], ["이나", "or"], ["하고", "and / with"], ["이랑", "and / with"], ["랑", "and / with"],
   ["은", "topic"], ["는", "topic"], ["이", "subject"], ["가", "subject"], ["을", "object"], ["를", "object"],
-  ["도", "also"], ["에", "at / to"], ["의", "'s"],
+  ["와", "and / with"], ["과", "and / with"], ["로", "by / to"], ["도", "also"], ["만", "only"], ["께", "to"],
+  ["에", "at / to"], ["의", "'s"], ["나", "or"],
 ];
 
 const OPENERS = new Set([..." \t\"'“”‘’([{"]);

@@ -4,11 +4,12 @@ import { ACHIEVEMENTS, shownTitle } from "../core/achievements";
 import { levelLabel } from "../core/progress";
 import { BUILT_IN } from "../core/wordBank";
 import { Icon } from "../components/Icon";
-import { FriendsCard } from "../components/Friends";
+import { BlockedSheet, FriendsCard } from "../components/Friends";
 import { AvatarImage, AvatarPicker } from "../components/Avatar";
 import { PlanCard } from "../components/Plan";
 import { Button, Card, ConfirmDialog, Logo, Page, RoundButton, SectionTitle, Segmented, Sheet, copyText } from "../components/ui";
 import { initials } from "../lib/settings";
+import { NAME_REFUSED, nameAllowed } from "../core/names";
 import { speak, useKoreanVoice } from "../lib/speech";
 import { useStore } from "../lib/store";
 
@@ -23,6 +24,7 @@ export function Profile() {
   const store = useStore();
   const { settings } = store;
   const [editing, setEditing] = useState(false);
+  const [sheet, setSheet] = useState<"blocked" | "delete" | null>(null);
   const [copied, setCopied] = useState(false);
   const [working, setWorking] = useState(false);
   const [confirming, setConfirming] = useState<"turnOff" | "signOut" | null>(null);
@@ -172,8 +174,23 @@ export function Profile() {
           )}
           <p className="small muted">In Claude, open Settings → Connectors → Add custom connector, name it Korimal and paste this link. Then share your notes, PDFs or screenshots in a chat and ask for a study guide or to add words. Treat the link like a password: anyone who has it can add to your Malchingu.</p>
         </Card>
+
+        <Card>
+          <SectionTitle>Account</SectionTitle>
+          <button type="button" className="plain-row" onClick={() => setSheet("blocked")}>
+            <Icon name="block" size={20} className="accent" />
+            <span className="grow">Blocked</span>
+            <span className="muted">{store.blocks.length}</span>
+            <Icon name="chevron" size={16} className="muted" />
+          </button>
+          <button type="button" className="button delete-account full large" onClick={() => setSheet("delete")}>Delete Account</button>
+          <p className="small muted">Removes your account and all of your Korimal data from our servers.</p>
+        </Card>
         </>
       )}
+
+      {sheet === "blocked" && <BlockedSheet onClose={() => setSheet(null)} />}
+      {sheet === "delete" && <DeleteAccountSheet onClose={() => setSheet(null)} />}
 
       {editing && <EditProfileSheet onClose={() => setEditing(false)} />}
       {confirming === "turnOff" && (
@@ -189,6 +206,40 @@ export function Profile() {
   );
 }
 
+/** Delete Account: "delete my account" has to be typed before the button works. Deletes everything on every device. */
+function DeleteAccountSheet({ onClose }: { onClose: () => void }) {
+  const store = useStore();
+  const [typed, setTyped] = useState("");
+  const [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const confirmed = typed.trim().toLowerCase() === DELETE_PHRASE;
+  const remove = async () => {
+    if (!confirmed || deleting) return;
+    setDeleting(true);
+    setError(null);
+    const failed = await store.deleteAccount();
+    setDeleting(false);
+    if (failed) setError(failed);
+  };
+  return (
+    <Sheet title="Delete Your Account?" onClose={onClose}>
+      <form className="stack" onSubmit={(e) => { e.preventDefault(); remove(); }}>
+        <p className="error strong">This can't be undone</p>
+        <p className="muted">This deletes your account and everything in it: your words, progress, study guides, notes, saved translations, connector link, username, friends and challenges, on every device.</p>
+        <label className="stack tiny-gap">
+          <span>Type <strong>{DELETE_PHRASE}</strong> to continue.</span>
+          <input className="text-input sheet-input" value={typed} placeholder={DELETE_PHRASE} aria-label="Type delete my account"
+            autoCapitalize="off" autoCorrect="off" spellCheck={false} autoFocus onChange={(e) => setTyped(e.target.value)} />
+        </label>
+        <Button type="submit" kind="destructive" full large disabled={!confirmed || deleting}>{deleting ? "Deleting…" : "Delete Account"}</Button>
+        {error && <p className="error small" role="alert">{error}</p>}
+      </form>
+    </Sheet>
+  );
+}
+
+const DELETE_PHRASE = "delete my account";
+
 /** Edit Profile (the pencil, or tapping the picture): your name and picture (a preset, or a photo with Pro). */
 function EditProfileSheet({ onClose }: { onClose: () => void }) {
   const store = useStore();
@@ -196,7 +247,8 @@ function EditProfileSheet({ onClose }: { onClose: () => void }) {
   const [name, setName] = useState(profile.name);
   const [avatar, setAvatar] = useState(profile.avatar);
   const changed = name.trim() !== profile.name || avatar !== profile.avatar;
-  const canSave = name.trim().length > 0 && changed;
+  const allowed = nameAllowed(name);
+  const canSave = name.trim().length > 0 && allowed && changed;
   const save = () => {
     if (!canSave) return;
     store.updateSettings({ profile: { ...profile, name: name.trim(), avatar } });
@@ -212,6 +264,7 @@ function EditProfileSheet({ onClose }: { onClose: () => void }) {
         <AvatarPicker value={avatar} onChange={setAvatar} canUpload={store.plan === "pro"} />
         <input className="text-input sheet-input" value={name} aria-label="Your name" placeholder="Your Name" maxLength={80}
           onChange={(e) => setName(e.target.value)} />
+        {!allowed && <p className="small error" role="alert">{NAME_REFUSED}</p>}
         <Button type="submit" kind="prominent" full large disabled={!canSave}>Save</Button>
       </form>
     </Sheet>

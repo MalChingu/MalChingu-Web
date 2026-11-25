@@ -1,9 +1,9 @@
-// Profile pictures: seven presets (BankingBook's, less Camera), stored as their key, e.g. "Rocket", or for Pro
+// Profile pictures: seven presets (BankingBook's, less Car), stored as their key, e.g. "Rocket", or for Pro
 // accounts their own photo, a small square JPEG stored as base64. The presets ship with each app
 // (web: public/profile/<key>.png). The database keeps the list in `avatar_presets` and refuses anything else (and
 // photos from free accounts). Same as the iPhone and Android apps.
 
-export const AVATAR_PRESETS = ["Astro", "Bolt", "Car", "Chess", "Coffee", "Game", "Rocket"] as const;
+export const AVATAR_PRESETS = ["Astro", "Bolt", "Camera", "Chess", "Coffee", "Game", "Rocket"] as const;
 
 export type AvatarPreset = (typeof AVATAR_PRESETS)[number];
 

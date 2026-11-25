@@ -59,7 +59,9 @@ export function UpgradeModal() {
         <div className="upgrade-head">
           <span className="pro-badge"><Icon name="seal" size={16} /> Pro</span>
           <h2>Korimal Pro</h2>
-          <div className="upgrade-price"><strong>{PRO_PRICE.split("/")[0]}</strong><span className="muted">/month (USD)</span></div>
+          <div className="upgrade-price">{PRO_PRICE
+            ? <><strong>{PRO_PRICE.split("/")[0]}</strong><span className="muted">/month (USD)</span></>
+            : <strong>Coming Soon</strong>}</div>
         </div>
         <ul className="upgrade-benefits">
           {PRO_BENEFITS.map((b) => (
@@ -69,8 +71,9 @@ export function UpgradeModal() {
             </li>
           ))}
         </ul>
-        {/* Checkout comes later (Stripe); until then this doesn't charge anything. */}
-        <Button kind="prominent" icon="bolt" full large onClick={() => {}}>Upgrade for {PRO_PRICE}</Button>
+        {/* Checkout comes later (Stripe); until then the button can't be pressed. */}
+        <Button kind="prominent" icon="bolt" full large disabled={!PRO_PRICE} onClick={() => {}}>
+          {PRO_PRICE ? `Upgrade for ${PRO_PRICE}` : "Coming Soon"}</Button>
       </div>
     </div>,
     document.body,

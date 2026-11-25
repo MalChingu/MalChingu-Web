@@ -113,7 +113,7 @@
         },
         {
           "text": "서울에",
-          "english": null,
+          "english": "Seoul",
           "target": false
         },
         {
@@ -235,6 +235,183 @@
           "text": "더워요.",
           "english": null,
           "target": true
+        }
+      ]
+    },
+    {
+      "target": "아름답다",
+      "sentence": "그 노래는 아름다웠어요.",
+      "expect": [
+        {
+          "text": "그",
+          "english": "that",
+          "target": false
+        },
+        {
+          "text": "노래는",
+          "english": "song",
+          "target": false
+        },
+        {
+          "text": "아름다웠어요.",
+          "english": null,
+          "target": true
+        }
+      ]
+    },
+    {
+      "target": "아름답다",
+      "sentence": "봄에는 더 아름다울 거예요.",
+      "expect": [
+        {
+          "text": "봄에는",
+          "english": "spring",
+          "target": false
+        },
+        {
+          "text": "더",
+          "english": "more",
+          "target": false
+        },
+        {
+          "text": "아름다울",
+          "english": null,
+          "target": true
+        },
+        {
+          "text": "거예요.",
+          "english": null,
+          "target": true
+        }
+      ]
+    },
+    {
+      "target": "나라",
+      "sentence": "다른 나라에서 살 거예요.",
+      "expect": [
+        {
+          "text": "다른",
+          "english": "other",
+          "target": false
+        },
+        {
+          "text": "나라에서",
+          "english": null,
+          "target": true
+        },
+        {
+          "text": "살",
+          "english": "buy / live",
+          "target": false
+        },
+        {
+          "text": "거예요.",
+          "english": "will",
+          "target": false
+        }
+      ]
+    },
+    {
+      "target": "잘 지내요",
+      "sentence": "네, 저는 잘 지내요.",
+      "expect": [
+        {
+          "text": "네,",
+          "english": "yes",
+          "target": false
+        },
+        {
+          "text": "저는",
+          "english": "I",
+          "target": false
+        },
+        {
+          "text": "잘",
+          "english": null,
+          "target": true
+        },
+        {
+          "text": "지내요.",
+          "english": null,
+          "target": true
+        }
+      ]
+    },
+    {
+      "target": "가족",
+      "sentence": "우리 가족은 네 명이에요.",
+      "expect": [
+        {
+          "text": "우리",
+          "english": "we / our",
+          "target": false
+        },
+        {
+          "text": "가족은",
+          "english": null,
+          "target": true
+        },
+        {
+          "text": "네",
+          "english": "four",
+          "target": false
+        },
+        {
+          "text": "명이에요.",
+          "english": "people (there are)",
+          "target": false
+        }
+      ]
+    },
+    {
+      "target": "잘 먹겠습니다",
+      "sentence": "와, 맛있겠다! 잘 먹겠습니다.",
+      "expect": [
+        {
+          "text": "와,",
+          "english": "wow",
+          "target": false
+        },
+        {
+          "text": "맛있겠다!",
+          "english": "looks delicious",
+          "target": false
+        },
+        {
+          "text": "잘",
+          "english": null,
+          "target": true
+        },
+        {
+          "text": "먹겠습니다.",
+          "english": null,
+          "target": true
+        }
+      ]
+    },
+    {
+      "target": "사람",
+      "sentence": "좋은 사람을 만날 거예요.",
+      "expect": [
+        {
+          "text": "좋은",
+          "english": "good",
+          "target": false
+        },
+        {
+          "text": "사람을",
+          "english": null,
+          "target": true
+        },
+        {
+          "text": "만날",
+          "english": "meet",
+          "target": false
+        },
+        {
+          "text": "거예요.",
+          "english": "will",
+          "target": false
         }
       ]
     }

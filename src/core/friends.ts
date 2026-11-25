@@ -45,6 +45,9 @@ export interface ChallengeRow {
   created_at: string;
 }
 
+/** A row of `my_blocks()`: someone you blocked. */
+export interface BlockRow { user_id: string; username: string | null; name: string | null; avatar: string | null; created_at: string }
+
 /** A row of `search_users()`: what anyone signed in can see. */
 export interface UserSearchRow { user_id: string; username: string; name?: string | null; avatar: string | null; level: Level }
 

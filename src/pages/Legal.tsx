@@ -12,7 +12,7 @@ export function legalKind(pathname: string): LegalKind | null {
 }
 
 const TITLE: Record<LegalKind, string> = { privacy: "Privacy Policy", terms: "Terms of Service" };
-const UPDATED = "Nov 21, 2026";
+const UPDATED = "Nov 25, 2026";
 const CONTACT = "atinderpaulk@rezpoint.xyz";
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
@@ -43,10 +43,11 @@ function Privacy() {
         <p>When you use Korimal, we store:</p>
         <ul>
           <li>Your account: you sign in with Apple or Google. We receive an account identifier and the email address the provider shares, which may be a private relay address, and your name if you choose to share it.</li>
-          <li>Your profile: the display name, profile picture, title and username you choose in the app.</li>
+          <li>Your profile: the display name, title and username you choose, and your profile picture: one of Korimal's pictures or, on Korimal Pro, a photo you upload (kept as a small 128-pixel image).</li>
+          <li>Your plan: whether your account is free or Korimal Pro.</li>
           <li>Your study data: the words you add, your progress on each word, quiz and flashcard answers, daily study totals and streaks, the word of the day quiz, study guides and their tasks, your notes and the translations you save.</li>
           <li>Your settings, such as your flashcard setup and notification times.</li>
-          <li>Your friends: the friend requests you send and receive (including an email address you type to invite someone), your friendships, and the challenges you play with friends and their results.</li>
+          <li>Your friends: the friend requests you send and receive (including an email address you type to invite someone), your friendships, the people you block, and the challenges you play with friends and their results.</li>
         </ul>
         <p>Korimal does not request your contacts, location or phone number, and does not use advertising trackers.</p>
       </Section>
@@ -55,10 +56,14 @@ function Privacy() {
         <ul>
           <li>Anyone signed in to Korimal can search for your username and see it with your profile picture and level. They cannot see your name or email address this way.</li>
           <li>Your friends, and people you send a friend request to, also see your display name.</li>
-          <li>Nobody is shown your email address. When you add someone by email, Korimal does not say whether that address has an account; if it doesn't yet, the request waits and reaches that person if they sign up with that email.</li>
+          <li>Nobody is shown your email address. When you add someone by email, Korimal does not say whether that address has an account. If it doesn't yet, the request waits for 7 days and reaches that person only if they sign up with that email in that time; after 7 days the request and the email address are deleted.</li>
           <li>In a Flashcard Duel, you and your friend see each other's score once you have both played. In a 7-Day Challenge, you each see how many answers the other got right, and how many they answered, during those 7 days. Friends do not see your words, notes, guides or other study data.</li>
         </ul>
-        <p>You can change your username in Settings, remove a friend, or decline a request or challenge at any time. Removing a friend ends your challenges with them.</p>
+        <ul>
+          <li>Your username is set once and can't be changed. Names and usernames that use offensive words can't be saved.</li>
+          <li>You can remove a friend, or decline a request or challenge, at any time. Removing a friend ends your challenges with them.</li>
+          <li>You can block anyone from their page. Blocking ends your friendship, requests and challenges with them, and neither of you can find or add the other. They aren't told. You can unblock people in Profile, then Settings, then Blocked.</li>
+        </ul>
       </Section>
       <Section title="The Claude Connector">
         <p>
@@ -96,6 +101,7 @@ function Privacy() {
           <li>Apple and Google provide sign-in, and on their devices the voice, translation and speech features described above.</li>
           <li>Anthropic provides Claude, only if you connect it.</li>
           <li>Vercel hosts this website and the web app and counts anonymous page views with Vercel Web Analytics, which uses no cookies and does not identify you.</li>
+          <li>Google Fonts provides the website's font, so your browser contacts Google when the web app loads, which shares your IP address with Google.</li>
         </ul>
       </Section>
       <Section title="Data Sharing">
@@ -103,25 +109,28 @@ function Privacy() {
       </Section>
       <Section title="Data Storage and Security">
         <p>
-          Your data is sent over encrypted connections and stored by Supabase. Each account can read and change only its
+          Your data is sent over encrypted connections and stored by Supabase in the United States, so if you live
+          elsewhere it is stored and processed there. Each account can read and change only its
           own data, apart from what it shares with friends as described above. The apps also keep a copy on your device so they work offline, and the home-screen widgets read your
           words from that copy.
         </p>
       </Section>
       <Section title="Data Retention and Deletion">
-        <p>We keep your data while your account exists. You can delete your words, study guides and notes in the app at any time.</p>
+        <p>We keep your data while your account exists. You can delete your words, study guides and notes in the app at any time. Friend requests to an email address with no Korimal account are deleted after 7 days.</p>
         <p>
-          To delete your account and all of its data, open Profile, then Settings, then Delete Account in the iPhone, iPad
-          or Mac app. This removes your account, words, progress, guides, notes, translations and connector link from our
-          servers, along with your username, friendships and challenges. If you use only the web or Android app, email us at the address below and we will delete your account
-          within 30 days. Signing out removes your study data from that device.
+          To delete your account and all of its data, open Profile, then Settings, then Delete Account in any Korimal app
+          or on the web. This removes your account, words, progress, guides, notes, translations and connector link from
+          our servers straight away, along with your username, friendships, blocks and challenges. If you can't sign in,
+          email us at the address below and we will delete your account within 30 days. Signing out removes your study
+          data from that device.
         </p>
       </Section>
       <Section title="Your Choices">
         <ul>
-          <li>Edit or remove your name and profile picture in Profile, and change your username in Settings.</li>
-          <li>Remove friends, and accept or decline friend requests and challenges.</li>
+          <li>Edit your name and profile picture in Profile.</li>
+          <li>Remove or block people, unblock them in Settings, and accept or decline friend requests and challenges.</li>
           <li>Turn notifications, the Claude connector and the microphone on or off.</li>
+          <li>Delete your account in Settings.</li>
           <li>Ask us for a copy of your data or to correct it by email.</li>
         </ul>
       </Section>
@@ -186,7 +195,7 @@ function Terms() {
           <li>Try to access another person's account or data</li>
           <li>Interfere with, overload or try to break the service, including through the connector</li>
           <li>Copy, resell or redistribute the app or its built-in word list</li>
-          <li>Choose a username that impersonates someone or is offensive, or use friend requests and challenges to harass anyone</li>
+          <li>Choose a name, username or profile photo that impersonates someone or is offensive, or use friend requests and challenges to harass anyone. Korimal refuses names and usernames with offensive words, and we may remove ones that break these terms.</li>
         </ul>
       </Section>
       <Section title="Third-Party Services">
@@ -195,14 +204,16 @@ function Terms() {
       <Section title="Availability and Changes">
         <p>
           We work to keep Korimal available, but it may sometimes be unavailable, and we may change, add or remove
-          features. Korimal is currently free; if we ever add paid features, we will tell you before you are charged.
+          features. Korimal is free to use. Korimal Pro is coming soon and isn't for sale yet; before you can buy it, we
+          will show its price and terms, and you will never be charged without agreeing to them.
         </p>
       </Section>
       <Section title="Ending Your Use and Deleting Your Account">
         <p>
           You can stop using Korimal at any time. To delete your account and its data, use Delete Account in Profile,
-          then Settings, in the iPhone, iPad or Mac app, or email us. We may suspend or close accounts that break these
-          terms or put the service or other people at risk.
+          then Settings, in any Korimal app or on the web, or email us if you can't sign in. You can block anyone who
+          bothers you. We may suspend or close accounts that break these terms or put the service or other people at
+          risk.
         </p>
       </Section>
       <Section title="Disclaimers">

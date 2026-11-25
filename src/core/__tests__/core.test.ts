@@ -286,3 +286,27 @@ describe("English in hints by level (shared cases)", () => {
     expect(hintWords(c.sentence, target, BUILT_IN)).toEqual(c.expect);
   });
 });
+
+import { ANYWHERE_WORDS, WHOLE_WORDS, nameAllowed } from "../names";
+import nameCases from "./names.cases.json";
+describe("name and username word filter (shared cases)", () => {
+  it("uses the shared lists", () => {
+    expect(ANYWHERE_WORDS).toEqual(nameCases.anywhere);
+    expect(WHOLE_WORDS).toEqual(nameCases.whole);
+  });
+  it.each(nameCases.cases)("$text → $allowed", ({ text, allowed }) => {
+    expect(nameAllowed(text)).toBe(allowed);
+  });
+});
+
+describe("hints for a beginner: every word has English except the one being asked about", () => {
+  it("covers every built-in example sentence", () => {
+    const missing: string[] = [];
+    for (const w of BUILT_IN) for (const ex of w.examples ?? []) {
+      for (const hw of hintWords(ex.korean, w, BUILT_IN)) {
+        if (!hw.target && hw.english === null && /[가-힣]/.test(hw.text)) missing.push(`${hw.text} in ${ex.korean}`);
+      }
+    }
+    expect(missing).toEqual([]);
+  });
+});

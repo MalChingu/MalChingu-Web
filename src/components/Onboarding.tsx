@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { isAvatarPreset, isPhotoAvatar, pickAvatarPreset } from "../core/avatars";
 import { normalizeUsername } from "../core/friends";
+import { NAME_REFUSED, nameAllowed } from "../core/names";
 import { useStore } from "../lib/store";
 import { AvatarImage, AvatarPicker } from "./Avatar";
 import { useUsernameCheck, useUsernameSuggestion, UsernameStatus } from "./Friends";
@@ -24,6 +25,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
   const suggestion = useUsernameSuggestion(name, typed.current || step !== 1);
   const shown = typed.current ? handle : handle || suggestion;
   const check = useUsernameCheck(shown);
+  const nameOK = name.trim().length > 0 && nameAllowed(name);
   const [avatar, setAvatar] = useState<string>(() =>
     isAvatarPreset(store.settings.profile.avatar) || isPhotoAvatar(store.settings.profile.avatar)
       ? store.settings.profile.avatar : pickAvatarPreset());
@@ -55,13 +57,15 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
         </div>
 
         {step === 0 && (
-          <form className="stack onboarding-step" onSubmit={(e) => { e.preventDefault(); if (name.trim()) setStep(1); }}>
+          <form className="stack onboarding-step" onSubmit={(e) => { e.preventDefault(); if (nameOK) setStep(1); }}>
             <h1 className="onboarding-title">Welcome to Korimal</h1>
             <p className="muted center">What should we call you?</p>
             <input className="text-input sheet-input" value={name} aria-label="Your name" placeholder="Your Name" autoFocus maxLength={80}
               onChange={(e) => setName(e.target.value)} />
-            <p className="small muted center">Friends see your name. You can change it later in Profile.</p>
-            <Button type="submit" kind="prominent" full large disabled={!name.trim()}>Continue</Button>
+            {nameAllowed(name)
+              ? <p className="small muted center">Friends see your name. You can change it later in Profile.</p>
+              : <p className="small error center" role="alert">{NAME_REFUSED}</p>}
+            <Button type="submit" kind="prominent" full large disabled={!nameOK}>Continue</Button>
           </form>
         )}
 

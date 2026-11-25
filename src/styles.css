@@ -142,6 +142,13 @@ button:disabled { cursor: default; opacity: 0.45; }
 .button.prominent { background: var(--accent-fill); color: var(--on-fill); border-color: transparent; }
 .button.danger { color: var(--red); }
 .button.sign-out { background: var(--red-fill); color: var(--on-fill); border-color: transparent; margin-top: 8px; }
+.button.destructive { background: var(--red-fill); color: var(--on-fill); border-color: transparent; }
+/* Delete Account: a red outlined capsule, like the iPhone app's. */
+.button.delete-account { color: var(--red); border: 1.5px solid var(--red); background: none; box-shadow: none; margin-top: 4px; }
+.blocked-row { gap: 12px; padding: 10px 0; }
+/* A row inside a card that opens something (Profile → Settings → Blocked). */
+.plain-row { display: flex; align-items: center; gap: 12px; width: 100%; border: 0; background: none; padding: 10px 0;
+  text-align: left; font: inherit; color: inherit; cursor: pointer; }
 .round-button {
   flex: none; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; border: 0; color: var(--on-fill);
   box-shadow: var(--shadow);
@@ -324,8 +331,18 @@ progress::-moz-progress-bar { background: var(--accent-fill); }
 .stepper button + button { border-left: 1px solid var(--divider); }
 .form-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; }
 .form-row input[type="date"] { border: 0; border-radius: 10px; padding: 6px 10px; background: var(--field); color: var(--text); }
-.form-row select { font: inherit; max-width: 60%; border: 0; border-radius: 10px; padding: 6px 10px; background: var(--field); color: var(--text); }
-.form-row select option { color: initial; }
+.form-row select { max-width: 60%; }
+/* Every select in the app, now and later: the arrow sits as far in from the right edge as the text is from the left
+   (--select-pad). Don't restyle a select's arrow on its own; change it here (see CLAUDE.md). */
+select {
+  --select-pad: 12px; --select-arrow: 12px;
+  -webkit-appearance: none; appearance: none; border: 0; border-radius: 10px; cursor: pointer;
+  padding: 6px calc(var(--select-pad) + var(--select-arrow) + 8px) 6px var(--select-pad);
+  background: var(--field) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2315132b' stroke-opacity='0.6' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right var(--select-pad) center / var(--select-arrow);
+  color: var(--text); text-overflow: ellipsis;
+}
+select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+select option { color: initial; }
 
 .round { min-height: calc(100dvh / var(--zoom, 1) - 100px); display: flex; flex-direction: column; }
 .round-body { flex: 1; display: flex; flex-direction: column; max-width: 560px; width: 100%; margin: 0 auto; }

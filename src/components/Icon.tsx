@@ -7,6 +7,7 @@ const PATHS: Record<string, string> = {
   person: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0",
   speaker: "M11 5 6 9H3v6h3l5 4V5zM15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13",
   x: "M18 6 6 18M6 6l12 12",
+  block: "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM5.6 5.6l12.8 12.8",
   check: "M20 6 9 17l-5-5",
   arrowRight: "M5 12h14M13 6l6 6-6 6",
   flag: "M5 21V4M5 4h11l-2 4 2 4H5",

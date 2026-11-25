@@ -1,9 +1,9 @@
 {
-  "_about": "Profile pictures: seven presets (BankingBook's, less Camera, whose place in the grid is the upload tile), stored as their key, or (Pro accounts) a photo stored as a base64 JPEG. Anything else shows the fallback. Shared by the web, iPhone/Mac and Android tests.",
+  "_about": "Profile pictures: seven presets (BankingBook's, less Car, whose place in the grid is the upload tile), stored as their key, or (Pro accounts) a photo stored as a base64 JPEG. Anything else shows the fallback. Shared by the web, iPhone/Mac and Android tests.",
   "presets": [
     "Astro",
     "Bolt",
-    "Car",
+    "Camera",
     "Chess",
     "Coffee",
     "Game",
@@ -20,7 +20,7 @@
       "expect": "Chess"
     },
     {
-      "value": "Camera",
+      "value": "Car",
       "expect": "Astro"
     },
     {
@@ -50,7 +50,7 @@
       "expect": "Rocket"
     },
     {
-      "value": "Camera",
+      "value": "Car",
       "expect": "Astro"
     },
     {

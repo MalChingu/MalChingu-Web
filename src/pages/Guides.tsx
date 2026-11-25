@@ -17,6 +17,7 @@ import { TaskList } from "./Today";
 import { KoreanText } from "../components/KoreanText";
 import { NoteFab, NoteMenuProvider, NotesPanel, TRANSLATE_EVENT, useNoteMenu, type NoteDraft } from "../components/NoteMenu";
 import { pageZoom, useCompact } from "../lib/zoom";
+import { NEW_NOTE_EVENT, takePendingNewNote } from "../lib/newNote";
 import { Notebook } from "./Notebook";
 import type { Practice } from "./Flashcards";
 
@@ -54,10 +55,23 @@ export function Guides({ openGuideID, setOpenGuideID, practice }: {
     draft: p?.draft && !p.draft.id && p.draft.body.trim() && !draft.id
       ? { ...p.draft, guide_id: draft.guide_id, day_number: draft.day_number, section: draft.section } : draft,
   }));
+  // Alt+N: a new note. Inside a guide, GuideDetail starts it on the day you're reading; elsewhere it starts blank.
+  const handlesNewNote = !open || !!notebook;
+  useEffect(() => {
+    if (!handlesNewNote) return;
+    if (takePendingNewNote()) addNote(blank);
+    const onNew = () => addNote(blank);
+    window.addEventListener(NEW_NOTE_EVENT, onNew);
+    return () => window.removeEventListener(NEW_NOTE_EVENT, onNew);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [handlesNewNote]);
+
+  /** My Notes, from anywhere: an open notes panel closes, since My Notes lists the same notes. */
+  const goNotebook = (tab: "notes" | "translations") => { setNotesPanel(null); setNotebook(tab); };
   const panel = (inNotebook: boolean) => notesPanel && (
     <NotesPanel guideID={notesPanel.guideID} dayNumber={notesPanel.day} draft={notesPanel.draft}
       setDraft={(draft) => setNotesPanel((p) => p && { ...p, draft })} onClose={() => setNotesPanel(null)}
-      openAll={inNotebook ? undefined : () => { setNotesPanel(null); setNotebook("notes"); }} single={inNotebook} />
+      openAll={inNotebook ? undefined : () => goNotebook("notes")} single={inNotebook} />
   );
 
   if (notebook) {
@@ -73,7 +87,7 @@ export function Guides({ openGuideID, setOpenGuideID, practice }: {
     return (
       <>
         <GuideDetail guide={open} onBack={() => setOpenGuideID(null)} practice={practice} addNote={addNote}
-          openNotes={(day) => openNotes(open.id, day)} openNotebook={setNotebook} compact={compact}
+          openNotes={(day) => openNotes(open.id, day)} openNotebook={goNotebook} compact={compact}
           openTranslate={() => { setNotesPanel(null); setTranslatePanel((p) => p ?? {}); }}
           translatePanel={translatePanel} closeTranslate={() => setTranslatePanel(null)} />
         {panel(false)}
@@ -84,7 +98,7 @@ export function Guides({ openGuideID, setOpenGuideID, practice }: {
   return (
     <Page title="Study Guides" actions={guides.length > 0
       ? <RoundButton icon="plus" tint="glass" label="Create Guide" onClick={() => setCreating(true)} size={38} /> : undefined}>
-      <button type="button" className="glass card nav-row" onClick={() => setNotebook("notes")}>
+      <button type="button" className="glass card nav-row" onClick={() => goNotebook("notes")}>
         <Icon name="pencil" size={20} className="accent" />
         <span className="grow">My Notes</span>
         <span className="muted">{noteCount}</span>
@@ -157,6 +171,15 @@ function GuideDetail({ guide, onBack, practice, addNote, openNotes, openNotebook
   const [selected, setSelected] = useState(() => startingDay(guide, dayNumbers));
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [renaming, setRenaming] = useState(false);
+  // Alt+N inside a guide: a new note for this guide and the day you're reading.
+  const dayRef = useRef<number | null>(null);
+  useEffect(() => {
+    const onNew = () => addNote({ body: "", guide_id: guide.id, day_number: dayRef.current, section: null });
+    if (takePendingNewNote()) onNew();
+    window.addEventListener(NEW_NOTE_EVENT, onNew);
+    return () => window.removeEventListener(NEW_NOTE_EVENT, onNew);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [guide.id]);
   // The side column (Days, Translate) stays put while the page scrolls only when it fits in the window, so it never
   // needs a scrollbar of its own; taller than the window, it scrolls with the page.
   const side = useRef<HTMLElement>(null);
@@ -181,6 +204,7 @@ function GuideDetail({ guide, onBack, practice, addNote, openNotes, openNotebook
   const shuffled = (words: Word[]) => [...words].sort(() => Math.random() - 0.5);
   const index = Math.max(0, dayNumbers.indexOf(selected));
   const session = sessions[index];
+  dayRef.current = session?.day_number ?? null;
   const points = overviewPoints(guide.overview);
 
   return (

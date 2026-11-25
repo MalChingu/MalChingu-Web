@@ -94,12 +94,15 @@ export function NoteMenuProvider({ onAddNote, children }: { onAddNote: (section:
 
 // ---------------------------------------------------------------- floating Notes button
 
+/** The new-note shortcut as this keyboard shows it. */
+const NEW_NOTE_KEYS = /Mac|iPhone|iPad/.test(navigator.platform) ? "⌥N" : "Alt+N";
+
 /** The round button at the bottom right: on Guides it opens your notes ("notes"); on My Notes, which already lists
  *  them, it starts a new one ("add"). */
 export function NoteFab({ onClick, kind = "notes" }: { onClick: () => void; kind?: "notes" | "add" }) {
   const label = kind === "notes" ? "Open Notes" : "Add Note";
   return (
-    <button type="button" className="fab" aria-label={label} title={label} onClick={onClick}>
+    <button type="button" className="fab" aria-label={label} title={`${label} (${NEW_NOTE_KEYS} for a new note)`} onClick={onClick}>
       <Icon name={kind === "notes" ? "notes" : "pencil"} size={24} strokeWidth={2.2} />
     </button>
   );
@@ -161,6 +164,8 @@ export function NotesPanel({ guideID, dayNumber, draft, setDraft, onClose, openA
       </Frame>
     );
   }
+  // On My Notes the page itself is the list: the modal is only ever one note, never a second list.
+  if (single) return null;
   const addNote = () => setDraft({ body: "", guide_id: guideID, day_number: guideID ? dayNumber : null, section: null });
   const tag = (guide: string | null, day: number | null, section: NoteSection | null, created: string) =>
     [noteTags(guideID ? null : guide ? titles.get(guide) ?? "Deleted guide" : null, day, section), formatWhen(created)].filter(Boolean).join(" · ");

@@ -1,7 +1,8 @@
 // Upgrade to Pro: every Upgrade button, the Guides and My Words notes, the photo upload tile and the longer Create
 // Guide lengths open one modal, floating up from the control that was tapped (see components/UpgradeModal).
 
-export const PRO_PRICE = "$5/month";
+/** The price, once checkout (Stripe) is set up ("$5/month"). Until then the modal says Coming Soon. */
+export const PRO_PRICE: string | null = null;
 export const PRO_BENEFITS = [
   { icon: "book", title: "Unlimited study guides", detail: "Free: 2 at a time" },
   { icon: "calendar", title: "Guides longer than a week", detail: "2 weeks, a month, 2 months" },

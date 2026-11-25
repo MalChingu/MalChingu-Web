@@ -120,7 +120,7 @@ export function StatTile({ title, value, icon, tone = "accent" }: { title: strin
   );
 }
 
-type ButtonKind = "prominent" | "glass" | "danger";
+type ButtonKind = "prominent" | "glass" | "danger" | "destructive";
 
 export function Button({ children, icon, kind = "glass", onClick, disabled, full, type = "button", large, compact, expanded }: {
   children: ReactNode; icon?: IconName; kind?: ButtonKind; onClick?: (e: ReactMouseEvent<HTMLButtonElement>) => void; disabled?: boolean; full?: boolean;

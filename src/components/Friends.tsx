@@ -3,6 +3,7 @@ import { challengeNeedsMe, duelWinner, friendLabel, isValidUsername, looksLikeEm
   shortLabel, usernameCandidates, weekStatus, weekWinner, type ChallengeRow, type FriendRow, type UserSearchRow } from "../core/friends";
 import { levelLabel, type Level } from "../core/progress";
 import { dayString } from "../core/wordOfDay";
+import { USERNAME_REFUSED, nameAllowed } from "../core/names";
 import { AvatarImage } from "./Avatar";
 import { initials } from "../lib/settings";
 import { USERNAME_RULE, useStore } from "../lib/store";
@@ -78,6 +79,7 @@ function FriendSheet({ friend, onClose }: { friend: FriendRow; onClose: () => vo
   const [error, setError] = useState<string | null>(null);
   const [choosing, setChoosing] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState(false);
+  const [confirmBlock, setConfirmBlock] = useState(false);
   const label = friendLabel(friend);
   const first = shortLabel(friend);
   const challenges = store.challenges.filter((c) => c.friend_id === friend.user_id);
@@ -110,6 +112,7 @@ function FriendSheet({ friend, onClose }: { friend: FriendRow; onClose: () => vo
             <Button full disabled={busy} onClick={() => run(() => store.removeFriend(friend.id)).then((ok) => ok && onClose())}>Decline</Button>
             <Button kind="prominent" icon="check" full disabled={busy} onClick={() => run(() => store.acceptFriend(friend.id))}>Accept</Button>
           </div>
+          <Button kind="danger" icon="block" full disabled={busy} onClick={() => setConfirmBlock(true)}>Block</Button>
         </div>
       )}
 
@@ -118,7 +121,7 @@ function FriendSheet({ friend, onClose }: { friend: FriendRow; onClose: () => vo
           <p className="center muted">
             {friend.user_id
               ? `Request sent. ${first} can accept it in Profile.`
-              : "Request sent. It reaches them when they sign in to Korimal with this email."}
+              : `Request sent. It reaches them if they sign up for Korimal with this email by ${inviteExpiry(friend.created_at)}.`}
           </p>
           <Button kind="danger" icon="x" full disabled={busy} onClick={() => run(() => store.removeFriend(friend.id)).then((ok) => ok && onClose())}>
             Cancel Request
@@ -160,6 +163,7 @@ function FriendSheet({ friend, onClose }: { friend: FriendRow; onClose: () => vo
             <Button kind="prominent" icon="bolt" full large disabled={busy} onClick={() => setChoosing(true)}>Challenge Friend</Button>
           )}
           <Button kind="danger" icon="x" full disabled={busy} onClick={() => setConfirmRemove(true)}>Remove Friend</Button>
+          <Button kind="danger" icon="block" full disabled={busy} onClick={() => setConfirmBlock(true)}>Block</Button>
         </div>
       )}
 
@@ -171,9 +175,19 @@ function FriendSheet({ friend, onClose }: { friend: FriendRow; onClose: () => vo
           onCancel={() => setConfirmRemove(false)}
           onConfirm={() => { setConfirmRemove(false); run(() => store.removeFriend(friend.id)).then((ok) => ok && onClose()); }} />
       )}
+      {confirmBlock && friend.user_id && (
+        <ConfirmDialog title={`Block ${first}?`} confirmLabel="Block"
+          message="They won't be able to find you or send you requests, and your friendship and challenges end. They aren't told. You can unblock them in Profile → Settings."
+          onCancel={() => setConfirmBlock(false)}
+          onConfirm={() => { setConfirmBlock(false); run(() => store.blockUser(friend.user_id!)).then((ok) => ok && onClose()); }} />
+      )}
     </Sheet>
   );
 }
+
+/** An invite to an email with no account lasts 7 days: the date it ends, like "Dec 2". */
+const inviteExpiry = (createdAt: string) =>
+  new Date(new Date(createdAt).getTime() + 7 * 86_400_000).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 
 /** "82% (41/50)", or "no answers yet". */
 const weekScore = (correct: number, total: number) => {
@@ -279,7 +293,7 @@ function AddFriendSheet({ onClose }: { onClose: () => void }) {
     setMessage(outcome.result === "friends"
       ? { text: `You're now friends with ${shown}.`, good: true }
       : email
-        ? { text: `Request sent to ${shown}. If they don't use Korimal yet, it reaches them when they sign up with that email.`, good: true }
+        ? { text: `Request sent to ${shown}. If they don't use Korimal yet, it reaches them if they sign up with that email within 7 days.`, good: true }
         : { text: `Request sent to ${shown}.`, good: true });
     if (email) setText("");
   };
@@ -333,8 +347,46 @@ function AddFriendSheet({ onClose }: { onClose: () => void }) {
   );
 }
 
+/** Profile → Settings → Blocked: the people you blocked, each with Unblock. */
+export function BlockedSheet({ onClose }: { onClose: () => void }) {
+  const store = useStore();
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const unblock = async (userID: string) => {
+    setBusy(userID);
+    setError(null);
+    const failed = await store.unblockUser(userID);
+    setBusy(null);
+    if (failed) setError(failed);
+  };
+  return (
+    <Sheet title="Blocked" onClose={onClose}>
+      <div className="stack">
+        {store.blocks.length === 0 ? (
+          <p className="muted center">You haven't blocked anyone.</p>
+        ) : (
+          <div className="divided">
+            {store.blocks.map((b) => (
+              <div key={b.user_id} className="row blocked-row">
+                <PersonPicture avatar={b.avatar} name={b.name || b.username || ""} size={40} />
+                <span className="grow stack tiny-gap">
+                  <span className="strong">{b.name || (b.username ? `@${b.username}` : "Someone")}</span>
+                  {b.name && b.username && <span className="small muted">@{b.username}</span>}
+                </span>
+                <Button compact disabled={busy !== null} onClick={() => unblock(b.user_id)}>Unblock</Button>
+              </div>
+            ))}
+          </div>
+        )}
+        <p className="small muted">People you block can't find you or send you requests, and aren't told. Unblocking doesn't make you friends again.</p>
+        {error && <p className="error small" role="alert">{error}</p>}
+      </div>
+    </Sheet>
+  );
+}
+
 /** Choosing or changing your username, with a suggestion from your name and a live check that it's free. */
-export type UsernameState = "empty" | "invalid" | "checking" | "free" | "taken" | "unknown";
+export type UsernameState = "empty" | "invalid" | "refused" | "checking" | "free" | "taken" | "unknown";
 
 /** Checks a typed username as you type (a short pause first): free, taken, or not valid. */
 export function useUsernameCheck(text: string): UsernameState {
@@ -344,6 +396,7 @@ export function useUsernameCheck(text: string): UsernameState {
   useEffect(() => {
     if (!name) { setState("empty"); return; }
     if (!isValidUsername(name)) { setState("invalid"); return; }
+    if (!nameAllowed(name)) { setState("refused"); return; }
     setState("checking");
     let live = true;
     const timer = window.setTimeout(async () => {
@@ -364,7 +417,7 @@ export function useUsernameSuggestion(name: string, skip: boolean): string {
     if (skip) return;
     let live = true;
     (async () => {
-      for (const candidate of usernameCandidates(name)) {
+      for (const candidate of usernameCandidates(name).filter(nameAllowed)) {
         const free = await store.usernameAvailable(candidate);
         if (!live) return;
         if (free !== false) { setSuggestion(candidate); return; }
@@ -380,6 +433,7 @@ export function UsernameStatus({ state }: { state: UsernameState }) {
   const status = {
     empty: null, checking: <span className="muted">Checking…</span>, free: <span className="good"><Icon name="check" size={14} /> Available</span>,
     taken: <span className="error">That username is taken.</span>, invalid: <span className="error">{USERNAME_RULE}</span>,
+    refused: <span className="error">{USERNAME_REFUSED}</span>,
     unknown: <span className="muted">Couldn't check right now; you can still try saving.</span>,
   }[state];
   return <div className="small" role="status">{status}</div>;

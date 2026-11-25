@@ -7,7 +7,7 @@ import { computeStats, emptyDay, emptyProgress, estimateLevel, recordOnDay, reco
 import { giveUp, newQuiz, revealHint, submit, isFinished, type Outcome, type QuizSession } from "../core/quiz";
 import { activeCustomWords, BUILT_IN, builtInWord } from "../core/wordBank";
 import { challengeNeedsMe, friendLabel, isValidUsername, looksLikeEmail, normalizeUsername, pickDuelWords,
-  type ChallengeRow, type FriendRow, type UserSearchRow } from "../core/friends";
+  type BlockRow, type ChallengeRow, type FriendRow, type UserSearchRow } from "../core/friends";
 import { dayString, wordOfDay } from "../core/wordOfDay";
 import { readPlan, type Plan } from "../core/plan";
 import { readSettings, settingsPatch, type ProfileRow, type Settings } from "./settings";
@@ -65,8 +65,8 @@ const now = () => new Date().toISOString();
 interface PublicCard { username: string | null; level: string }
 
 /** Friends, requests and challenges: loaded from the server each refresh, never kept offline. */
-interface FriendsState { rows: FriendRow[]; challenges: ChallengeRow[]; loaded: boolean; error: string | null }
-const NO_FRIENDS: FriendsState = { rows: [], challenges: [], loaded: false, error: null };
+interface FriendsState { rows: FriendRow[]; challenges: ChallengeRow[]; blocks: BlockRow[]; loaded: boolean; error: string | null }
+const NO_FRIENDS: FriendsState = { rows: [], challenges: [], blocks: [], loaded: false, error: null };
 
 export const USERNAME_RULE = "Use 3–20 letters, numbers, dots or underscores, starting with a letter or number.";
 
@@ -119,6 +119,8 @@ interface Store {
   signInWithApple: () => Promise<void>;
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
+  /** Deletes the account and all of its data (the delete-account function), then signs out. Resolves to an error message, or null. */
+  deleteAccount: () => Promise<string | null>;
   openWord: (word: Word, quiz?: boolean) => void;
   openedWord: { word: Word; quiz: boolean } | null;
   closeWord: () => void;
@@ -142,6 +144,11 @@ interface Store {
   acceptFriend: (id: string) => Promise<string | null>;
   /** Declines, cancels or removes, along with the challenges between you. */
   removeFriend: (id: string) => Promise<string | null>;
+  /** People you blocked, newest first. */
+  blocks: BlockRow[];
+  /** Ends your friendship, requests and challenges with them; neither of you can find or add the other. */
+  blockUser: (userID: string) => Promise<string | null>;
+  unblockUser: (userID: string) => Promise<string | null>;
   /** A duel starts straight away (see `duel`); a 7-Day Challenge waits for your friend to accept. */
   challengeFriend: (friend: FriendRow, kind: "duel" | "week") => Promise<string | null>;
   acceptChallenge: (id: string) => Promise<string | null>;
@@ -195,11 +202,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const loadFriends = useCallback(async () => {
     if (!userID) return;
     const ticket = ++friendsLoad.current;
-    const [f, c, me, p] = await Promise.all([
+    const [f, c, me, p, b] = await Promise.all([
       supabase.rpc("my_friends"),
       supabase.rpc("my_challenges"),
       supabase.from("public_profiles").select("username,level").eq("user_id", userID).maybeSingle(),
       supabase.rpc("my_plan"),
+      supabase.rpc("my_blocks"),
     ]);
     if (ticket !== friendsLoad.current) return;
     if (!p.error) setPlan(readPlan((p.data as { plan?: unknown } | null)?.plan));
@@ -208,7 +216,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setFriendsState((s) => ({ ...s, loaded: true, error: `Couldn't load your friends: ${error.message}` }));
       return;
     }
-    setFriendsState({ rows: (f.data ?? []) as FriendRow[], challenges: (c.data ?? []) as ChallengeRow[], loaded: true, error: null });
+    setFriendsState({ rows: (f.data ?? []) as FriendRow[], challenges: (c.data ?? []) as ChallengeRow[],
+      blocks: b.error ? [] : (b.data ?? []) as BlockRow[], loaded: true, error: null });
     setCard((me.data as PublicCard | null) ?? null);
   }, [userID]);
 
@@ -615,6 +624,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const acceptFriend = useCallback((id: string) => callFriends("accept_friend", { p_id: id }), [callFriends]);
   const removeFriend = useCallback((id: string) => callFriends("remove_friend", { p_id: id }), [callFriends]);
+  const blockUser = useCallback((id: string) => callFriends("block_user", { p_user: id }), [callFriends]);
+  const unblockUser = useCallback((id: string) => callFriends("unblock_user", { p_user: id }), [callFriends]);
   const acceptChallenge = useCallback((id: string) => callFriends("accept_challenge", { p_id: id, p_today: dayString() }), [callFriends]);
   const removeChallenge = useCallback((id: string) => callFriends("remove_challenge", { p_id: id }), [callFriends]);
   const submitDuel = useCallback((id: string, score: number) => callFriends("submit_duel", { p_id: id, p_score: score }), [callFriends]);
@@ -645,6 +656,22 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setConnectorKey(null);
   }, []);
 
+  const deleteAccount = useCallback(async () => {
+    if (!userID) return "Sign in first.";
+    const { data: result, error } = await supabase.functions.invoke("delete-account", { method: "POST" });
+    if (error || !(result as { deleted?: boolean } | null)?.deleted) {
+      let message = "Your account couldn't be deleted. Please try again.";
+      try { message = (await (error as { context?: Response })?.context?.json())?.error ?? message; } catch { /* keep the default */ }
+      return message;
+    }
+    localStorage.removeItem(`malchingu.connectorKey.${userID}`);
+    // The account is gone, so only this browser's session is cleared.
+    await supabase.auth.signOut({ scope: "local" });
+    setData(EMPTY);
+    setConnectorKey(null);
+    return null;
+  }, [userID]);
+
   // The shared key if there is one; otherwise the copy this browser kept when it made the link.
   const connectorShown = data.hasConnectorToken ? (data.connectorToken ?? connectorKey) : null;
 
@@ -655,10 +682,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     dailyQuiz: quiz, submitDaily, giveUpDaily, revealDailyHint, record, refresh, updateSettings, deleteWord, deleteWords,
     setTaskDone, deleteGuide, renameGuide, saveNote, deleteNote, saveTranslation, deleteTranslation,
     connectorURL: connectorShown ? `${CONNECTOR_BASE_URL}?key=${connectorShown}` : null,
-    createConnectorLink, revokeConnectorLink, signInWithApple, signInWithGoogle, signOut,
+    createConnectorLink, revokeConnectorLink, signInWithApple, signInWithGoogle, signOut, deleteAccount,
     openWord: (word, quizMode = false) => setOpenedWord({ word, quiz: quizMode }),
     openedWord, closeWord: () => setOpenedWord(null),
-    friends: friendsState.rows, challenges: friendsState.challenges, friendsLoaded: friendsState.loaded,
+    friends: friendsState.rows, challenges: friendsState.challenges, blocks: friendsState.blocks, blockUser, unblockUser,
+    friendsLoaded: friendsState.loaded,
     friendsError: friendsState.error, username: card === undefined ? undefined : card?.username ?? null, plan, friendsWaiting,
     setUsername, usernameAvailable, searchUsers, requestFriend, acceptFriend, removeFriend, challengeFriend, acceptChallenge,
     removeChallenge, submitDuel, playDuel, duel, endDuel: () => setDuel(null),

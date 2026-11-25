@@ -17,7 +17,12 @@ const USER = "44444444-4444-4444-8444-444444444444";
 const GUIDE = "55555555-5555-4555-8555-555555555555";
 const today = (() => { const d = new Date(); const p = (n) => String(n).padStart(2, "0"); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`; })();
 const stamp = new Date().toISOString();
-const PRESETS = ["Astro", "Bolt", "Car", "Chess", "Coffee", "Game", "Rocket"];
+const PRESETS = ["Astro", "Bolt", "Camera", "Chess", "Coffee", "Game", "Rocket"];
+/** Friends (my_friends()), people blocked (my_blocks()) and Delete Account calls, for the safety checks. */
+const FRIEND = "99999999-9999-4999-8999-999999999991";
+let FRIENDS = [];
+let BLOCKS = [];
+let deleteCalls = 0;
 /** The account's plan, as my_plan() returns it: free (2 guides at a time) or pro. */
 let PLAN = "free";
 
@@ -67,8 +72,24 @@ async function fakeSupabase(route) {
     db.connector_tokens = [{ user_id: USER, token: "kt_e2etestkey" }];
     return json("kt_e2etestkey");
   }
-  // Friends: none yet in this account.
-  if (url.pathname === "/rest/v1/rpc/my_friends" || url.pathname === "/rest/v1/rpc/my_challenges") return json([]);
+  // Friends: none unless a test adds some.
+  if (url.pathname === "/rest/v1/rpc/my_friends") return json(FRIENDS);
+  if (url.pathname === "/rest/v1/rpc/my_challenges") return json([]);
+  if (url.pathname === "/rest/v1/rpc/my_blocks") return json(BLOCKS);
+  if (url.pathname === "/rest/v1/rpc/block_user") {
+    // Like the real function: the friendship goes and they join your blocked list.
+    const { p_user } = request.postDataJSON();
+    const friend = FRIENDS.find((f) => f.user_id === p_user);
+    FRIENDS = FRIENDS.filter((f) => f.user_id !== p_user);
+    BLOCKS = [{ user_id: p_user, username: friend?.username ?? null, name: friend?.name ?? null, avatar: friend?.avatar ?? null, created_at: stamp }, ...BLOCKS];
+    return json(null);
+  }
+  if (url.pathname === "/rest/v1/rpc/unblock_user") {
+    const { p_user } = request.postDataJSON();
+    BLOCKS = BLOCKS.filter((b) => b.user_id !== p_user);
+    return json(null);
+  }
+  if (url.pathname === "/functions/v1/delete-account") { deleteCalls++; return json({ deleted: true }); }
   if (url.pathname === "/rest/v1/rpc/username_available") return json(true);
   if (url.pathname === "/rest/v1/rpc/my_plan") {
     return json({ plan: PLAN, guide_limit: PLAN === "pro" ? null : 2, guides: db.study_guides.length });
@@ -633,15 +654,15 @@ try {
     check(button.x > note.x + note.width - 1 && button.y < note.y + note.height && note.y < button.y + button.height,
       "free, 2 guides: Upgrade to Pro sits to the right of the note, in line with it");
     await page.screenshot({ path: "screenshots/guides-limit-reached.png" });
-    // Upgrade to Pro floats up from the button: the price and what Pro adds. ✕, a click outside or Esc closes it.
+    // Upgrade to Pro floats up from the button: Coming Soon (no price until checkout is set up) and what Pro adds. ✕, a click outside or Esc closes it.
     const fromButton = page.locator(".tabs").getByRole("button", { name: "Upgrade to Pro" });
     await fromButton.click();
     const upgrade = page.getByRole("dialog", { name: "Upgrade to Pro" });
     await upgrade.waitFor();
     await page.waitForTimeout(350);
     const [modalBox, buttonBox] = [await upgrade.boundingBox(), await fromButton.boundingBox()];
-    check((await upgrade.locator(".upgrade-price").innerText()).replace(/\s+/g, "") === "$5/month(USD)" && await upgrade.locator(".upgrade-benefits li").count() === 4
-      && await upgrade.getByRole("button", { name: "Upgrade for $5/month" }).isVisible(), "Upgrade to Pro shows $5/month and four things Pro adds");
+    check((await upgrade.locator(".upgrade-price").innerText()).trim() === "Coming Soon" && await upgrade.locator(".upgrade-benefits li").count() === 4
+      && await upgrade.getByRole("button", { name: "Coming Soon" }).isDisabled(), "Upgrade to Pro says Coming Soon (no price yet, button off) and lists four things Pro adds");
     check(modalBox.y + modalBox.height <= buttonBox.y + 1, "Upgrade to Pro floats up above the button that opened it");
     await page.screenshot({ path: "screenshots/upgrade-modal.png" });
     await page.keyboard.press("Escape");
@@ -691,7 +712,7 @@ try {
     await page.getByRole("button", { name: "Change profile picture" }).click();
     const editor = page.getByRole("dialog", { name: "Edit Profile" });
     const [picker] = await Promise.all([page.waitForEvent("filechooser"), editor.getByRole("radio", { name: "Upload your own photo" }).click()]);
-    await picker.setFiles("public/profile/Car.png");
+    await picker.setFiles("public/profile/Chess.png");
     await editor.locator(".onboarding-avatar img[src^='data:image/jpeg']").waitFor();
     check(await editor.getByRole("radio", { name: "Your photo. Choose another" }).getAttribute("aria-checked") === "true"
       && await editor.locator('[role="radio"][aria-checked="true"]').count() === 1, "pro: the upload tile shows the photo, chosen instead of a preset");
@@ -798,6 +819,106 @@ try {
     await page.locator(".hint").waitFor();
     check(await page.locator(".hint .glossed").count() === 1, "beginner: a flashcard hint shows the English under the words");
     await page.screenshot({ path: "screenshots/flashcard-hint-glossed.png" });
+    await context.close();
+  }
+
+  // Safety: Block from a friend's page, the Blocked list and Unblock in Settings, the name filter, the pictures, and
+  // Delete Account (typing "delete my account" first), which signs out.
+  {
+    FRIENDS = [{ id: "99999999-9999-4999-8999-999999999990", user_id: FRIEND, direction: "outgoing", status: "accepted", username: "minji",
+      name: "Minji", avatar: "Rocket", level: "beginner", email: null, created_at: stamp }];
+    const context = await browser.newContext({ viewport: { width: 1280, height: 860 } });
+    await context.route("https://nxlsnpzfbazwlccxtwpt.supabase.co/**", fakeSupabase);
+    await context.addInitScript((value) => localStorage.setItem("sb-nxlsnpzfbazwlccxtwpt-auth-token", value), JSON.stringify(session));
+    const page = await context.newPage();
+    await page.goto("http://localhost:4173/#profile");
+    await page.locator(".friend").first().click();
+    const friendPage = page.getByRole("dialog", { name: "Minji" });
+    await friendPage.getByRole("button", { name: "Block" }).click();
+    const ask = page.getByRole("alertdialog", { name: "Block Minji?" });
+    check(await ask.getByText(/They aren't told/).isVisible(), "Block asks first and says they aren't told");
+    await ask.getByRole("button", { name: "Block" }).click();
+    await friendPage.waitFor({ state: "detached" });
+    check(FRIENDS.length === 0 && BLOCKS.length === 1 && BLOCKS[0].user_id === FRIEND, "blocking ends the friendship and lists them as blocked");
+    await page.getByRole("radio", { name: "Settings" }).click();
+    const blockedRow = page.getByRole("button", { name: /Blocked/ });
+    check((await blockedRow.innerText()).includes("1"), "Settings → Account shows Blocked with a count of 1");
+    await blockedRow.click();
+    const blocked = page.getByRole("dialog", { name: "Blocked" });
+    check(await blocked.getByText("Minji", { exact: true }).isVisible() && await blocked.getByText("@minji", { exact: true }).isVisible(), "Blocked lists the person");
+    await page.screenshot({ path: "screenshots/blocked.png" });
+    await blocked.getByRole("button", { name: "Unblock" }).click();
+    await blocked.getByText("You haven't blocked anyone.").waitFor();
+    check(BLOCKS.length === 0, "Unblock removes them from the list");
+    await page.keyboard.press("Escape");
+    await blocked.waitFor({ state: "detached" });
+
+    // The name filter and the pictures (Camera in, Car out).
+    await page.getByRole("radio", { name: "About" }).click();
+    await page.getByRole("button", { name: "Edit Profile" }).click();
+    const edit = page.getByRole("dialog", { name: "Edit Profile" });
+    check(await edit.getByRole("radio", { name: "Camera" }).count() === 1 && await edit.getByRole("radio", { name: "Car" }).count() === 0,
+      "the pictures include Camera and not Car");
+    await edit.getByRole("textbox", { name: "Your name" }).fill("Big Bitch");
+    check(await edit.getByText("Choose a different name.").isVisible() && await edit.getByRole("button", { name: "Save" }).isDisabled(),
+      "an offensive name is refused: a message, and Save stays off");
+    await edit.getByRole("textbox", { name: "Your name" }).fill("Kshitij");
+    check(await edit.getByText("Choose a different name.").count() === 0 && await edit.getByRole("button", { name: "Save" }).isEnabled(),
+      "a name that only contains a word's letters (Kshitij) is fine");
+    await page.keyboard.press("Escape");
+    await edit.waitFor({ state: "detached" });
+
+    // Delete Account.
+    await page.getByRole("radio", { name: "Settings" }).click();
+    await page.getByRole("button", { name: "Delete Account" }).click();
+    const sure = page.getByRole("dialog", { name: "Delete Your Account?" });
+    const confirm = sure.getByRole("button", { name: "Delete Account" });
+    check(await confirm.isDisabled(), "Delete Account stays off until the phrase is typed");
+    await sure.getByRole("textbox").fill("delete my account");
+    check(await confirm.isEnabled(), "typing delete my account turns it on");
+    await page.screenshot({ path: "screenshots/delete-account.png" });
+    await confirm.click();
+    await page.getByRole("button", { name: "Sign in with Apple" }).waitFor({ timeout: 10000 });
+    check(deleteCalls === 1, "Delete Account calls the delete-account function once and signs out");
+    await context.close();
+  }
+
+  // Alt+N: a new note from anywhere (inside a guide, for that guide). My Notes never turns the notes panel into a
+  // centre modal. Selects: the arrow sits as far in from the right as the text from the left.
+  {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 860 } });
+    await context.route("https://nxlsnpzfbazwlccxtwpt.supabase.co/**", fakeSupabase);
+    await context.addInitScript((value) => localStorage.setItem("sb-nxlsnpzfbazwlccxtwpt-auth-token", value), JSON.stringify(session));
+    const page = await context.newPage();
+    await page.goto("http://localhost:4173/#today");
+    await page.getByRole("heading", { name: /Welcome/ }).waitFor({ timeout: 15000 });
+    await page.keyboard.press("Alt+KeyN");
+    const newNote = page.getByRole("dialog", { name: "New Note" });
+    await newNote.waitFor({ timeout: 5000 });
+    check(new URL(page.url()).hash === "#guides", "Alt+N on Today goes to Guides and opens a new note");
+    await page.keyboard.press("Escape");
+    await newNote.waitFor({ state: "detached" });
+    await page.locator(".guide-card").first().click();
+    await page.getByRole("heading", { name: "Greetings", exact: true }).waitFor();
+    await page.keyboard.press("Alt+KeyN");
+    await newNote.waitFor();
+    check(await newNote.locator("select").first().inputValue() === GUIDE, "Alt+N inside a guide starts a note for that guide");
+    await page.keyboard.press("Escape");
+    await newNote.waitFor({ state: "detached" });
+    await page.getByRole("button", { name: "Back to Study Guides" }).click();
+    await page.getByRole("button", { name: "Open Notes" }).click();
+    await page.getByRole("dialog", { name: "Notes" }).waitFor();
+    await page.getByRole("button", { name: /My Notes/ }).first().click();
+    await page.getByRole("heading", { name: "My Notes" }).waitFor();
+    await page.waitForTimeout(300);
+    check(await page.locator('[aria-modal="true"]').count() === 0 && await page.getByRole("dialog").count() === 0,
+      "going to My Notes with the notes panel open closes it (no centre modal)");
+    const inset = await page.locator(".filters select").first().evaluate((el) => {
+      const cs = getComputedStyle(el);
+      return { left: cs.paddingLeft, x: cs.backgroundPositionX };
+    });
+    check(inset.x.includes(inset.left) && inset.left === "12px", `the select arrow's right inset matches the text's left inset (${JSON.stringify(inset)})`);
+    await page.locator(".filters select").first().screenshot({ path: "screenshots/select.png" });
     await context.close();
   }
 
