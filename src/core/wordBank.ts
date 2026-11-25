@@ -19,8 +19,6 @@ export function activeCustomWords(rows: CustomWordRow[]): Word[] {
 }
 
 const byHangul = new Map(BUILT_IN.map((w) => [w.hangul, w]));
-/** The built-in word with this spelling, if any. */
-export const builtInByHangul = (hangul: string) => byHangul.get(hangul.trim()) ?? null;
 
 /** Why a spelling can't be added to My Words: it's built in, or already saved. Null when it's new. */
 export function duplicateOf(hangul: string, mine: { hangul: string }[]): "builtIn" | "mine" | null {

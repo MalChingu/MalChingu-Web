@@ -93,7 +93,7 @@ function AnswersCard() {
   const parts = [
     { key: "right", label: "Right", value: stats.totalCorrect, color: "var(--green)" },
     { key: "wrong", label: "Wrong", value: stats.totalMissed, color: "var(--red)" },
-    { key: "unknown", label: "Didn't Know", value: stats.totalDontKnow, color: "#eab308" },
+    { key: "unknown", label: "Didn't Know", value: stats.totalDontKnow, color: "var(--warning-fill)" },
   ];
   return (
     <Card>

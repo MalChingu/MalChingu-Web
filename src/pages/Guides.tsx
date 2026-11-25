@@ -183,7 +183,7 @@ function GuideDetail({ guide, onBack, practice, addNote, openNotes, openNotebook
           <Card>
             {points.length > 0 && <ul className="points">{points.map((p, i) => <li key={i}>{p}</li>)}</ul>}
             <progress value={done} max={Math.max(tasks.length, 1)} />
-            <div className="row">
+            <div className="row overview-row">
               <span className="small muted grow">{done} of {tasks.length} tasks · {vocabulary.length} words</span>
               {vocabulary.length > 0 && (
                 <Button icon="cards" onClick={() => practice(shuffled(vocabulary), "meaning")}>All Vocabulary Flashcards</Button>

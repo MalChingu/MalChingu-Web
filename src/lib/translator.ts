@@ -11,8 +11,6 @@ interface TranslatorAPI {
 
 const api = (): TranslatorAPI | undefined => (globalThis as { Translator?: TranslatorAPI }).Translator;
 
-export const hasTranslator = () => api() !== undefined;
-
 /** Whether this browser can translate between the two languages at all (it may still need to download). */
 export async function canTranslate(from: Language, to: Language): Promise<boolean> {
   const T = api();

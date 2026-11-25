@@ -5,7 +5,7 @@
       "destination": "https://nxlsnpzfbazwlccxtwpt.supabase.co/functions/v1/mcp"
     },
     {
-      "source": "/((?!assets/|logo.svg|favicon.ico|icon-|apple-touch-icon).*)",
+      "source": "/((?!assets/|logo.svg|favicon.ico|icon-|apple-touch-icon|robots.txt|sitemap.xml).*)",
       "destination": "/index.html"
     }
   ]

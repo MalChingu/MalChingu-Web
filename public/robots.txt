@@ -1,0 +1,6 @@
+# Korimal: the public pages are the home page (sign-in) and the privacy and terms pages.
+User-agent: *
+Allow: /
+Disallow: /mcp
+
+Sitemap: https://mal-chingu-web.vercel.app/sitemap.xml

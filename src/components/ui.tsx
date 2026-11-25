@@ -277,12 +277,15 @@ function FitTitle({ text }: { text: string }) {
       h1.style.fontSize = "";
       const base = parseFloat(getComputedStyle(h1).fontSize);
       const twoLines = () => h1.scrollHeight <= parseFloat(getComputedStyle(h1).lineHeight) * 2 + 2 && h1.scrollWidth <= h1.clientWidth;
-      for (let step = 19; step >= 10 && !twoLines(); step--) h1.style.fontSize = `${(base * step) / 20}px`;
+      for (let step = 19; step >= 8 && !twoLines(); step--) h1.style.fontSize = `${(base * step) / 20}px`;
     };
     fit();
+    // Montserrat is wider than the fallback font: measure again once it has loaded.
+    let live = true;
+    document.fonts?.ready.then(() => { if (live) fit(); });
     const observer = new ResizeObserver(fit);
     observer.observe(h1.parentElement ?? h1);
-    return () => observer.disconnect();
+    return () => { live = false; observer.disconnect(); };
   }, [text]);
   return <h1 ref={ref} className="fit-title">{text}</h1>;
 }
