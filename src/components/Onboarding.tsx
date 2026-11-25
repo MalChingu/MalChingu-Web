@@ -5,7 +5,7 @@ import { useStore } from "../lib/store";
 import { AvatarImage, AvatarPicker } from "./Avatar";
 import { useUsernameCheck, useUsernameSuggestion, UsernameStatus } from "./Friends";
 import { Icon } from "./Icon";
-import { Button, Logo } from "./ui";
+import { Button, Logo, RoundButton } from "./ui";
 
 /** The account's name from Apple or Google, when they gave one. */
 function nameFromAccount(meta: Record<string, unknown> | undefined): string {
@@ -43,6 +43,12 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
   return (
     <div className="onboarding app-background" role="dialog" aria-modal="true" aria-label="Set Up Your Profile">
       <div className="onboarding-card glass">
+        {/* Back: an arrow at the card's top left, from the second step on. */}
+        {step > 0 && (
+          <span className="onboarding-back">
+            <RoundButton icon="chevronLeft" tint="glass" label="Back" size={38} onClick={() => { setError(null); setStep(step - 1); }} />
+          </span>
+        )}
         <Logo size={64} blink="loop" />
         <div className="onboarding-dots" aria-label={`Step ${step + 1} of 3`}>
           {[0, 1, 2].map((i) => <span key={i} className={i === step ? "on" : i < step ? "done" : ""} />)}
@@ -72,10 +78,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
             <UsernameStatus state={check} />
             <p className="small caption-note"><Icon name="lock" size={14} /> This cannot be changed later.</p>
             {error && <p className="error small" role="alert">{error}</p>}
-            <div className="button-pair">
-              <Button full onClick={() => setStep(0)}>Back</Button>
-              <Button type="submit" kind="prominent" full disabled={!(check === "free" || check === "unknown")}>Continue</Button>
-            </div>
+            <Button type="submit" kind="prominent" full large disabled={!(check === "free" || check === "unknown")}>Continue</Button>
           </form>
         )}
 
@@ -85,12 +88,8 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
             <p className="muted center">Friends see it next to your name. You can change it later in Profile.</p>
             <div className="onboarding-avatar"><AvatarImage className="avatar" avatar={avatar} size={120} /></div>
             <AvatarPicker value={avatar} onChange={setAvatar} canUpload={store.plan === "pro"} />
-            <Button icon="refresh" full onClick={() => setAvatar(pickAvatarPreset(avatar))}>Shuffle</Button>
             {error && <p className="error small" role="alert">{error}</p>}
-            <div className="button-pair">
-              <Button full onClick={() => setStep(1)}>Back</Button>
-              <Button kind="prominent" full disabled={saving} onClick={finish}>{saving ? "Saving…" : "Start Learning"}</Button>
-            </div>
+            <Button kind="prominent" full large disabled={saving} onClick={finish}>{saving ? "Saving…" : "Start Learning"}</Button>
           </div>
         )}
       </div>

@@ -178,15 +178,21 @@ try {
       check(await setup.locator('input[type="file"]').count() === 0, "a free account can't upload a photo");
       await setup.getByRole("radio", { name: "Rocket" }).click();
       check(await setup.getByRole("radio", { name: "Rocket" }).getAttribute("aria-checked") === "true", "tapping a picture picks it");
-      await setup.getByRole("button", { name: "Shuffle" }).click();
-      check(await setup.getByRole("radio", { name: "Rocket" }).getAttribute("aria-checked") === "false", "Shuffle picks another picture");
+      check(await setup.getByRole("button", { name: "Shuffle" }).count() === 0, "there's no Shuffle button");
+      // Back is the arrow at the card's top left.
+      check(await setup.getByRole("button", { name: "Back", exact: true }).count() === 1, "Back is one arrow, not a button beside Continue");
+      await setup.getByRole("button", { name: "Back", exact: true }).click();
+      await setup.getByRole("heading", { name: "Choose a Username" }).waitFor();
+      await setup.getByRole("button", { name: "Continue" }).click();
+      await setup.getByRole("heading", { name: "Choose a Picture" }).waitFor();
+      check(await setup.getByRole("radio", { name: "Rocket" }).getAttribute("aria-checked") === "true", "going back keeps the chosen picture");
       check(await setup.locator(".onboarding-avatar img").evaluate((img) => img.complete && img.naturalWidth === 128), "the picture loads");
       await page.screenshot({ path: "screenshots/onboarding-picture.png" });
       await setup.getByRole("button", { name: "Start Learning" }).click();
       await setup.waitFor({ state: "detached" });
       check(db.public_profiles[0]?.username === "testlearner", "the username is saved");
       const saved = db.profiles[0].settings.profile.avatar;
-      check(PRESETS.includes(saved) && saved !== "Rocket", `the picture is saved by its preset key (${saved})`);
+      check(saved === "Rocket", `the picture is saved by its preset key (${saved})`);
       const tour = page.getByRole("dialog", { name: /^Tour:/ });
       await tour.waitFor();
       for (const stop of ["Today", "Flashcards", "Guides", "Stats"]) {
@@ -604,8 +610,8 @@ try {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.waitForTimeout(200);
     const [noteP, buttonP] = [await limit.locator(".guide-limit-text").boundingBox(), await limit.getByRole("button").boundingBox()];
-    check(buttonP.x > noteP.x + noteP.width - 1 && buttonP.y < noteP.y + noteP.height,
-      "phone, 2 guides: Upgrade to Pro stays to the right of the note");
+    check(buttonP.y >= noteP.y + noteP.height - 1 && Math.abs(buttonP.width - noteP.width) < 2,
+      "phone, 2 guides: Upgrade to Pro sits under the note, full width");
     await page.screenshot({ path: "screenshots/guides-limit-phone.png" });
     await page.setViewportSize({ width: 1280, height: 860 });
     PLAN = "pro";
