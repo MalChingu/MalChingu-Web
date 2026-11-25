@@ -9,6 +9,7 @@ import { activeCustomWords, BUILT_IN, builtInWord } from "../core/wordBank";
 import { challengeNeedsMe, friendLabel, isValidUsername, looksLikeEmail, normalizeUsername, pickDuelWords,
   type ChallengeRow, type FriendRow, type UserSearchRow } from "../core/friends";
 import { dayString, wordOfDay } from "../core/wordOfDay";
+import { readPlan, type Plan } from "../core/plan";
 import { readSettings, settingsPatch, withoutObsolete, type RawSettings, type Settings } from "./settings";
 import { CONNECTOR_BASE_URL, supabase } from "./supabase";
 
@@ -127,6 +128,8 @@ interface Store {
   friendsError: string | null;
   /** Your username: null with none yet, undefined until your card has loaded. */
   username: string | null | undefined;
+  /** Free (2 study guides at a time) or Pro; null until loaded. */
+  plan: Plan | null;
   /** Requests to you and challenges waiting on you. */
   friendsWaiting: number;
   setUsername: (typed: string) => Promise<string | null>;
@@ -172,6 +175,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   /** Whether the account's data has loaded without an error, so your card isn't updated from empty data. */
   const [dataOK, setDataOK] = useState(false);
   const [duel, setDuel] = useState<Duel | null>(null);
+  const [plan, setPlan] = useState<Plan | null>(null);
   const userID = session?.user.id ?? null;
   /** When each part of the data was last changed on this page, so a load already in flight can't undo it. */
   const editedAt = useRef<Partial<Record<keyof Data, number>>>({});
@@ -190,12 +194,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const loadFriends = useCallback(async () => {
     if (!userID) return;
     const ticket = ++friendsLoad.current;
-    const [f, c, me] = await Promise.all([
+    const [f, c, me, p] = await Promise.all([
       supabase.rpc("my_friends"),
       supabase.rpc("my_challenges"),
       supabase.from("public_profiles").select("username,level").eq("user_id", userID).maybeSingle(),
+      supabase.rpc("my_plan"),
     ]);
     if (ticket !== friendsLoad.current) return;
+    if (!p.error) setPlan(readPlan((p.data as { plan?: unknown } | null)?.plan));
     const error = f.error ?? c.error ?? me.error;
     if (error) {
       setFriendsState((s) => ({ ...s, loaded: true, error: `Couldn't load your friends: ${error.message}` }));
@@ -255,6 +261,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     setFriendsState(NO_FRIENDS);
     setCard(undefined);
+    setPlan(null);
     setDataOK(false);
     setDuel(null);
     if (!userID) { setData(EMPTY); return; }
@@ -652,7 +659,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     openWord: (word, quizMode = false) => setOpenedWord({ word, quiz: quizMode }),
     openedWord, closeWord: () => setOpenedWord(null),
     friends: friendsState.rows, challenges: friendsState.challenges, friendsLoaded: friendsState.loaded,
-    friendsError: friendsState.error, username: card === undefined ? undefined : card?.username ?? null, friendsWaiting,
+    friendsError: friendsState.error, username: card === undefined ? undefined : card?.username ?? null, plan, friendsWaiting,
     setUsername, usernameAvailable, searchUsers, requestFriend, acceptFriend, removeFriend, challengeFriend, acceptChallenge,
     removeChallenge, submitDuel, playDuel, duel, endDuel: () => setDuel(null),
   };

@@ -17,8 +17,9 @@ const USER = "44444444-4444-4444-8444-444444444444";
 const GUIDE = "55555555-5555-4555-8555-555555555555";
 const today = (() => { const d = new Date(); const p = (n) => String(n).padStart(2, "0"); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`; })();
 const stamp = new Date().toISOString();
-/** A 1×1 JPEG, base64, standing in for a profile picture. */
-const PIXEL = "/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA=";
+const PRESETS = ["Astro", "Bolt", "Camera", "Car", "Chess", "Coffee", "Game", "Rocket"];
+/** The account's plan, as my_plan() returns it: free (2 guides at a time) or pro. */
+let PLAN = "free";
 
 /** The stand-in database. */
 const db = {
@@ -68,6 +69,9 @@ async function fakeSupabase(route) {
   // Friends: none yet in this account.
   if (url.pathname === "/rest/v1/rpc/my_friends" || url.pathname === "/rest/v1/rpc/my_challenges") return json([]);
   if (url.pathname === "/rest/v1/rpc/username_available") return json(true);
+  if (url.pathname === "/rest/v1/rpc/my_plan") {
+    return json({ plan: PLAN, guide_limit: PLAN === "pro" ? null : 2, guides: db.study_guides.length });
+  }
   if (url.pathname === "/rest/v1/rpc/record_daily_quiz") {
     // Like the real function: claim today's quiz and save the count together, or do nothing.
     const { p_day, p_word_id, p_progress, p_study_day } = request.postDataJSON();
@@ -166,14 +170,22 @@ try {
       check(await setup.getByText("This cannot be changed later.").isVisible(), "the username step says it can't be changed later");
       await page.screenshot({ path: "screenshots/onboarding-username.png" });
       await setup.getByRole("button", { name: "Continue" }).click();
-      await setup.getByRole("heading", { name: "Add a Picture" }).waitFor();
-      check(await setup.locator(".onboarding-avatar svg").count() === 1, "a default picture is picked for you");
+      await setup.getByRole("heading", { name: "Choose a Picture" }).waitFor();
+      const choices = setup.getByRole("radiogroup", { name: "Profile picture" }).getByRole("radio");
+      check(await choices.count() === 8, "the picture step offers the eight presets");
+      check(await setup.locator('[role="radio"][aria-checked="true"]').count() === 1, "one picture is picked for you");
+      check(await setup.getByRole("button", { name: /Upload/ }).count() === 0, "there's no photo upload");
+      await setup.getByRole("radio", { name: "Rocket" }).click();
+      check(await setup.getByRole("radio", { name: "Rocket" }).getAttribute("aria-checked") === "true", "tapping a picture picks it");
       await setup.getByRole("button", { name: "Shuffle" }).click();
+      check(await setup.getByRole("radio", { name: "Rocket" }).getAttribute("aria-checked") === "false", "Shuffle picks another picture");
+      check(await setup.locator(".onboarding-avatar img").evaluate((img) => img.complete && img.naturalWidth === 128), "the picture loads");
       await page.screenshot({ path: "screenshots/onboarding-picture.png" });
       await setup.getByRole("button", { name: "Start Learning" }).click();
       await setup.waitFor({ state: "detached" });
       check(db.public_profiles[0]?.username === "testlearner", "the username is saved");
-      check(/^default:[1-5]$/.test(db.profiles[0].settings.profile.avatar), `the default picture is saved by its key (${db.profiles[0].settings.profile.avatar})`);
+      const saved = db.profiles[0].settings.profile.avatar;
+      check(PRESETS.includes(saved) && saved !== "Rocket", `the picture is saved by its preset key (${saved})`);
       const tour = page.getByRole("dialog", { name: /^Tour:/ });
       await tour.waitFor();
       for (const stop of ["Today", "Flashcards", "Guides", "Stats"]) {
@@ -269,10 +281,30 @@ try {
     check(await page.locator(".profile-name").innerText() === "Test Learner", `${label}: profile shows the name`);
     check(await page.getByText("@testlearner").isVisible(), `${label}: profile shows the username`);
     if (label === "phone") {
-      await page.getByRole("button", { name: "Edit Name" }).click();
-      const sheet = page.getByRole("dialog", { name: "Edit Name" });
-      check(await sheet.getByText("can't be changed").isVisible(), "editing the name says the username can't change");
-      await sheet.getByRole("button", { name: "Cancel" }).click();
+      // Edit Profile: the pencil (or the picture) opens one sheet for the name and the picture.
+      await page.getByRole("button", { name: "Change profile picture" }).click();
+      const sheet = page.getByRole("dialog", { name: "Edit Profile" });
+      check(await sheet.getByText(/@testlearner/).count() === 0 && await sheet.getByRole("textbox").count() === 1,
+        "Edit Profile has the name and picture only, not the username");
+      check(await sheet.getByRole("radio").count() === 8, "Edit Profile offers the eight pictures");
+      await sheet.getByRole("radio", { name: "Coffee" }).click();
+      await page.screenshot({ path: "screenshots/edit-profile-phone.png" });
+      await sheet.getByRole("button", { name: "Save" }).click();
+      await sheet.waitFor({ state: "detached" });
+      await page.waitForLoadState("networkidle");
+      check(db.profiles[0].settings.profile.avatar === "Coffee", "Edit Profile saves the new picture");
+      check((await page.locator(".profile-card img.avatar").getAttribute("src")) === "/profile/Coffee.png", "the profile card shows the new picture");
+      await page.getByRole("button", { name: "Edit Profile" }).click();
+      await page.getByRole("dialog", { name: "Edit Profile" }).getByRole("button", { name: "Cancel" }).click();
+      // Phones have no sidebar: the plan shows in Profile.
+      check(await page.locator(".plan-profile").getByRole("button", { name: "Upgrade to Pro" }).isVisible(), "phone: Upgrade to Pro shows in Profile");
+      check(await page.locator(".plan-profile").getByText("Free · 1 of 2 guides").isVisible(), "phone: Profile shows the guide count");
+    } else {
+      // Wide screens: Upgrade to Pro at the bottom of the sidebar, above Text Size; not in Profile.
+      const upgrade = page.locator(".tabs").getByRole("button", { name: "Upgrade to Pro" });
+      const above = (await upgrade.boundingBox()).y < (await page.locator(".tab.text-size").boundingBox()).y;
+      check(await upgrade.isVisible() && above, "desktop: Upgrade to Pro sits above Text Size in the sidebar");
+      check(!(await page.locator(".plan-profile").isVisible()), "desktop: Profile leaves the plan to the sidebar");
     }
     check(await page.getByText("Beginner").isVisible(), `${label}: profile shows the level`);
     const borders = await page.evaluate(() => ({
@@ -444,11 +476,15 @@ try {
     check(true, `${scheme}: a link made on another device shows here`);
     db.connector_tokens = [];
 
-    // The Profile tab uses the learner's picture when there is one.
-    db.profiles[0].settings.profile.avatar = PIXEL;
+    // The Profile tab uses the learner's picture when there is one; an old photo shows the default preset.
+    db.profiles[0].settings.profile.avatar = "Rocket";
     await page.reload();
     await page.locator("img.tab-avatar").first().waitFor({ timeout: 10000 });
     check(await page.locator("img.tab-avatar").first().evaluate((img) => img.complete && img.naturalWidth > 0), `${scheme}: profile tab shows the picture`);
+    db.profiles[0].settings.profile.avatar = "/9j/4AAQSkZJRgABAQ";
+    await page.reload();
+    await page.locator("img.tab-avatar").first().waitFor({ timeout: 10000 });
+    check((await page.locator("img.tab-avatar").first().getAttribute("src")) === "/profile/Astro.png", `${scheme}: an old photo shows the default picture`);
     delete db.profiles[0].settings.profile.avatar;
     await page.reload();
     await page.getByRole("heading", { name: "Profile" }).waitFor();
@@ -536,6 +572,41 @@ try {
     check(await page.getByText("역").first().isVisible() && await page.getByRole("checkbox").count() === 0,
       "the rest stay, and selecting ends");
     await page.screenshot({ path: "screenshots/my-words-after-delete.png" });
+    await context.close();
+  }
+
+  // Plans: a free account holds 2 guides at a time and sees the count with Upgrade to Pro; Pro sees a badge and no limit.
+  {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 860 } });
+    await context.route("https://nxlsnpzfbazwlccxtwpt.supabase.co/**", fakeSupabase);
+    await context.addInitScript((value) => localStorage.setItem("sb-nxlsnpzfbazwlccxtwpt-auth-token", value), JSON.stringify(session));
+    const page = await context.newPage();
+    const limit = page.locator(".guide-limit");
+    await page.goto("http://localhost:4173/#guides");
+    await limit.waitFor({ timeout: 15000 });
+    check(await limit.getByText("1 of 2 guides").isVisible() && await limit.getByRole("button", { name: "Upgrade to Pro" }).isVisible(),
+      "free, 1 guide: Guides shows 1 of 2 with Upgrade to Pro");
+    const second = { ...db.study_guides[0], id: "55555555-5555-4555-8555-555555555556", title: "Second Guide", created_at: stamp };
+    db.study_guides.push(second);
+    await page.reload();
+    await limit.getByText("2 of 2 guides").waitFor({ timeout: 15000 });
+    check(await limit.getByText("You've reached 2 guides. Delete one to make another, or upgrade to Pro.").isVisible(),
+      "free, 2 guides: Guides says the limit is reached and what to do");
+    await page.screenshot({ path: "screenshots/guides-limit-reached.png" });
+    await page.getByRole("button", { name: "Create Guide" }).click();
+    const sheet = page.getByRole("dialog", { name: "Create Guide" });
+    check(await sheet.getByText(/You've reached 2 guides/).isVisible() && await sheet.getByRole("button", { name: "Upgrade to Pro" }).isVisible(),
+      "free, 2 guides: Create Guide shows the note too");
+    await page.keyboard.press("Escape");
+    PLAN = "pro";
+    await page.reload();
+    const badge = page.locator(".tabs .pro-badge");
+    await badge.waitFor({ timeout: 15000 });
+    check((await badge.boundingBox()).y < (await page.locator(".tab.text-size").boundingBox()).y, "pro: the sidebar shows a Pro badge above Text Size");
+    check(await limit.count() === 0 && await page.getByRole("button", { name: "Upgrade to Pro" }).count() === 0, "pro: no limit note or Upgrade button");
+    await page.screenshot({ path: "screenshots/guides-pro.png" });
+    PLAN = "free";
+    db.study_guides = db.study_guides.filter((g) => g.id !== second.id);
     await context.close();
   }
 

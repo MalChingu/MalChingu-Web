@@ -1,15 +1,14 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { displayLabel, type DisplayMode } from "../core/models";
 import { ACHIEVEMENTS, shownTitle } from "../core/achievements";
 import { levelLabel } from "../core/progress";
 import { BUILT_IN } from "../core/wordBank";
 import { Icon } from "../components/Icon";
 import { FriendsCard } from "../components/Friends";
-import { AvatarImage } from "../components/Avatar";
+import { AvatarImage, AvatarPicker } from "../components/Avatar";
+import { PlanCard } from "../components/Plan";
 import { TOUR_EVENT } from "../components/Onboarding";
 import { Button, Card, ConfirmDialog, Logo, Page, RoundButton, SectionTitle, Segmented, Sheet, copyText } from "../components/ui";
-import { isDefaultAvatar, pickDefaultAvatar } from "../core/avatars";
-import { squareJPEGBase64 } from "../lib/avatar";
 import { initials } from "../lib/settings";
 import { speak, useKoreanVoice } from "../lib/speech";
 import { useAppearance, type Appearance } from "../lib/theme";
@@ -25,13 +24,12 @@ const LINKS = {
 export function Profile() {
   const store = useStore();
   const { settings } = store;
-  const [editingName, setEditingName] = useState(false);
+  const [editing, setEditing] = useState(false);
   const [copied, setCopied] = useState(false);
   const [working, setWorking] = useState(false);
-  const [confirming, setConfirming] = useState<"turnOff" | "signOut" | "removePicture" | null>(null);
+  const [confirming, setConfirming] = useState<"turnOff" | "signOut" | null>(null);
   // About (you, the app, Sign Out) or Settings (the app's and the account's settings).
   const [part, setPart] = useState<"about" | "settings">("about");
-  const file = useRef<HTMLInputElement>(null);
   const voice = useKoreanVoice();
   const [appearance, setAppearance] = useAppearance();
 
@@ -52,31 +50,15 @@ export function Profile() {
         {/* The card's border takes the colour of the level badge. */}
         <div className={`glass card profile-card level-${store.level}`} style={{ padding: 22 }}>
           <span className="profile-edit">
-            <RoundButton icon="pencil" tint="glass" label="Edit Name" size={38} onClick={() => setEditingName(true)} />
+            <RoundButton icon="pencil" tint="glass" label="Edit Profile" size={38} onClick={() => setEditing(true)} />
           </span>
           <div className="center stack">
-            {/* The camera (bottom right) changes the picture; the ✕ (bottom left) removes it, after asking. */}
-            <div className="avatar-box">
-              <button type="button" className="avatar-button" aria-label="Change profile picture" onClick={() => file.current?.click()}>
-                {settings.profile.avatar
-                  ? <AvatarImage className="avatar" avatar={settings.profile.avatar} size={96} />
-                  : <span className="avatar placeholder">{initials(settings.profile.name) || <Icon name="person" size={40} />}</span>}
-                <span className="avatar-camera"><Icon name="camera" size={16} /></span>
-              </button>
-              {settings.profile.avatar && !isDefaultAvatar(settings.profile.avatar) && (
-                <button type="button" className="avatar-remove" aria-label="Remove picture" title="Remove Picture"
-                  onClick={() => setConfirming("removePicture")}>
-                  <Icon name="x" size={15} strokeWidth={2.8} />
-                </button>
-              )}
-            </div>
-            <input ref={file} type="file" accept="image/*" hidden onChange={async (e) => {
-              const picked = e.target.files?.[0];
-              e.target.value = "";
-              if (!picked) return;
-              try { store.updateSettings({ profile: { ...settings.profile, avatar: await squareJPEGBase64(picked) } }); }
-              catch { store.setError("Couldn't read that picture."); }
-            }} />
+            {/* The picture opens Edit Profile too. */}
+            <button type="button" className="avatar-button" aria-label="Change profile picture" onClick={() => setEditing(true)}>
+              {settings.profile.avatar
+                ? <AvatarImage className="avatar" avatar={settings.profile.avatar} size={96} />
+                : <span className="avatar placeholder">{initials(settings.profile.name) || <Icon name="person" size={40} />}</span>}
+            </button>
             <h2 className="profile-name">{settings.profile.name || "Your Name"}</h2>
             {store.username && <span className="profile-username muted">@{store.username}</span>}
             {title && <span className="profile-title muted">{title.title}</span>}
@@ -111,6 +93,9 @@ export function Profile() {
             </div>
           </Card>
         )}
+
+        {/* Phones have no sidebar, so the plan shows here (wide screens show it at the bottom of the sidebar). */}
+        <PlanCard className="plan-profile" />
 
         <FriendsCard />
 
@@ -203,16 +188,11 @@ export function Profile() {
         </>
       )}
 
-      {editingName && <NameSheet onClose={() => setEditingName(false)} />}
+      {editing && <EditProfileSheet onClose={() => setEditing(false)} />}
       {confirming === "turnOff" && (
         <ConfirmDialog title="Turn Off the Connector?" message="The link stops working in Claude. You can create a new link afterwards and add it to Claude again."
           confirmLabel="Turn Off" onCancel={() => setConfirming(null)}
           onConfirm={() => { setConfirming(null); run(store.revokeConnectorLink); }} />
-      )}
-      {confirming === "removePicture" && (
-        <ConfirmDialog title="Remove Picture?" message="Your photo is deleted from every device, and you get one of Korimal's pictures instead."
-          confirmLabel="Remove" onCancel={() => setConfirming(null)}
-          onConfirm={() => { setConfirming(null); store.updateSettings({ profile: { ...settings.profile, avatar: pickDefaultAvatar() } }); }} />
       )}
       {confirming === "signOut" && (
         <ConfirmDialog title="Sign Out?" message="Your words, stats and guides stay in your account and come back when you sign in again."
@@ -222,21 +202,28 @@ export function Profile() {
   );
 }
 
-/** Edit your name (Profile's pencil). Your username can't be changed. */
-function NameSheet({ onClose }: { onClose: () => void }) {
+/** Edit Profile (the pencil, or tapping the picture): your name and picture. (Your username is set for good.) */
+function EditProfileSheet({ onClose }: { onClose: () => void }) {
   const store = useStore();
   const profile = store.settings.profile;
   const [name, setName] = useState(profile.name);
+  const [avatar, setAvatar] = useState(profile.avatar);
   const save = () => {
-    if (name.trim() && name.trim() !== profile.name) store.updateSettings({ profile: { ...profile, name: name.trim() } });
+    if (name.trim() && (name.trim() !== profile.name || avatar !== profile.avatar)) {
+      store.updateSettings({ profile: { ...profile, name: name.trim(), avatar } });
+    }
     onClose();
   };
   return (
-    <Sheet title="Edit Name" onClose={onClose}>
+    <Sheet title="Edit Profile" onClose={onClose}>
       <form className="stack" onSubmit={(e) => { e.preventDefault(); save(); }}>
-        <input className="text-input sheet-input" value={name} aria-label="Your name" placeholder="Your Name" autoFocus maxLength={80}
+        <div className="onboarding-avatar">
+          {avatar ? <AvatarImage className="avatar" avatar={avatar} size={96} />
+            : <span className="avatar placeholder">{initials(name) || <Icon name="person" size={40} />}</span>}
+        </div>
+        <AvatarPicker value={avatar} onChange={setAvatar} />
+        <input className="text-input sheet-input" value={name} aria-label="Your name" placeholder="Your Name" maxLength={80}
           onChange={(e) => setName(e.target.value)} />
-        {store.username && <p className="small muted">Your username, @{store.username}, can't be changed.</p>}
         <Button type="submit" kind="prominent" full large disabled={!name.trim()}>Save</Button>
         <Button full onClick={onClose}>Cancel</Button>
       </form>

@@ -7,6 +7,7 @@ import { useStore } from "./lib/store";
 import { Flashcards, Round, type PracticeMode } from "./pages/Flashcards";
 import { Guides } from "./pages/Guides";
 import { Profile } from "./pages/Profile";
+import { ProBadge, UpgradeButton } from "./components/Plan";
 import { AvatarImage } from "./components/Avatar";
 import { SignIn } from "./pages/SignIn";
 import { Stats } from "./pages/Stats";
@@ -123,6 +124,8 @@ export function App() {
             <span>{t.label}</span>
           </button>
         ))}
+        {/* The plan sits at the bottom, above Text Size: a Pro badge, or Upgrade to Pro. */}
+        {store.plan && <div className="tabs-plan">{store.plan === "pro" ? <ProBadge /> : <UpgradeButton />}</div>}
         <TextSize />
       </nav>
       {/* A Flashcard Duel covers the whole app until it's finished or left, so it's played (and scored) once. */}

@@ -244,15 +244,24 @@ describe("My Words search (shared cases)", () => {
   });
 });
 
-import { DEFAULT_AVATARS, isDefaultAvatar, pickDefaultAvatar } from "../avatars";
+import { AVATAR_PRESETS, DEFAULT_AVATAR, pickAvatarPreset, toAvatarPreset } from "../avatars";
 import avatarCases from "./avatars.cases.json";
-describe("default pictures (shared cases)", () => {
-  it("match the shared list and never use the icon's colours", () => {
-    expect(DEFAULT_AVATARS).toEqual(avatarCases.avatars);
-    for (const a of DEFAULT_AVATARS) for (const c of a.colors) expect(avatarCases.iconColors).not.toContain(c);
+describe("profile picture presets (shared cases)", () => {
+  it("match the shared list", () => {
+    expect([...AVATAR_PRESETS]).toEqual(avatarCases.presets);
+    expect(DEFAULT_AVATAR).toBe(avatarCases.fallback);
   });
+  it.each(avatarCases.toPreset)("preset for $value", (c) => { expect(toAvatarPreset(c.value)).toBe(c.expect); });
   it.each(avatarCases.pick)("pick replacing $exclude at $random", (c) => {
-    expect(pickDefaultAvatar(c.exclude, c.random)).toBe(c.expect);
+    expect(pickAvatarPreset(c.exclude, c.random)).toBe(c.expect);
   });
-  it.each(avatarCases.isDefault)("is default: $avatar", (c) => { expect(isDefaultAvatar(c.avatar)).toBe(c.expect); });
+});
+
+import { planLimit, type Plan } from "../plan";
+import planCases from "./plan.cases.json";
+describe("guide limit (shared cases)", () => {
+  it.each(planCases.cases)("$plan with $guides guides", (c) => {
+    const { plan, guides, ...expected } = c;
+    expect(planLimit(plan as Plan | null, guides)).toEqual(expected);
+  });
 });

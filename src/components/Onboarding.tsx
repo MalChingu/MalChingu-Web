@@ -1,9 +1,8 @@
 import { useRef, useState } from "react";
-import { isDefaultAvatar, pickDefaultAvatar } from "../core/avatars";
+import { isAvatarPreset, pickAvatarPreset } from "../core/avatars";
 import { normalizeUsername } from "../core/friends";
-import { squareJPEGBase64 } from "../lib/avatar";
 import { useStore } from "../lib/store";
-import { AvatarImage } from "./Avatar";
+import { AvatarImage, AvatarPicker } from "./Avatar";
 import { useUsernameCheck, useUsernameSuggestion, UsernameStatus } from "./Friends";
 import { Icon } from "./Icon";
 import { Button, Logo } from "./ui";
@@ -14,7 +13,7 @@ function nameFromAccount(meta: Record<string, unknown> | undefined): string {
   return typeof full === "string" ? full.trim() : "";
 }
 
-/** First sign-in: your name, a username (for good) and a picture (optional: a default one is picked for you).
+/** First sign-in: your name, a username (for good) and one of the preset pictures (one is picked for you).
  *  Shown until the account has a username. */
 export function Onboarding({ onDone }: { onDone: () => void }) {
   const store = useStore();
@@ -25,10 +24,10 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
   const suggestion = useUsernameSuggestion(name, typed.current || step !== 1);
   const shown = typed.current ? handle : handle || suggestion;
   const check = useUsernameCheck(shown);
-  const [avatar, setAvatar] = useState<string>(() => store.settings.profile.avatar ?? pickDefaultAvatar());
+  const [avatar, setAvatar] = useState<string>(() =>
+    isAvatarPreset(store.settings.profile.avatar) ? store.settings.profile.avatar : pickAvatarPreset());
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const file = useRef<HTMLInputElement>(null);
 
   const finish = async () => {
     setSaving(true);
@@ -81,19 +80,11 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
 
         {step === 2 && (
           <div className="stack onboarding-step">
-            <h1 className="onboarding-title">Add a Picture</h1>
-            <p className="muted center">Optional. Upload your own, or keep one of ours.</p>
+            <h1 className="onboarding-title">Choose a Picture</h1>
+            <p className="muted center">Friends see it next to your name. You can change it later in Profile.</p>
             <div className="onboarding-avatar"><AvatarImage className="avatar" avatar={avatar} size={120} /></div>
-            <div className="button-pair">
-              <Button icon="camera" full onClick={() => file.current?.click()}>Upload Photo</Button>
-              <Button icon="refresh" full onClick={() => setAvatar(pickDefaultAvatar(isDefaultAvatar(avatar) ? avatar : null))}>Shuffle</Button>
-            </div>
-            <input ref={file} type="file" accept="image/*" hidden aria-label="Upload photo" onChange={async (e) => {
-              const picked = e.target.files?.[0];
-              e.target.value = "";
-              if (!picked) return;
-              try { setAvatar(await squareJPEGBase64(picked)); } catch { setError("Couldn't read that picture."); }
-            }} />
+            <AvatarPicker value={avatar} onChange={setAvatar} />
+            <Button icon="refresh" full onClick={() => setAvatar(pickAvatarPreset(avatar))}>Shuffle</Button>
             {error && <p className="error small" role="alert">{error}</p>}
             <div className="button-pair">
               <Button full onClick={() => setStep(1)}>Back</Button>

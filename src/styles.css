@@ -426,15 +426,6 @@ kbd { font: inherit; font-size: 0.85rem; font-weight: 600; min-width: 28px; text
 .avatar-button { position: relative; border: 0; background: none; padding: 0; }
 .avatar { width: 96px; height: 96px; border-radius: 50%; object-fit: cover; display: flex; align-items: center; justify-content: center; }
 .avatar.placeholder { background: var(--brand-gradient); color: var(--on-fill); font-size: 2.2rem; font-weight: 800; }
-.avatar-camera {
-  position: absolute; right: -2px; bottom: -2px; width: 30px; height: 30px; border-radius: 50%; background: var(--accent-fill);
-  color: var(--on-fill); display: flex; align-items: center; justify-content: center; border: 2px solid var(--base);
-}
-.avatar-box { position: relative; }
-.avatar-remove {
-  position: absolute; left: -2px; bottom: -2px; width: 30px; height: 30px; border-radius: 50%; background: var(--red-fill);
-  color: var(--on-fill); display: flex; align-items: center; justify-content: center; border: 2px solid var(--base); padding: 0; cursor: pointer;
-}
 .profile-username { margin-top: -8px; font-weight: 500; }
 .name-input { border: 0; background: none; text-align: center; font-size: 1.5rem; font-weight: 650; outline: none; width: 100%; }
 .level-tag { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 999px; background: var(--accent-soft); font-weight: 600; font-size: 0.9rem; }
@@ -893,3 +884,31 @@ a.easter-egg, a.easter-egg:hover, .legal-footer a.easter-egg, .legal-footer a.ea
 .overview-row { flex-wrap: wrap; row-gap: 8px; }
 .overview-row .grow { flex: 1 1 140px; }
 @media (max-width: 480px) { .overview-row .button { flex: 1 1 100%; } }
+
+/* Profile pictures: eight presets, chosen from a grid (first sign-in and Edit Profile). */
+.avatar-image { border-radius: 50%; object-fit: cover; display: block; flex: none; }
+.avatar-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; justify-items: center; width: 100%; }
+.avatar-choice { border: 0; padding: 3px; border-radius: 50%; background: none; cursor: pointer; line-height: 0;
+  box-shadow: 0 0 0 2px transparent; transition: box-shadow 0.15s, transform 0.15s; }
+.avatar-choice img { width: 56px; height: 56px; border-radius: 50%; display: block; }
+.avatar-choice:hover { transform: scale(1.05); }
+.avatar-choice.on { box-shadow: 0 0 0 3px var(--accent); }
+.avatar-choice:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) { .avatar-choice { transition: none; } .avatar-choice:hover { transform: none; } }
+
+/* Plans: a Pro badge, or Upgrade to Pro. At the bottom of the sidebar on wide screens, in Profile on phones. */
+.pro-badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 999px; align-self: flex-start;
+  background: var(--brand-gradient); color: var(--on-fill); font-weight: 700; font-size: 0.92rem; }
+.plan-card { display: flex; flex-direction: column; gap: 10px; padding: 18px; }
+.plan-card.pro { flex-direction: row; align-items: center; gap: 12px; }
+.tabs-plan { display: none; }
+@media (min-width: 900px) {
+  .tabs-plan { display: flex; flex-direction: column; margin-top: auto; padding: 8px 2px 4px; }
+  .tabs-plan .pro-badge { align-self: stretch; justify-content: center; }
+  .tabs-plan + .tab.text-size { margin-top: 0; }
+  .plan-profile { display: none; }
+}
+/* Guides, free accounts: how many of the 2 guides are used, with Upgrade to Pro. */
+.guide-limit { flex-direction: row; align-items: center; gap: 14px; flex-wrap: wrap; padding: 18px; }
+.guide-limit-text { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 200px; }
+.guide-limit.full { box-shadow: inset 0 0 0 2px var(--warning-fill); }

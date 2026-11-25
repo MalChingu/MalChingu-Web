@@ -9,6 +9,8 @@ import { TranslateCard } from "../components/TranslateCard";
 import { ActionMenu, Button, Card, ConfirmDialog, FloatingPanel, Page, RoundButton, SectionTitle, Segmented, Sheet, Stepper, WordRow, copyText } from "../components/ui";
 import { overviewPoints } from "../core/guideOverview";
 import { useStore } from "../lib/store";
+import { planLimit } from "../core/plan";
+import { UpgradeButton } from "../components/Plan";
 import { formatDay, guideDate, guideDayNumber } from "./guideDates";
 import { TaskList } from "./Today";
 import { KoreanText } from "../components/KoreanText";
@@ -87,6 +89,7 @@ export function Guides({ openGuideID, setOpenGuideID, practice }: {
         <span className="muted">{noteCount}</span>
         <Icon name="chevron" size={16} className="muted" />
       </button>
+      <GuideLimit />
       {guides.length === 0 && (
         <Card padding={22}>
           <div className="stack">
@@ -113,6 +116,23 @@ export function Guides({ openGuideID, setOpenGuideID, practice }: {
       <NoteFab onClick={() => openNotes(null, null)} />
       {panel(false)}
     </Page>
+  );
+}
+
+/** Free accounts: how many of their 2 guides they have, with Upgrade to Pro, and what to do once both are used.
+ *  Pro accounts see nothing. */
+function GuideLimit() {
+  const store = useStore();
+  const limit = planLimit(store.plan, store.data.guides.length);
+  if (!limit.limited) return null;
+  return (
+    <div className={`glass card guide-limit ${limit.canCreate ? "" : "full"}`}>
+      <div className="guide-limit-text">
+        <strong>{limit.label}</strong>
+        <span className="small muted">{limit.message ?? "Free accounts hold 2 study guides at a time. Pro has no limit."}</span>
+      </div>
+      <UpgradeButton full={false} />
+    </div>
   );
 }
 
@@ -334,10 +354,20 @@ function CreateGuide({ onClose }: { onClose: () => void }) {
   const [focus, setFocus] = useState("");
   const [copied, setCopied] = useState(false);
   const request = useMemo(() => guideRequest(days, minutes, start, focus.trim()), [days, minutes, start, focus]);
+  const limit = planLimit(store.plan, store.data.guides.length);
   const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
 
   return (
     <Sheet title="Create Guide" onClose={onClose}>
+      {!limit.canCreate && (
+        <Card>
+          <div className="stack">
+            <strong><Icon name="lock" size={16} /> {limit.label}</strong>
+            <p className="muted small">{limit.message} Claude can still update a guide you have.</p>
+            <UpgradeButton />
+          </div>
+        </Card>
+      )}
       {!store.data.hasConnectorToken && (
         <Card>
           <div className="stack">
