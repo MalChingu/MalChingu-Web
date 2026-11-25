@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { guideRequest } from "../core/guideRequest";
 import type { GuideSessionRow, StudyGuideRow, Word } from "../core/models";
-import { customToWord } from "../core/wordBank";
+import { customToWord, guideDayWords } from "../core/wordBank";
 import { addDays, dayString } from "../core/wordOfDay";
 import { Icon } from "../components/Icon";
 import { CheckYourself, GuideNotes, GuideSection } from "../components/GuideNotes";
 import { TranslateCard } from "../components/TranslateCard";
-import { Button, Card, ConfirmDialog, FloatingPanel, Page, RoundButton, SectionTitle, Segmented, Sheet, Stepper, WordRow, copyText } from "../components/ui";
+import { ActionMenu, Button, Card, ConfirmDialog, FloatingPanel, Page, RoundButton, SectionTitle, Segmented, Sheet, Stepper, WordRow, copyText } from "../components/ui";
 import { overviewPoints } from "../core/guideOverview";
 import { useStore } from "../lib/store";
 import { formatDay, guideDate, guideDayNumber } from "./guideDates";
@@ -37,9 +37,9 @@ export function Guides({ openGuideID, setOpenGuideID, practice }: {
     window.addEventListener(TRANSLATE_EVENT, receive);
     return () => window.removeEventListener(TRANSLATE_EVENT, receive);
   }, [compact, translatePanel]);
-  const guides = store.data.guides.filter((g) => !g.deleted_at).sort((a, b) => b.created_at.localeCompare(a.created_at));
+  const guides = [...store.data.guides].sort((a, b) => b.created_at.localeCompare(a.created_at));
   const open = guides.find((g) => g.id === openGuideID);
-  const noteCount = store.data.notes.filter((n) => !n.deleted_at).length + store.data.savedTranslations.filter((t) => !t.deleted_at).length;
+  const noteCount = store.data.notes.length + store.data.savedTranslations.length;
   const blank: NoteDraft = { body: "", guide_id: null, day_number: null, section: null };
   /** The Notes button: opens the list (or keeps what's open). */
   const openNotes = (guideID: string | null, day: number | null) =>
@@ -143,6 +143,7 @@ function GuideDetail({ guide, onBack, practice, addNote, openNotes, openNotebook
   const dayNumbers = sessions.map((s) => s.day_number);
   const [selected, setSelected] = useState(() => startingDay(guide, dayNumbers));
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [renaming, setRenaming] = useState(false);
   // The side column (Days, Translate) stays put while the page scrolls only when it fits in the window, so it never
   // needs a scrollbar of its own; taller than the window, it scrolls with the page.
   const side = useRef<HTMLElement>(null);
@@ -157,7 +158,11 @@ function GuideDetail({ guide, onBack, practice, addNote, openNotes, openNotebook
     window.addEventListener("resize", measure);
     return () => { observer.disconnect(); window.removeEventListener("resize", measure); };
   }, [compact]);
-  const vocabulary = store.data.customWords.filter((w) => !w.deleted_at && w.guide_id === guide.id);
+  // Each day lists its words by spelling: built-in words and My Words, each spelling once.
+  const mine = useMemo(() => store.myWords.map(customToWord), [store.myWords]);
+  const wordsByDay = useMemo(() => new Map(sessions.map((s) => [s.day_number, guideDayWords(s.vocabulary ?? [], mine)])),
+    [sessions, mine]);
+  const vocabulary = useMemo(() => guideDayWords(sessions.flatMap((s) => s.vocabulary ?? []), mine), [sessions, mine]);
   const tasks = store.data.tasks.filter((t) => t.guide_id === guide.id);
   const done = tasks.filter((t) => t.done).length;
   const shuffled = (words: Word[]) => [...words].sort(() => Math.random() - 0.5);
@@ -167,7 +172,10 @@ function GuideDetail({ guide, onBack, practice, addNote, openNotes, openNotebook
 
   return (
     <Page title={guide.title} back={{ label: "Back to Study Guides", onClick: onBack }} actions={
-      <RoundButton icon="trash" tint="glass" label="Delete Guide" size={40} onClick={() => setConfirmingDelete(true)} />
+      <ActionMenu label="Guide Options" actions={[
+        { label: "Edit Title", icon: "pencil", onSelect: () => setRenaming(true) },
+        { label: "Delete Guide", icon: "trash", destructive: true, onSelect: () => setConfirmingDelete(true) },
+      ]} />
     }>
       <NoteMenuProvider onAddNote={(section) => addNote({ body: "", guide_id: guide.id, day_number: session?.day_number ?? null, section })}>
       <div className="guide-layout">
@@ -178,7 +186,7 @@ function GuideDetail({ guide, onBack, practice, addNote, openNotes, openNotebook
             <div className="row">
               <span className="small muted grow">{done} of {tasks.length} tasks · {vocabulary.length} words</span>
               {vocabulary.length > 0 && (
-                <Button icon="cards" onClick={() => practice(shuffled(vocabulary.map(customToWord)), "meaning")}>All Vocabulary Flashcards</Button>
+                <Button icon="cards" onClick={() => practice(shuffled(vocabulary), "meaning")}>All Vocabulary Flashcards</Button>
               )}
             </div>
           </Card>
@@ -196,7 +204,7 @@ function GuideDetail({ guide, onBack, practice, addNote, openNotes, openNotebook
                   onClick={() => setSelected(dayNumbers[index + 1])} />
               </div>
               <DayCard key={session.id} guide={guide} session={session} isToday={session.day_number === today}
-                words={vocabulary.filter((w) => w.day_number === session.day_number).map(customToWord)}
+                words={wordsByDay.get(session.day_number) ?? []}
                 practice={(words, mode) => practice(shuffled(words), mode)} />
             </>
           )}
@@ -244,11 +252,30 @@ function GuideDetail({ guide, onBack, practice, addNote, openNotes, openNotebook
       )}
       <NoteFab onClick={() => openNotes(session?.day_number ?? null)} />
       {confirmingDelete && (
-        <ConfirmDialog title="Delete This Guide?" message="Its days and tasks are removed on all your devices. Its vocabulary stays in My Words."
+        <ConfirmDialog title="Delete This Guide?"
+          message="Its days, tasks, notes, saved translations and the words it added are deleted on all your devices. Built-in words and words another guide uses stay."
           confirmLabel="Delete Guide" onCancel={() => setConfirmingDelete(false)}
           onConfirm={() => { setConfirmingDelete(false); store.deleteGuide(guide); onBack(); }} />
       )}
+      {renaming && <RenameGuideSheet guide={guide} onClose={() => setRenaming(false)} />}
     </Page>
+  );
+}
+
+/** Edit a guide's title (up to 40 characters show well on a phone). */
+function RenameGuideSheet({ guide, onClose }: { guide: StudyGuideRow; onClose: () => void }) {
+  const store = useStore();
+  const [title, setTitle] = useState(guide.title);
+  const save = () => { if (title.trim()) { void store.renameGuide(guide, title); onClose(); } };
+  return (
+    <Sheet title="Edit Title" onClose={onClose}>
+      <form className="stack" onSubmit={(e) => { e.preventDefault(); save(); }}>
+        <input className="text-input sheet-input" value={title} aria-label="Guide title" autoFocus maxLength={300}
+          onChange={(e) => setTitle(e.target.value)} onFocus={(e) => e.currentTarget.select()} />
+        <Button type="submit" kind="prominent" full large disabled={!title.trim() || title.trim() === guide.title}>Save</Button>
+        <Button full onClick={onClose}>Cancel</Button>
+      </form>
+    </Sheet>
   );
 }
 

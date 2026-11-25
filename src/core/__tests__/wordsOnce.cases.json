@@ -1,0 +1,100 @@
+{
+  "_about": "Each spelling exists once. Shared by the web, iPhone/Mac and Android tests. `mine` are My Words spellings.",
+  "duplicate": [
+    {
+      "hangul": "친구",
+      "mine": [],
+      "expect": "builtIn"
+    },
+    {
+      "hangul": " 친구 ",
+      "mine": [],
+      "expect": "builtIn"
+    },
+    {
+      "hangul": "개발자",
+      "mine": [
+        "개발자"
+      ],
+      "expect": "mine"
+    },
+    {
+      "hangul": "개발자 ",
+      "mine": [
+        "개발자"
+      ],
+      "expect": "mine"
+    },
+    {
+      "hangul": "개발자",
+      "mine": [
+        "요즘"
+      ],
+      "expect": null
+    },
+    {
+      "hangul": "친구가",
+      "mine": [],
+      "expect": null
+    }
+  ],
+  "dayWords": [
+    {
+      "_note": "built-in spellings resolve to the built-in word; mine to My Words; unknown ones are skipped; repeats once",
+      "spellings": [
+        "친구",
+        "개발자",
+        "없는단어",
+        "친구"
+      ],
+      "mine": [
+        "개발자"
+      ],
+      "expect": [
+        "b-친구",
+        "mine:개발자"
+      ]
+    },
+    {
+      "spellings": [],
+      "mine": [
+        "개발자"
+      ],
+      "expect": []
+    }
+  ],
+  "search": [
+    {
+      "query": "",
+      "expect": true
+    },
+    {
+      "query": "친",
+      "expect": true
+    },
+    {
+      "query": "chin gu",
+      "expect": true
+    },
+    {
+      "query": "CHINGU",
+      "expect": true
+    },
+    {
+      "query": "frie",
+      "expect": true
+    },
+    {
+      "query": "family",
+      "expect": false
+    }
+  ],
+  "searchWord": {
+    "hangul": "친구",
+    "romanization": "chin-gu",
+    "meanings": [
+      "friend",
+      "buddy"
+    ]
+  }
+}

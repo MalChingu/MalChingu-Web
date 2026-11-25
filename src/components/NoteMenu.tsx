@@ -128,9 +128,9 @@ export function NotesPanel({ guideID, dayNumber, draft, setDraft, onClose, openA
   const wide = useWide();
   const Frame = wide ? FloatingPanel : Sheet;
   const titles = new Map(store.data.guides.map((g) => [g.id, g.title]));
-  const notes = store.data.notes.filter((n) => !n.deleted_at && (!guideID || n.guide_id === guideID))
+  const notes = store.data.notes.filter((n) => (!guideID || n.guide_id === guideID))
     .sort((a, b) => b.created_at.localeCompare(a.created_at));
-  const translations = store.data.savedTranslations.filter((t) => !t.deleted_at && (!guideID || t.guide_id === guideID))
+  const translations = store.data.savedTranslations.filter((t) => (!guideID || t.guide_id === guideID))
     .sort((a, b) => b.created_at.localeCompare(a.created_at));
   const [tab, setTab] = useState<"notes" | "translations">("notes");
   /** The note or translation waiting for Delete to be confirmed. */
@@ -228,7 +228,7 @@ export function NotesPanel({ guideID, dayNumber, draft, setDraft, onClose, openA
 /** The note's text, and where it belongs: a guide, a day and a section (all optional). */
 function NoteFields({ draft, onChange, onSave }: { draft: NoteDraft; onChange: (draft: NoteDraft) => void; onSave: () => void }) {
   const store = useStore();
-  const guides = store.data.guides.filter((g) => !g.deleted_at || g.id === draft.guide_id)
+  const guides = [...store.data.guides]
     .sort((a, b) => b.created_at.localeCompare(a.created_at));
   const days = store.data.sessions.filter((s) => s.guide_id === draft.guide_id).map((s) => s.day_number).sort((a, b) => a - b);
   return (

@@ -13,7 +13,6 @@ export function Today({ openGuide }: { openGuide: (id: string) => void }) {
   const first = settings.profile.name.split(" ").filter(Boolean)[0];
 
   const todays = store.data.guides
-    .filter((g) => !g.deleted_at)
     .map((guide) => {
       const day = guideDayNumber(guide);
       const session = day ? store.data.sessions.find((s) => s.guide_id === guide.id && s.day_number === day) : undefined;

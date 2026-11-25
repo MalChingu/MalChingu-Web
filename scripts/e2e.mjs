@@ -26,17 +26,17 @@ const db = {
   custom_words: [
     { id: "77777777-7777-4777-8777-777777777771", user_id: USER, hangul: "바다", romanization: "bada", meanings: ["sea", "ocean"], pos: "noun",
       examples: [{ korean: "바다에 가요.", romanization: "badae gayo.", english: "I go to the sea." }], tenses: null, source: "claude",
-      guide_id: GUIDE, day_number: 1, created_at: stamp, updated_at: stamp, deleted_at: null },
+      guide_id: GUIDE, day_number: 1, created_at: stamp, updated_at: stamp },
     { id: "77777777-7777-4777-8777-777777777772", user_id: USER, hangul: "역", romanization: "yeok", meanings: ["station"], pos: "noun",
-      examples: [], tenses: null, source: "claude", guide_id: GUIDE, day_number: 2, created_at: stamp, updated_at: stamp, deleted_at: null },
+      examples: [], tenses: null, source: "claude", guide_id: GUIDE, day_number: 2, created_at: stamp, updated_at: stamp },
   ],
   word_progress: [],
   study_days: [],
   study_guides: [{ id: GUIDE, user_id: USER, title: "Travel Basics: Greetings, Directions and Asking for Help", overview: "A short test guide for greetings and directions. Day 1 covers hello and goodbye. Day 2 asks for the station.", start_date: today, total_days: 2,
-    source_summary: "", created_at: stamp, updated_at: stamp, deleted_at: null }],
+    source_summary: "", created_at: stamp, updated_at: stamp }],
   guide_sessions: [
-    { id: "66666666-6666-4666-8666-666666666661", guide_id: GUIDE, user_id: USER, day_number: 1, title: "Greetings", goals: ["Say hello"], grammar_notes: "Use 안녕하세요 with strangers.", updated_at: stamp },
-    { id: "66666666-6666-4666-8666-666666666662", guide_id: GUIDE, user_id: USER, day_number: 2, title: "Directions", goals: [], grammar_notes: "", updated_at: stamp },
+    { id: "66666666-6666-4666-8666-666666666661", guide_id: GUIDE, user_id: USER, day_number: 1, title: "Greetings", goals: ["Say hello"], grammar_notes: "Use 안녕하세요 with strangers.", vocabulary: ["바다"], updated_at: stamp },
+    { id: "66666666-6666-4666-8666-666666666662", guide_id: GUIDE, user_id: USER, day_number: 2, title: "Directions", goals: [], grammar_notes: "", vocabulary: ["역"], updated_at: stamp },
   ],
   guide_tasks: [
     { id: "88888888-8888-4888-8888-888888888881", session_id: "66666666-6666-4666-8666-666666666661", guide_id: GUIDE, user_id: USER, position: 0, text: "Read the greetings list", done: false, updated_at: stamp },
@@ -49,6 +49,8 @@ const db = {
   saved_translations: [],
   public_profiles: [],
 };
+/** The words before the My Words delete test, to put back afterwards. */
+let savedWords = [];
 const KEYS = { public_profiles: ["user_id"], profiles: ["user_id"], word_progress: ["user_id", "word_id"], study_days: ["user_id", "day"], daily_quiz: ["user_id", "day"] };
 
 /** Just enough of PostgREST for this app: eq filters, upserts, updates, deletes and one RPC. */
@@ -237,10 +239,12 @@ try {
     check(await page.getByRole("heading", { name: "Directions", exact: true }).isVisible(), `${label}: next-day button switches day`);
     await page.locator(".day-item").first().click();
     check(await page.getByRole("heading", { name: "Greetings", exact: true }).isVisible(), `${label}: day list switches day`);
-    await page.getByRole("button", { name: "Delete Guide" }).click();
+    await page.getByRole("button", { name: "Guide Options" }).click();
+    check(await page.getByRole("menuitem", { name: "Edit Title" }).isVisible(), `${label}: the ⋯ menu offers Edit Title`);
+    await page.getByRole("menuitem", { name: "Delete Guide" }).click();
     check(await page.getByRole("alertdialog", { name: "Delete This Guide?" }).isVisible(), `${label}: deleting a guide asks first`);
     await page.getByRole("button", { name: "Cancel" }).click();
-    check(await page.getByRole("alertdialog").count() === 0 && db.study_guides[0].deleted_at === null, `${label}: cancel keeps the guide`);
+    check(await page.getByRole("alertdialog").count() === 0 && db.study_guides.length === 1, `${label}: cancel keeps the guide`);
     await page.screenshot({ path: `screenshots/guide-${label}.png`, fullPage: true });
 
     await page.getByRole("button", { name: "Profile", exact: true }).click();
@@ -351,7 +355,9 @@ try {
     await page.keyboard.press("Escape");
     await page.getByRole("button", { name: /Travel Basics/ }).click();
     await audit("Guide detail", "guide"); await width("Guide detail");
-    await page.getByRole("button", { name: "Delete Guide" }).click();
+    await page.getByRole("button", { name: "Guide Options" }).click();
+    check(await page.getByRole("menuitem", { name: "Edit Title" }).isVisible(), `${scheme}: the ⋯ menu offers Edit Title`);
+    await page.getByRole("menuitem", { name: "Delete Guide" }).click();
     await audit("Delete confirmation", "confirm");
     await page.getByRole("button", { name: "Cancel" }).click();
     // A day's vocabulary is a section that starts closed.
@@ -493,13 +499,14 @@ try {
     await page.getByRole("button", { name: "Delete 2 Words" }).click();
     check(await page.getByRole("alertdialog", { name: "Delete 2 Words?" }).isVisible(), "deleting several words asks first");
     await page.getByRole("button", { name: "Cancel" }).click();
-    check(db.custom_words.every((w) => w.deleted_at === null), "cancel keeps the words");
+    savedWords = db.custom_words.map((w) => ({ ...w }));
+    check(db.custom_words.length === 2, "cancel keeps the words");
     await page.getByRole("checkbox", { name: "Select 역" }).click();   // untick one
     await page.getByRole("button", { name: "Delete 1 Word" }).click();
     await page.getByRole("button", { name: "Delete", exact: true }).click();
     await page.getByRole("heading", { name: "My Words" }).waitFor();
     await page.waitForLoadState("networkidle");
-    const gone = db.custom_words.filter((w) => w.deleted_at).map((w) => w.hangul);
+    const gone = savedWords.filter((w) => !db.custom_words.some((k) => k.id === w.id)).map((w) => w.hangul);
     check(gone.length === 1 && gone[0] === "바다", `only the selected word is deleted (${gone})`);
     check(await page.getByText("역").first().isVisible() && await page.getByRole("checkbox").count() === 0,
       "the rest stay, and selecting ends");
@@ -524,7 +531,7 @@ try {
   {
     quiz.recorded = false;
     // Deleting a word above changed the word pool (and so today's word); put it back.
-    db.custom_words.forEach((w) => { w.deleted_at = null; });
+    db.custom_words = savedWords.map((w) => ({ ...w }));
     const before = db.study_days[0].quiz_answers;
     const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
     await context.route("https://nxlsnpzfbazwlccxtwpt.supabase.co/**", fakeSupabase);

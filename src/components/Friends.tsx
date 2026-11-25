@@ -7,7 +7,7 @@ import { avatarSrc } from "../lib/avatar";
 import { initials } from "../lib/settings";
 import { USERNAME_RULE, useStore } from "../lib/store";
 import { Icon } from "./Icon";
-import { Button, Card, ConfirmDialog, SectionTitle, Sheet } from "./ui";
+import { Button, Card, ConfirmDialog, RoundButton, SectionTitle, Sheet } from "./ui";
 
 // Profile → About → Friends: a row of friends' pictures with + at the end, a page for each friend (Accept, Challenge
 // Friend, Remove Friend), adding by username or email, and choosing a username.
@@ -326,15 +326,16 @@ function AddFriendSheet({ onClose }: { onClose: () => void }) {
               const known = relation(r.user_id);
               return (
                 <div key={r.user_id} className="row search-result">
-                  <PersonPicture avatar={r.avatar} name={r.username} size={44} />
+                  <PersonPicture avatar={r.avatar} name={r.name || r.username} size={44} />
                   <span className="grow stack tiny-gap">
-                    <span className="strong">@{r.username}</span>
-                    <span className="small muted">{levelLabel[r.level]}</span>
+                    <span className="strong">{r.name?.trim() || `@${r.username}`}</span>
+                    <span className="small muted">{r.name?.trim() ? `@${r.username} · ` : ""}{levelLabel[r.level]}</span>
                   </span>
                   {known?.status === "accepted" ? <span className="small muted">Friends</span>
                     : known?.direction === "outgoing" ? <span className="small muted">Sent</span>
                     : known ? <Button kind="prominent" compact disabled={busy} onClick={() => store.acceptFriend(known.id)}>Accept</Button>
-                    : <Button kind="prominent" icon="plus" compact disabled={busy} onClick={() => send(r.username, `@${r.username}`)}>Add</Button>}
+                    : <RoundButton icon="plus" tint="accent" size={36} label={`Add @${r.username}`} disabled={busy}
+                      onClick={() => send(r.username, `@${r.username}`)} />}
                 </div>
               );
             })}

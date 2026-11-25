@@ -9,7 +9,7 @@ import { activeCustomWords, BUILT_IN, builtInWord } from "../core/wordBank";
 import { challengeNeedsMe, friendLabel, isValidUsername, looksLikeEmail, normalizeUsername, pickDuelWords,
   type ChallengeRow, type FriendRow, type UserSearchRow } from "../core/friends";
 import { dayString, wordOfDay } from "../core/wordOfDay";
-import { readSettings, settingsPatch, type RawSettings, type Settings } from "./settings";
+import { readSettings, settingsPatch, withoutObsolete, type RawSettings, type Settings } from "./settings";
 import { CONNECTOR_BASE_URL, supabase } from "./supabase";
 
 // App state for a signed-in learner: everything is read from and written straight to Supabase,
@@ -23,7 +23,7 @@ interface Data {
   guides: StudyGuideRow[];
   sessions: GuideSessionRow[];
   tasks: GuideTaskRow[];
-  /** The learner's own notes and saved translations, deleted ones included (deleted_at set). */
+  /** The learner's own notes and saved translations. */
   notes: UserNoteRow[];
   savedTranslations: SavedTranslationRow[];
   hasConnectorToken: boolean;
@@ -110,6 +110,7 @@ interface Store {
   deleteWords: (ids: string[]) => Promise<void>;
   setTaskDone: (task: GuideTaskRow, done: boolean) => Promise<void>;
   deleteGuide: (guide: StudyGuideRow) => Promise<void>;
+  renameGuide: (guide: StudyGuideRow, title: string) => Promise<void>;
   connectorURL: string | null;
   createConnectorLink: () => Promise<void>;
   revokeConnectorLink: () => Promise<void>;
@@ -275,7 +276,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const settings = useMemo(() => readSettings(data.settingsRaw), [data.settingsRaw]);
   const myWordsList = useMemo(() => activeCustomWords(data.customWords), [data.customWords]);
-  const myWords = useMemo(() => data.customWords.filter((r) => !r.deleted_at)
+  const myWords = useMemo(() => [...data.customWords]
     .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at)), [data.customWords]);
   const allWords = useMemo(() => [...BUILT_IN, ...myWordsList], [myWordsList]);
   const findWord = useCallback((id: string) => builtInWord(id) ?? myWordsList.find((w) => w.id === id.toLowerCase()) ?? null,
@@ -284,19 +285,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const earned = useMemo(() => {
     const guidesCompleted = data.guides.filter((g) => {
       const tasks = data.tasks.filter((t) => t.guide_id === g.id);
-      return !g.deleted_at && tasks.length > 0 && tasks.every((t) => t.done);
+      return tasks.length > 0 && tasks.every((t) => t.done);
     }).length;
     return earnedAchievements(achievementProgress({ progress: data.progress, days: data.studyDays, today,
-      myWords: data.customWords.filter((w) => !w.deleted_at).length, guidesCompleted,
+      myWords: data.customWords.length, guidesCompleted,
       tasksDone: data.tasks.filter((t) => t.done).length }));
   }, [data.guides, data.tasks, data.progress, data.studyDays, data.customWords, today]);
   const stats = useMemo(() => computeStats(data.progress, data.studyDays, today), [data.progress, data.studyDays, today]);
   const level = useMemo(() => estimateLevel(data.progress), [data.progress]);
 
-  const wordOfTheDay = useMemo(() => {
-    const pool = settings.includeMyWords ? [...BUILT_IN, ...myWordsList] : BUILT_IN;
-    return wordOfDay(today, pool, settings.wordTypes) ?? wordOfDay(today, BUILT_IN);
-  }, [today, settings.includeMyWords, settings.wordTypes, myWordsList]);
+  // The same built-in word for everyone each day.
+  const wordOfTheDay = useMemo(() => wordOfDay(today, BUILT_IN), [today]);
 
   // Today's quiz comes from the shared daily_quiz row, so it matches the app.
   const quiz = useMemo<QuizSession | null>(() => {
@@ -424,7 +423,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const updateSettings = useCallback(async (change: Partial<Settings>) => {
     if (!userID) return;
     const base = pendingSettings.current ?? data.settingsRaw;
-    const merged = { ...base, ...settingsPatch(change, base), updated_at: now() };
+    const merged = { ...withoutObsolete(base), ...settingsPatch(change, base), updated_at: now() };
     pendingSettings.current = merged;
     edit("settingsRaw");
     setData((d) => ({ ...d, settingsRaw: merged }));
@@ -438,13 +437,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     await settingsQueue.current;
   }, [userID, data.settingsRaw]);
 
+  /** Deletes words for good; their progress goes with them (the database removes it too). */
   const deleteWords = useCallback(async (ids: string[]) => {
     if (ids.length === 0) return;
-    const stamp = now();
     const doomed = new Set(ids);
-    edit("customWords");
-    setData((d) => ({ ...d, customWords: d.customWords.map((w) => doomed.has(w.id) ? { ...w, deleted_at: stamp, updated_at: stamp } : w) }));
-    const { error } = await supabase.from("custom_words").update({ deleted_at: stamp, updated_at: stamp }).in("id", ids);
+    edit("customWords", "progress");
+    setData((d) => ({ ...d, customWords: d.customWords.filter((w) => !doomed.has(w.id)),
+      progress: d.progress.filter((p) => !doomed.has(p.word_id)) }));
+    const { error } = await supabase.from("custom_words").delete().in("id", ids);
     if (error) setError(`Couldn't delete ${ids.length === 1 ? "the word" : "the words"}: ${error.message}`);
   }, []);
   const deleteWord = useCallback((row: CustomWordRow) => deleteWords([row.id]), [deleteWords]);
@@ -463,7 +463,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const existing = note.id ? data.notes.find((n) => n.id === note.id) : undefined;
     const row: UserNoteRow = {
       id: note.id ?? crypto.randomUUID(), body: note.body, guide_id: note.guide_id, day_number: note.day_number, section: note.section,
-      created_at: existing?.created_at ?? stamp, updated_at: stamp, deleted_at: null,
+      created_at: existing?.created_at ?? stamp, updated_at: stamp,
     };
     edit("notes");
     setData((d) => ({ ...d, notes: existing ? d.notes.map((n) => n.id === row.id ? row : n) : [...d.notes, row] }));
@@ -472,16 +472,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [data.notes]);
 
   const deleteNote = useCallback(async (id: string) => {
-    const stamp = now();
     edit("notes");
-    setData((d) => ({ ...d, notes: d.notes.map((n) => n.id === id ? { ...n, deleted_at: stamp, updated_at: stamp } : n) }));
-    const { error } = await supabase.from("user_notes").update({ deleted_at: stamp, updated_at: stamp }).eq("id", id);
+    setData((d) => ({ ...d, notes: d.notes.filter((n) => n.id !== id) }));
+    const { error } = await supabase.from("user_notes").delete().eq("id", id);
     if (error) setError(`Couldn't delete the note: ${error.message}`);
   }, []);
 
   const saveTranslation = useCallback(async (t: Pick<SavedTranslationRow, "source" | "source_lang" | "translation" | "guide_id" | "day_number">) => {
     const stamp = now();
-    const row: SavedTranslationRow = { ...t, id: crypto.randomUUID(), created_at: stamp, updated_at: stamp, deleted_at: null };
+    const row: SavedTranslationRow = { ...t, id: crypto.randomUUID(), created_at: stamp, updated_at: stamp };
     edit("savedTranslations");
     setData((d) => ({ ...d, savedTranslations: [...d.savedTranslations, row] }));
     const { error } = await supabase.from("saved_translations").insert(row);
@@ -489,19 +488,33 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const deleteTranslation = useCallback(async (id: string) => {
-    const stamp = now();
     edit("savedTranslations");
-    setData((d) => ({ ...d, savedTranslations: d.savedTranslations.map((t) => t.id === id ? { ...t, deleted_at: stamp, updated_at: stamp } : t) }));
-    const { error } = await supabase.from("saved_translations").update({ deleted_at: stamp, updated_at: stamp }).eq("id", id);
+    setData((d) => ({ ...d, savedTranslations: d.savedTranslations.filter((t) => t.id !== id) }));
+    const { error } = await supabase.from("saved_translations").delete().eq("id", id);
     if (error) setError(`Couldn't delete the translation: ${error.message}`);
   }, []);
 
+  /** Deletes a guide with its days, tasks, notes, saved translations and the words it added (a word another
+   *  guide also lists moves to that guide). The server does it in one step; the page then reloads. */
   const deleteGuide = useCallback(async (guide: StudyGuideRow) => {
+    edit("guides", "sessions", "tasks", "notes", "savedTranslations");
+    setData((d) => ({ ...d, guides: d.guides.filter((g) => g.id !== guide.id),
+      sessions: d.sessions.filter((s) => s.guide_id !== guide.id), tasks: d.tasks.filter((t) => t.guide_id !== guide.id),
+      notes: d.notes.filter((n) => n.guide_id !== guide.id),
+      savedTranslations: d.savedTranslations.filter((t) => t.guide_id !== guide.id) }));
+    const { error } = await supabase.rpc("delete_guide", { p_id: guide.id });
+    if (error) setError(`Couldn't delete the guide: ${error.message}`);
+    await refresh();
+  }, [refresh]);
+
+  const renameGuide = useCallback(async (guide: StudyGuideRow, title: string) => {
+    const name = title.trim().slice(0, 300);
+    if (!name || name === guide.title) return;
     const stamp = now();
     edit("guides");
-    setData((d) => ({ ...d, guides: d.guides.map((g) => g.id === guide.id ? { ...g, deleted_at: stamp, updated_at: stamp } : g) }));
-    const { error } = await supabase.from("study_guides").update({ deleted_at: stamp, updated_at: stamp }).eq("id", guide.id);
-    if (error) setError(`Couldn't delete the guide: ${error.message}`);
+    setData((d) => ({ ...d, guides: d.guides.map((g) => g.id === guide.id ? { ...g, title: name, updated_at: stamp } : g) }));
+    const { error } = await supabase.from("study_guides").update({ title: name, updated_at: stamp }).eq("id", guide.id);
+    if (error) setError(`Couldn't rename the guide: ${error.message}`);
   }, []);
 
   // One link per account: a new one can only be made once the current one is turned off.
@@ -636,7 +649,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     loaded: loadedFor?.user === userID, todayLoaded: loadedFor?.user === userID && loadedFor.day === today, setError, data, settings, myWords, allWords, findWord,
     progressFor: (id) => progressMap.get(id), progressMap, stats, level, earned, wordOfTheDay,
     dailyQuiz: quiz, submitDaily, giveUpDaily, revealDailyHint, record, refresh, updateSettings, deleteWord, deleteWords,
-    setTaskDone, deleteGuide, saveNote, deleteNote, saveTranslation, deleteTranslation,
+    setTaskDone, deleteGuide, renameGuide, saveNote, deleteNote, saveTranslation, deleteTranslation,
     connectorURL: connectorShown ? `${CONNECTOR_BASE_URL}?key=${connectorShown}` : null,
     createConnectorLink, revokeConnectorLink, signInWithApple, signInWithGoogle, signOut,
     openWord: (word, quizMode = false) => setOpenedWord({ word, quiz: quizMode }),

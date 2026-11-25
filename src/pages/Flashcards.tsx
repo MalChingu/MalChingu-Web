@@ -136,6 +136,7 @@ function ExampleLine({ word, prefer }: { word: Word; prefer?: string }) {
         </span>
         <SpeakButton text={k} size={18} />
       </div>
+      {example.romanization && <span className="small muted romanization">{example.romanization}</span>}
       <span className="small muted">{example.english}</span>
     </div>
   );

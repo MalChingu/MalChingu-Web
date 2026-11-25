@@ -14,8 +14,6 @@ export type FlashcardSource = "builtIn" | "mine" | "mix";
 
 export interface Settings {
   display: DisplayMode;
-  wordTypes: PartOfSpeech[];
-  includeMyWords: boolean;
   deckSize: number;
   /** The Flashcards round setup, saved with the account (shared with the Mac app). */
   flashcardSource: FlashcardSource;
@@ -38,8 +36,6 @@ export function readSettings(raw: RawSettings): Settings {
   const profile = (raw.profile ?? {}) as Record<string, unknown>;
   return {
     display: (raw.display as DisplayMode) ?? "both",
-    wordTypes: (raw.word_types as PartOfSpeech[]) ?? [],
-    includeMyWords: (raw.include_my_words as boolean) ?? true,
     deckSize: (raw.deck_size as number) ?? 10,
     flashcardSource: (["builtIn", "mine", "mix"] as const).find((s) => s === raw.flashcard_source) ?? "builtIn",
     flashcardTypes: Array.isArray(raw.flashcard_types) ? (raw.flashcard_types as PartOfSpeech[]) : [],
@@ -54,12 +50,20 @@ export function readSettings(raw: RawSettings): Settings {
   };
 }
 
+/** Keys older versions saved that nothing reads any more; dropped whenever settings are saved. */
+export const OBSOLETE_KEYS = ["word_types", "include_my_words"];
+
+/** The saved settings without the obsolete keys. */
+export function withoutObsolete(raw: RawSettings): RawSettings {
+  const out = { ...raw };
+  for (const key of OBSOLETE_KEYS) delete out[key];
+  return out;
+}
+
 /** Patch for each setting, in the app's column names. */
 export function settingsPatch(change: Partial<Settings>, raw: RawSettings): RawSettings {
   const patch: RawSettings = {};
   if (change.display !== undefined) patch.display = change.display;
-  if (change.wordTypes !== undefined) patch.word_types = change.wordTypes;
-  if (change.includeMyWords !== undefined) patch.include_my_words = change.includeMyWords;
   if (change.deckSize !== undefined) patch.deck_size = change.deckSize;
   if (change.flashcardSource !== undefined) patch.flashcard_source = change.flashcardSource;
   if (change.flashcardTypes !== undefined) patch.flashcard_types = change.flashcardTypes;

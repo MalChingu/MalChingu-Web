@@ -47,6 +47,7 @@ const PATHS: Record<string, string> = {
   questionMark: "M8.5 8.5a3.5 3.5 0 1 1 5.2 3.1c-1 .6-1.7 1.4-1.7 2.6v.3M12 19h.01",
   bolt: "M13 2 4 14h7l-1 8 9-12h-7l1-8z",
   trophy: "M8 4h8v5a4 4 0 0 1-8 0V4zM8 6H5v1a3 3 0 0 0 3 3M16 6h3v1a3 3 0 0 1-3 3M12 13v4M8 21h8M9 17h6v4",
+  search: "M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM20 20l-4-4",
   textSize: "M3 7V5h11v2M8.5 5v14M6.5 19h4M14 12v-1.5h7V12M17.5 10.5V19M16 19h3",
 };
 

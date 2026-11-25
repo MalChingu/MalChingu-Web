@@ -49,13 +49,12 @@ describe("decks and custom words", () => {
     expect(buildDeck(pool, new Map(), 100)).toHaveLength(40);
   });
 
-  it("orders custom words oldest first and drops deleted ones", () => {
-    const row = (id: string, created: string, deleted: string | null = null): CustomWordRow => ({
+  it("orders custom words oldest first", () => {
+    const row = (id: string, created: string): CustomWordRow => ({
       id, hangul: id, romanization: "", meanings: ["m"], pos: "noun", examples: [], tenses: null, source: "claude",
-      guide_id: null, day_number: null, created_at: created, updated_at: created, deleted_at: deleted,
+      guide_id: null, day_number: null, created_at: created, updated_at: created,
     });
-    const words = activeCustomWords([row("B", "2026-02-01T00:00:00Z"), row("A", "2026-01-01T00:00:00Z"),
-      row("C", "2026-03-01T00:00:00Z", "2026-03-02T00:00:00Z")]);
+    const words = activeCustomWords([row("B", "2026-02-01T00:00:00Z"), row("A", "2026-01-01T00:00:00Z")]);
     expect(words.map((w) => w.id)).toEqual(["a", "b"]);
   });
 });
@@ -222,5 +221,25 @@ describe("friends (same cases as the iPhone and Android apps)", () => {
     const ordered = orderFriends([row("sent", "outgoing", "pending", "1"), row("b", "incoming", "accepted", "3"),
       row("a", "outgoing", "accepted", "2"), row("asks", "incoming", "pending", "4")]);
     expect(ordered.map((f) => f.id)).toEqual(["asks", "a", "b", "sent"]);
+  });
+});
+
+import { duplicateOf, guideDayWords } from "../wordBank";
+import onceCases from "./wordsOnce.cases.json";
+
+describe("each spelling once (shared cases)", () => {
+  const mineRow = (h: string) => ({ id: `mine:${h}`, hangul: h, romanization: "", meanings: ["m"], pos: "noun" as const, examples: [], tenses: null });
+  it.each(onceCases.duplicate)("duplicate of $hangul", (c) => {
+    expect(duplicateOf(c.hangul, c.mine.map((h) => ({ hangul: h })))).toBe(c.expect);
+  });
+  it.each(onceCases.dayWords)("day words $spellings", (c) => {
+    expect(guideDayWords(c.spellings, c.mine.map(mineRow)).map((w) => w.id)).toEqual(c.expect);
+  });
+});
+
+import { matchesSearch } from "../wordBank";
+describe("My Words search (shared cases)", () => {
+  it.each(onceCases.search)("query '$query'", (c) => {
+    expect(matchesSearch(onceCases.searchWord, c.query)).toBe(c.expect);
   });
 });

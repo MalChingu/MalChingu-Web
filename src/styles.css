@@ -659,6 +659,7 @@ button.achievement { cursor: pointer; }
 .answer-row { display: flex; align-items: center; gap: 8px; width: 100%; justify-content: center; }
 .answer-row .flashcard-input { flex: 1; min-width: 0; }
 .example-line { display: flex; flex-direction: column; align-items: center; gap: 2px; word-break: keep-all; }
+.example-line .romanization { font-style: italic; }
 .example-korean { color: var(--text-2); }
 .center-row { justify-content: center; gap: 4px; }
 
@@ -690,6 +691,8 @@ button.achievement { cursor: pointer; }
   color: var(--text); font: inherit; text-align: left; cursor: pointer; }
 .note-menu button:hover:not(:disabled), .note-menu button:focus-visible { background: var(--accent-soft); }
 .note-menu button:disabled { color: var(--text-3); cursor: default; }
+.note-menu button.destructive { color: var(--red); }
+.action-menu { min-width: 200px; }
 .note-menu-hint { padding: 6px 10px 2px; font-size: 0.72rem; color: var(--text-3); }
 .note-input { min-height: 140px; }
 .filters { display: flex; flex-direction: column; gap: 10px; }
@@ -819,3 +822,8 @@ a.easter-egg, a.easter-egg:hover, .legal-footer a.easter-egg, .legal-footer a.ea
 .answer-legend span { display: inline-flex; align-items: center; gap: 6px; }
 .answer-legend i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
 .unknown-text { color: var(--yellow); }
+/* My Words search */
+.search-field { display: flex; align-items: center; gap: 8px; padding: 0 12px; min-height: 44px; border-radius: 14px; }
+.search-field input { flex: 1; min-width: 0; border: 0; background: none; color: var(--text); font: inherit; outline: none; padding: 10px 0; }
+.search-field input::-webkit-search-cancel-button { display: none; }
+.search-field:focus-within { box-shadow: 0 0 0 2px var(--accent); }

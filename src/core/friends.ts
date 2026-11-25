@@ -46,7 +46,7 @@ export interface ChallengeRow {
 }
 
 /** A row of `search_users()`: what anyone signed in can see. */
-export interface UserSearchRow { user_id: string; username: string; avatar: string | null; level: Level }
+export interface UserSearchRow { user_id: string; username: string; name?: string | null; avatar: string | null; level: Level }
 
 /** 3–20 lowercase letters, digits, dots or underscores, starting with a letter or digit (the database's rule). */
 export const USERNAME_PATTERN = /^[a-z0-9][a-z0-9_.]{2,19}$/;

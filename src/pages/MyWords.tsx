@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { customToWord } from "../core/wordBank";
+import { customToWord, matchesSearch } from "../core/wordBank";
 import { Icon } from "../components/Icon";
 import { Button, Card, ConfirmDialog, Page, RoundButton, Sheet, Steps, WordRow, copyText } from "../components/ui";
 import type { CustomWordRow } from "../core/models";
@@ -14,7 +14,8 @@ export function MyWords({ onBack }: { onBack: () => void }) {
   const [selecting, setSelecting] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [confirmingMany, setConfirmingMany] = useState(false);
-  const words = store.myWords;
+  const [query, setQuery] = useState("");
+  const words = store.myWords.filter((w) => matchesSearch(w, query));
   // Anything deleted on another device meanwhile drops out of the selection.
   const chosen = words.filter((w) => selected.has(w.id)).map((w) => w.id);
   const allChosen = words.length > 0 && chosen.length === words.length;
@@ -40,7 +41,17 @@ export function MyWords({ onBack }: { onBack: () => void }) {
           <RoundButton icon="question" tint="glass" label="How to Add Words" onClick={() => setHelp(true)} size={38} />
         </>
       )}>
-      {words.length === 0 ? (
+      {store.myWords.length > 0 && (
+        <label className="search-field glass">
+          <Icon name="search" size={18} className="muted" />
+          <input type="search" value={query} placeholder="Search My Words" aria-label="Search My Words"
+            autoCapitalize="off" autoCorrect="off" spellCheck={false} onChange={(e) => setQuery(e.target.value)} />
+          {query && <button type="button" className="icon-button" aria-label="Clear Search" onClick={() => setQuery("")}><Icon name="x" size={16} /></button>}
+        </label>
+      )}
+      {store.myWords.length > 0 && words.length === 0 ? (
+        <p className="muted center">No words match “{query.trim()}”.</p>
+      ) : words.length === 0 ? (
         <Card padding={28}>
           <div className="center stack">
             <Icon name="textBook" size={36} className="muted" />
@@ -85,12 +96,12 @@ export function MyWords({ onBack }: { onBack: () => void }) {
       )}
       {help && <AddWordsHelp onClose={() => setHelp(false)} />}
       {deleting && (
-        <ConfirmDialog title={`Delete ${deleting.hangul}?`} message="It's removed from My Words, flashcards and the word of the day on all your devices."
+        <ConfirmDialog title={`Delete ${deleting.hangul}?`} message="It's removed from My Words and flashcards on all your devices, with its progress."
           confirmLabel="Delete" onCancel={() => setDeleting(null)} onConfirm={() => { store.deleteWord(deleting); setDeleting(null); }} />
       )}
       {confirmingMany && (
         <ConfirmDialog title={chosen.length === 1 ? "Delete 1 Word?" : `Delete ${chosen.length} Words?`}
-          message="They're removed from My Words, flashcards and the word of the day on all your devices."
+          message="They're removed from My Words and flashcards on all your devices, with their progress."
           confirmLabel="Delete" onCancel={() => setConfirmingMany(false)}
           onConfirm={() => { store.deleteWords(chosen); setConfirmingMany(false); stop(); }} />
       )}
@@ -112,7 +123,7 @@ function AddWordsHelp({ onClose }: { onClose: () => void }) {
           { title: "Connect Claude Once", text: connected ? "Done. Your connector link is set up."
             : "Create your connector link in Profile → Claude Connector and add it in Claude." },
           { title: "Ask Claude to Add Them", text: "In a Claude chat, write \"Add these words to Korimal:\" followed by your words. Claude fills in the rest and can add many at once." },
-          { title: "Refresh Here", text: "When Claude says they are saved, come back to this page. They show up here, in flashcards and in the word of the day." },
+          { title: "Refresh Here", text: "When Claude says they are saved, come back to this page. They show up here and in flashcards. Words that are already built in or saved aren't added twice." },
         ]} />
       </Card>
       <Card>

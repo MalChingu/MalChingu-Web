@@ -41,7 +41,6 @@ export interface CustomWordRow {
   day_number: number | null;
   created_at: string;
   updated_at: string;
-  deleted_at: string | null;
 }
 
 export interface StudyGuideRow {
@@ -53,7 +52,6 @@ export interface StudyGuideRow {
   source_summary: string;
   created_at: string;
   updated_at: string;
-  deleted_at: string | null;
 }
 
 export interface GuideSessionRow {
@@ -65,6 +63,8 @@ export interface GuideSessionRow {
   grammar_notes: string;
   /** "Check Yourself" questions; missing on rows saved before it existed. */
   self_check?: CheckItem[];
+  /** The day's words by spelling, looked up in the built-in words and My Words. */
+  vocabulary?: string[];
   updated_at: string;
 }
 
@@ -77,7 +77,6 @@ export interface UserNoteRow {
   body: string;
   created_at: string;
   updated_at: string;
-  deleted_at: string | null;
 }
 
 export type NoteSection = "notes" | "check" | "vocabulary" | "tasks";
@@ -92,7 +91,6 @@ export interface SavedTranslationRow {
   day_number: number | null;
   created_at: string;
   updated_at: string;
-  deleted_at: string | null;
 }
 
 export interface CheckItem {

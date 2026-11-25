@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { PARTS_OF_SPEECH, displayLabel, posPlural, type DisplayMode, type PartOfSpeech } from "../core/models";
+import { displayLabel, type DisplayMode } from "../core/models";
 import { ACHIEVEMENTS, shownTitle } from "../core/achievements";
 import { levelLabel } from "../core/progress";
 import { BUILT_IN } from "../core/wordBank";
 import { Icon } from "../components/Icon";
 import { FriendsCard, UsernameSheet } from "../components/Friends";
-import { Button, Card, ConfirmDialog, Logo, Page, SectionTitle, Segmented, Toggle, copyText } from "../components/ui";
+import { Button, Card, ConfirmDialog, Logo, Page, SectionTitle, Segmented, copyText } from "../components/ui";
 import { avatarSrc, squareJPEGBase64 } from "../lib/avatar";
 import { initials } from "../lib/settings";
 import { speak, useKoreanVoice } from "../lib/speech";
@@ -37,13 +37,6 @@ export function Profile() {
 
   const saveName = () => {
     if (name.trim() !== settings.profile.name) store.updateSettings({ profile: { ...settings.profile, name: name.trim() } });
-  };
-
-  const setType = (pos: PartOfSpeech, on: boolean) => {
-    const current = new Set(settings.wordTypes.length ? settings.wordTypes : PARTS_OF_SPEECH);
-    if (on) current.add(pos); else current.delete(pos);
-    if (current.size === 0) return;   // keep at least one on; "all on" is stored as empty
-    store.updateSettings({ wordTypes: current.size === PARTS_OF_SPEECH.length ? [] : PARTS_OF_SPEECH.filter((p) => current.has(p)) });
   };
 
   const run = async (action: () => Promise<void>) => { setWorking(true); setCopied(false); await action(); setWorking(false); };
@@ -178,11 +171,7 @@ export function Profile() {
           <div className="small muted">Show Word In</div>
           <Segmented label="Show Word In" value={settings.display} onChange={(display) => store.updateSettings({ display })}
             options={(["korean", "romanization", "both"] as DisplayMode[]).map((m) => ({ value: m, label: displayLabel[m] }))} />
-          {PARTS_OF_SPEECH.map((pos) => (
-            <Toggle key={pos} label={posPlural(pos)} checked={settings.wordTypes.length === 0 || settings.wordTypes.includes(pos)}
-              onChange={(on) => setType(pos, on)} />
-          ))}
-          <Toggle label="Include My Words" checked={settings.includeMyWords} onChange={(on) => store.updateSettings({ includeMyWords: on })} />
+          <p className="small muted">Everyone gets the same built-in word each day.</p>
         </Card>
 
         <Card>

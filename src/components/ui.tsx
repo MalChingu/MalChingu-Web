@@ -6,6 +6,7 @@ import { displayRomanization, romanize } from "../core/romanizer";
 import { speak, useKoreanVoice } from "../lib/speech";
 import { useStore } from "../lib/store";
 import { Icon, type IconName } from "./Icon";
+import { pageZoom } from "../lib/zoom";
 
 
 export function Card({ children, className = "", padding = 18 }: { children: ReactNode; className?: string; padding?: number }) {
@@ -368,4 +369,56 @@ export function Steps({ steps }: { steps: { title?: string; text: string }[] }) 
 
 export function copyText(text: string) {
   return navigator.clipboard?.writeText(text).catch(() => undefined);
+}
+
+export interface MenuAction { label: string; icon: IconName; onSelect: () => void; destructive?: boolean }
+
+/** A round ⋯ button that opens a small menu under it (closes on a choice, a click outside, Escape or scrolling). */
+export function ActionMenu({ label, actions, size = 40 }: { label: string; actions: MenuAction[]; size?: number }) {
+  const [at, setAt] = useState<{ x: number; y: number } | null>(null);
+  const button = useRef<HTMLButtonElement>(null);
+  const menu = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!at) return;
+    const outside = (e: PointerEvent) => {
+      if (!menu.current?.contains(e.target as Node) && !button.current?.contains(e.target as Node)) setAt(null);
+    };
+    const key = (e: KeyboardEvent) => { if (e.key === "Escape") { setAt(null); button.current?.focus(); } };
+    const close = () => setAt(null);
+    document.addEventListener("pointerdown", outside);
+    document.addEventListener("keydown", key);
+    window.addEventListener("scroll", close, true);
+    window.addEventListener("resize", close);
+    return () => {
+      document.removeEventListener("pointerdown", outside);
+      document.removeEventListener("keydown", key);
+      window.removeEventListener("scroll", close, true);
+      window.removeEventListener("resize", close);
+    };
+  }, [at]);
+  const toggle = () => {
+    if (at) { setAt(null); return; }
+    const rect = button.current!.getBoundingClientRect();
+    const z = pageZoom();
+    setAt({ x: Math.max(8, rect.right / z - 200), y: rect.bottom / z + 6 });
+  };
+  return (
+    <>
+      <button ref={button} type="button" className="round-button glass" style={{ width: size, height: size }} aria-label={label} title={label}
+        aria-haspopup="menu" aria-expanded={at !== null} onClick={toggle}>
+        <Icon name="more" size={size * 0.5} strokeWidth={3} />
+      </button>
+      {at && createPortal(
+        <div ref={menu} className="note-menu action-menu" role="menu" aria-label={label} style={{ left: at.x, top: at.y }}>
+          {actions.map((a, i) => (
+            <button key={a.label} type="button" role="menuitem" autoFocus={i === 0} className={a.destructive ? "destructive" : undefined}
+              onClick={() => { setAt(null); a.onSelect(); }}>
+              <Icon name={a.icon} size={16} /> {a.label}
+            </button>
+          ))}
+        </div>,
+        document.body,
+      )}
+    </>
+  );
 }

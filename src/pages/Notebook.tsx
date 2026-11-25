@@ -32,7 +32,7 @@ export function Notebook({ startTab = "notes", onBack, addNote }: {
   const [deleting, setDeleting] = useState<{ kind: Tab; id: string } | null>(null);
 
   const titles = useMemo(() => new Map(store.data.guides.map((g) => [g.id, g.title])), [store.data.guides]);
-  const guides = store.data.guides.filter((g) => !g.deleted_at).sort((a, b) => b.created_at.localeCompare(a.created_at));
+  const guides = [...store.data.guides].sort((a, b) => b.created_at.localeCompare(a.created_at));
   const days = guide === "all" || guide === "none" ? []
     : store.data.sessions.filter((s) => s.guide_id === guide).map((s) => s.day_number).sort((a, b) => a - b);
 
@@ -41,8 +41,8 @@ export function Notebook({ startTab = "notes", onBack, addNote }: {
     && (day === "all" || row.day_number === Number(day))
     && within(row.created_at, when);
 
-  const notes = store.data.notes.filter((n) => !n.deleted_at && matches(n)).sort((a, b) => b.created_at.localeCompare(a.created_at));
-  const saved = store.data.savedTranslations.filter((t) => !t.deleted_at && matches(t))
+  const notes = store.data.notes.filter((n) => matches(n)).sort((a, b) => b.created_at.localeCompare(a.created_at));
+  const saved = store.data.savedTranslations.filter((t) => matches(t))
     .sort((a, b) => b.created_at.localeCompare(a.created_at));
 
   const swipe = useSwipe(() => setTab("notes"), () => setTab("translations"));
