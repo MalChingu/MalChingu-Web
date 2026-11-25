@@ -129,5 +129,3 @@ export function Tour({ go, onDone }: { go: (tab: TourTab) => void; onDone: () =>
     </div>
   );
 }
-
-export const TOUR_EVENT = "korimal:tour";

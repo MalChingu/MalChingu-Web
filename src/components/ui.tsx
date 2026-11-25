@@ -1,6 +1,7 @@
-import { useEffect, useId, useRef, useState, type ReactNode, type TouchEvent as ReactTouchEvent, useLayoutEffect } from "react";
+import { useEffect, useId, useRef, useState, type MouseEvent as ReactMouseEvent, type ReactNode, type TouchEvent as ReactTouchEvent, useLayoutEffect } from "react";
 import { createPortal } from "react-dom";
 import { posLabel, type DisplayMode, type Example, type PartOfSpeech, type Word } from "../core/models";
+import type { HintWord } from "../core/hints";
 import { attempts, isMastered, type WordProgress } from "../core/progress";
 import { displayRomanization, romanize } from "../core/romanizer";
 import { speak, useKoreanVoice } from "../lib/speech";
@@ -47,12 +48,29 @@ export function SpeakButton({ text, size = 20 }: { text: string; size?: number }
   );
 }
 
-/** One example sentence. `showEnglish` is off when it's used as a quiz hint. */
-export function ExampleView({ example, showEnglish = true }: { example: Example; showEnglish?: boolean }) {
+/** A hint sentence with each word's English underneath (the asked-about word, and words the app doesn't know, have
+ *  none). See core/hints. */
+export function GlossedKorean({ words }: { words: HintWord[] }) {
+  return (
+    <span className="glossed" lang="ko">
+      {words.map((w, i) => (
+        <span key={i} className={`glossed-word ${w.target ? "target" : ""}`}>
+          <span>{w.text}</span>
+          <span className="glossed-english" lang="en">{w.english ?? "\u00a0"}</span>
+        </span>
+      ))}
+    </span>
+  );
+}
+
+/** One example sentence. `showEnglish` is off when it's used as a quiz hint; `glossed` (a hint at a level that gets
+ *  English) shows each word's English under it. */
+export function ExampleView({ example, showEnglish = true, glossed }: { example: Example; showEnglish?: boolean; glossed?: HintWord[] | null }) {
   return (
     // Always the same lines as a flashcard's question: Hangul, then romanization, then Listen.
     <div className="example stacked">
-      <div className="example-korean" lang="ko">{example.korean}</div>
+      {glossed ? <div className="example-korean"><GlossedKorean words={glossed} /></div>
+        : <div className="example-korean" lang="ko">{example.korean}</div>}
       <div className="muted">{example.romanization || romanize(example.korean)}</div>
       {showEnglish && <div>{example.english}</div>}
       <SpeakButton text={example.korean} />
@@ -79,6 +97,18 @@ export function WordRow({ word, progress, onClick }: { word: Word; progress?: Wo
   );
 }
 
+/** The daily streak: an outlined star (orange once there's a streak) with the number of days inside. */
+export function StreakStar({ days, size = 58 }: { days: number; size?: number }) {
+  const label = `${days}-day streak`;
+  return (
+    <span className={`streak-star ${days > 0 ? "orange" : "muted"}`} role="img" aria-label={label} title={label}
+      style={{ width: size, height: size }}>
+      <Icon name="star" size={size} strokeWidth={1.6} />
+      <span className="streak-star-count" style={{ fontSize: size * (days > 99 ? 0.22 : 0.28) }}>{days}</span>
+    </span>
+  );
+}
+
 /** `tone` colours the icon (e.g. "orange", "red"); the accent colour when left out. */
 export function StatTile({ title, value, icon, tone = "accent" }: { title: string; value: string; icon: IconName; tone?: string }) {
   return (
@@ -93,7 +123,7 @@ export function StatTile({ title, value, icon, tone = "accent" }: { title: strin
 type ButtonKind = "prominent" | "glass" | "danger";
 
 export function Button({ children, icon, kind = "glass", onClick, disabled, full, type = "button", large, compact, expanded }: {
-  children: ReactNode; icon?: IconName; kind?: ButtonKind; onClick?: () => void; disabled?: boolean; full?: boolean;
+  children: ReactNode; icon?: IconName; kind?: ButtonKind; onClick?: (e: ReactMouseEvent<HTMLButtonElement>) => void; disabled?: boolean; full?: boolean;
   type?: "button" | "submit"; large?: boolean; compact?: boolean; expanded?: boolean;
 }) {
   return (
@@ -214,26 +244,27 @@ export function FloatingPanel({ title, onClose, children, trailing, leading }: {
 }
 
 /** A row of options where one is chosen (the selected one is dark with light text). */
+/** `onChange` also gets the tapped option's button (e.g. to open the Upgrade modal from it). */
 export function Segmented<T extends string>({ options, value, onChange, label }: {
-  options: { value: T; label: string }[]; value: T; onChange: (value: T) => void; label: string;
+  options: { value: T; label: string }[]; value: T; onChange: (value: T, from: HTMLButtonElement) => void; label: string;
 }) {
   return (
     <div className="segmented" role="radiogroup" aria-label={label}>
       {options.map((o) => (
         <button key={o.value} type="button" role="radio" aria-checked={value === o.value} className={value === o.value ? "on" : ""}
-          onClick={() => onChange(o.value)}>{o.label}</button>
+          onClick={(e) => onChange(o.value, e.currentTarget)}>{o.label}</button>
       ))}
     </div>
   );
 }
 
 export function Stepper({ onMinus, onPlus, minusLabel, plusLabel, minusDisabled, plusDisabled }: {
-  onMinus: () => void; onPlus: () => void; minusLabel: string; plusLabel: string; minusDisabled?: boolean; plusDisabled?: boolean;
+  onMinus: () => void; onPlus: (from: HTMLButtonElement) => void; minusLabel: string; plusLabel: string; minusDisabled?: boolean; plusDisabled?: boolean;
 }) {
   return (
     <div className="stepper">
       <button type="button" aria-label={minusLabel} disabled={minusDisabled} onClick={onMinus}><Icon name="minus" size={18} /></button>
-      <button type="button" aria-label={plusLabel} disabled={plusDisabled} onClick={onPlus}><Icon name="plus" size={18} /></button>
+      <button type="button" aria-label={plusLabel} disabled={plusDisabled} onClick={(e) => onPlus(e.currentTarget)}><Icon name="plus" size={18} /></button>
     </div>
   );
 }
@@ -249,14 +280,14 @@ export function LoadingDots() {
 }
 
 /** `waiting` replaces the content with loading dots; by default, until the account's data has first loaded. */
-export function Page({ title, children, actions, centered, back, waiting }: {
+export function Page({ title, children, actions, centered, back, waiting, className = "" }: {
   title: string; children: ReactNode; actions?: ReactNode; centered?: boolean; back?: { label: string; onClick: () => void };
-  waiting?: boolean;
+  waiting?: boolean; className?: string;
 }) {
   const store = useStore();
   const showDots = waiting ?? !store.loaded;
   return (
-    <div className="page">
+    <div className={`page ${className}`}>
       <header className={`page-header ${centered ? "centered" : ""}`}>
         {back && <RoundButton icon="chevronLeft" tint="glass" label={back.label} onClick={back.onClick} size={40} />}
         <FitTitle text={title} />

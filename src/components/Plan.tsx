@@ -29,7 +29,21 @@ export function PlanCard({ className = "" }: { className?: string }) {
 
 export const ProBadge = () => <span className="pro-badge"><Icon name="seal" size={16} /> Pro</span>;
 
-/** Upgrade to Pro (see lib/upgrade: it does nothing until payments are set up). */
+/** Upgrade to Pro: opens the Upgrade modal from this button (see components/UpgradeModal). */
 export function UpgradeButton({ full = true }: { full?: boolean }) {
-  return <Button kind="prominent" icon="bolt" full={full} onClick={upgradeToPro}>Upgrade to Pro</Button>;
+  return <Button kind="prominent" icon="bolt" full={full} onClick={(e) => upgradeToPro(e.currentTarget)}>Upgrade to Pro</Button>;
+}
+
+/** A free account's limit on Guides or My Words: the count and what it means, with Upgrade to Pro beside it on wide
+ *  screens and under it on phones. `full` outlines it once the limit is reached. */
+export function LimitNote({ label, message, full }: { label: string; message: string; full: boolean }) {
+  return (
+    <div className={`glass card guide-limit ${full ? "full" : ""}`}>
+      <div className="guide-limit-text">
+        <strong>{label}</strong>
+        <span className="small muted">{message}</span>
+      </div>
+      <UpgradeButton full={false} />
+    </div>
+  );
 }

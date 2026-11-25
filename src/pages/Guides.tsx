@@ -9,8 +9,9 @@ import { TranslateCard } from "../components/TranslateCard";
 import { ActionMenu, Button, Card, ConfirmDialog, FloatingPanel, Page, RoundButton, SectionTitle, Segmented, Sheet, Stepper, WordRow, copyText } from "../components/ui";
 import { overviewPoints } from "../core/guideOverview";
 import { useStore } from "../lib/store";
-import { planLimit } from "../core/plan";
-import { UpgradeButton } from "../components/Plan";
+import { maxGuideDays, planLimit } from "../core/plan";
+import { upgradeToPro } from "../lib/upgrade";
+import { LimitNote } from "../components/Plan";
 import { formatDay, guideDate, guideDayNumber } from "./guideDates";
 import { TaskList } from "./Today";
 import { KoreanText } from "../components/KoreanText";
@@ -56,7 +57,7 @@ export function Guides({ openGuideID, setOpenGuideID, practice }: {
   const panel = (inNotebook: boolean) => notesPanel && (
     <NotesPanel guideID={notesPanel.guideID} dayNumber={notesPanel.day} draft={notesPanel.draft}
       setDraft={(draft) => setNotesPanel((p) => p && { ...p, draft })} onClose={() => setNotesPanel(null)}
-      openAll={inNotebook ? undefined : () => { setNotesPanel(null); setNotebook("notes"); }} />
+      openAll={inNotebook ? undefined : () => { setNotesPanel(null); setNotebook("notes"); }} single={inNotebook} />
   );
 
   if (notebook) {
@@ -125,15 +126,7 @@ function GuideLimit() {
   const store = useStore();
   const limit = planLimit(store.plan, store.data.guides.length);
   if (!limit.limited) return null;
-  return (
-    <div className={`glass card guide-limit ${limit.canCreate ? "" : "full"}`}>
-      <div className="guide-limit-text">
-        <strong>{limit.label}</strong>
-        <span className="small muted">{limit.message ?? "Free accounts hold 2 study guides at a time."}</span>
-      </div>
-      <UpgradeButton full={false} />
-    </div>
-  );
+  return <LimitNote label={limit.label ?? ""} message={limit.message ?? "Free accounts hold 2 study guides at a time."} full={!limit.canCreate} />;
 }
 
 function guideStatus(guide: StudyGuideRow): string {
@@ -354,12 +347,16 @@ function CreateGuide({ onClose }: { onClose: () => void }) {
   const [focus, setFocus] = useState("");
   const [copied, setCopied] = useState(false);
   const request = useMemo(() => guideRequest(days, minutes, start, focus.trim()), [days, minutes, start, focus]);
-  const limit = planLimit(store.plan, store.data.guides.length);
+  // Free accounts: guides of up to a week. A longer length opens Upgrade to Pro from the control that asked for it.
+  const longest = maxGuideDays(store.plan);
+  const pickDays = (next: number, from: HTMLElement) => {
+    if (longest !== null && next > longest) { upgradeToPro(from); return; }
+    setDays(next);
+  };
   const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
 
   return (
     <Sheet title="Create Guide" onClose={onClose}>
-      {!limit.canCreate && <GuideLimit />}
       {!store.data.hasConnectorToken && (
         <Card>
           <div className="stack">
@@ -370,11 +367,11 @@ function CreateGuide({ onClose }: { onClose: () => void }) {
       )}
       <Card>
         <SectionTitle>Timeframe</SectionTitle>
-        <Segmented label="Length" value={String(days)} onChange={(v) => setDays(Number(v))}
+        <Segmented label="Length" value={String(days)} onChange={(v, from) => pickDays(Number(v), from)}
           options={PRESETS.map((p) => ({ value: String(p.days), label: p.label }))} />
         <div className="form-row"><span>{days} days</span>
           <Stepper minusLabel="Fewer days" plusLabel="More days" minusDisabled={days <= 1} plusDisabled={days >= 180}
-            onMinus={() => setDays(clamp(days - 1, 1, 180))} onPlus={() => setDays(clamp(days + 1, 1, 180))} />
+            onMinus={() => setDays(clamp(days - 1, 1, 180))} onPlus={(from) => pickDays(clamp(days + 1, 1, 180), from)} />
         </div>
         <label className="form-row"><span>Start</span>
           <input type="date" value={start} min={dayString()} max={addDays(dayString(), 365)} onChange={(e) => e.target.value && setStart(e.target.value)} />

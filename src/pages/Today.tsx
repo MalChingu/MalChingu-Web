@@ -1,7 +1,7 @@
 import { QuizPanel, QuizResult } from "../components/QuizPanel";
 import { KoreanText } from "../components/KoreanText";
 import { Icon } from "../components/Icon";
-import { Button, Card, KoreanHeadline, Page, PosTag, SectionTitle, SpeakButton, StatTile } from "../components/ui";
+import { Button, Card, KoreanHeadline, Page, PosTag, SectionTitle, SpeakButton, StreakStar } from "../components/ui";
 import { isFinished } from "../core/quiz";
 import type { GuideSessionRow, GuideTaskRow, StudyGuideRow } from "../core/models";
 import { useStore } from "../lib/store";
@@ -21,17 +21,11 @@ export function Today({ openGuide }: { openGuide: (id: string) => void }) {
     .filter((x): x is { guide: StudyGuideRow; session: GuideSessionRow } => x !== null);
 
   return (
-    <Page title={first ? `Welcome Back, ${first}` : "Welcome Back"} waiting={!store.todayLoaded}>
-      <div className={`today-layout ${todays.length ? "with-side" : ""}`}>
-        <div className="today-streak">
-          <Card padding={16}>
-            <div className="row">
-              <Icon name="flame" size={24} className={stats.dailyStreak > 0 ? "orange" : "muted"} />
-              <strong className="grow">Streak</strong>
-              <span className="stat-inline">{stats.dailyStreak} {stats.dailyStreak === 1 ? "day" : "days"}</span>
-            </div>
-          </Card>
-        </div>
+    // The streak star sits beside the greeting (under it, both centred, on phones). The word of the day and today's
+    // guide sessions run full width.
+    <Page title={first ? `Welcome Back, ${first}` : "Welcome Back"} waiting={!store.todayLoaded} className="today-page"
+      actions={<StreakStar days={stats.dailyStreak} />}>
+      <div className="today-layout">
         <div className="today-main">
           {quiz && (
             <div className="glass card wotd">
@@ -57,7 +51,7 @@ export function Today({ openGuide }: { openGuide: (id: string) => void }) {
           )}
         </div>
         {todays.length > 0 && (
-          <div className="today-side">
+          <div className="today-guides">
             {todays.map(({ guide, session }) => (
               <Card key={session.id}>
                 <SectionTitle>{guide.title} · Day {session.day_number} of {guide.total_days}</SectionTitle>
@@ -68,13 +62,6 @@ export function Today({ openGuide }: { openGuide: (id: string) => void }) {
             ))}
           </div>
         )}
-        <div className="today-tiles">
-          <div className="tiles three">
-            <StatTile title="Words Practiced" value={String(stats.wordsPracticed)} icon="textBook" />
-            <StatTile title="Mastered" value={String(stats.wordsMastered)} icon="seal" tone="green" />
-            <StatTile title="Accuracy" value={stats.accuracy === null ? "–" : `${Math.round(stats.accuracy * 100)}%`} icon="scope" tone="yellow" />
-          </div>
-        </div>
       </div>
     </Page>
   );

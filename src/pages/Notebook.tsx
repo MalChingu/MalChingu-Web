@@ -75,7 +75,7 @@ export function Notebook({ startTab = "notes", onBack, addNote }: {
       </Card>
 
       {tab === "notes" && (notes.length === 0 ? (
-        <Card><p className="muted center">No notes here yet. Tap ✎ to write one, or right-click a part of a guide day.</p></Card>
+        <Card><p className="muted center">{when === "today" ? "No notes today" : when === "week" ? "No notes this week" : "No notes yet"}</p></Card>
       ) : notes.map((n) => (
         <Card key={n.id} className="notebook-item">
           <div className="note-body"><KoreanText text={n.body} /></div>
@@ -97,7 +97,7 @@ export function Notebook({ startTab = "notes", onBack, addNote }: {
       )))}
 
       {tab === "translations" && (saved.length === 0 ? (
-        <Card><p className="muted center">No saved translations here. Use Save in the Translate card on a guide.</p></Card>
+        <Card><p className="muted center">{when === "today" ? "No translations today" : when === "week" ? "No translations this week" : "No translations yet"}</p></Card>
       ) : saved.map((t) => {
         const korean = t.source_lang === "ko" ? t.source : t.translation;
         return (

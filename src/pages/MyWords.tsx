@@ -4,6 +4,8 @@ import { Icon } from "../components/Icon";
 import { Button, Card, ConfirmDialog, Page, RoundButton, Sheet, Steps, WordRow, copyText } from "../components/ui";
 import type { CustomWordRow } from "../core/models";
 import { useStore } from "../lib/store";
+import { wordLimit } from "../core/plan";
+import { LimitNote } from "../components/Plan";
 
 /** Words and phrases the learner added through Claude. Delete one with its trash button,
  *  or several at once with Select. */
@@ -16,6 +18,8 @@ export function MyWords({ onBack }: { onBack: () => void }) {
   const [confirmingMany, setConfirmingMany] = useState(false);
   const [query, setQuery] = useState("");
   const words = store.myWords.filter((w) => matchesSearch(w, query));
+  // Free accounts keep 50 words (guide vocabulary included); at the limit, a note with Upgrade to Pro.
+  const limit = wordLimit(store.plan, store.data.customWords.length);
   // Anything deleted on another device meanwhile drops out of the selection.
   const chosen = words.filter((w) => selected.has(w.id)).map((w) => w.id);
   const allChosen = words.length > 0 && chosen.length === words.length;
@@ -41,6 +45,7 @@ export function MyWords({ onBack }: { onBack: () => void }) {
           <RoundButton icon="question" tint="glass" label="How to Add Words" onClick={() => setHelp(true)} size={38} />
         </>
       )}>
+      {limit.full && <LimitNote label={limit.label ?? ""} message={limit.message ?? ""} full />}
       {store.myWords.length > 0 && (
         <label className="search-field glass">
           <Icon name="search" size={18} className="muted" />

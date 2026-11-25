@@ -7,7 +7,6 @@ import { Icon } from "../components/Icon";
 import { FriendsCard } from "../components/Friends";
 import { AvatarImage, AvatarPicker } from "../components/Avatar";
 import { PlanCard } from "../components/Plan";
-import { TOUR_EVENT } from "../components/Onboarding";
 import { Button, Card, ConfirmDialog, Logo, Page, RoundButton, SectionTitle, Segmented, Sheet, copyText } from "../components/ui";
 import { initials } from "../lib/settings";
 import { speak, useKoreanVoice } from "../lib/speech";
@@ -106,9 +105,6 @@ export function Profile() {
           </div>
           <div className="row toggle-row"><span>Built-In Words</span><span className="muted">{BUILT_IN.length}</span></div>
           <div className="row toggle-row"><span>My Words</span><span className="muted">{store.myWords.length}</span></div>
-          <button type="button" className="row toggle-row doc-link" onClick={() => window.dispatchEvent(new Event(TOUR_EVENT))}>
-            <span>Take the Tour</span><Icon name="chevron" size={16} className="muted" />
-          </button>
         </Card>
 
         <Card>
@@ -199,10 +195,11 @@ function EditProfileSheet({ onClose }: { onClose: () => void }) {
   const profile = store.settings.profile;
   const [name, setName] = useState(profile.name);
   const [avatar, setAvatar] = useState(profile.avatar);
+  const changed = name.trim() !== profile.name || avatar !== profile.avatar;
+  const canSave = name.trim().length > 0 && changed;
   const save = () => {
-    if (name.trim() && (name.trim() !== profile.name || avatar !== profile.avatar)) {
-      store.updateSettings({ profile: { ...profile, name: name.trim(), avatar } });
-    }
+    if (!canSave) return;
+    store.updateSettings({ profile: { ...profile, name: name.trim(), avatar } });
     onClose();
   };
   return (
@@ -215,8 +212,7 @@ function EditProfileSheet({ onClose }: { onClose: () => void }) {
         <AvatarPicker value={avatar} onChange={setAvatar} canUpload={store.plan === "pro"} />
         <input className="text-input sheet-input" value={name} aria-label="Your name" placeholder="Your Name" maxLength={80}
           onChange={(e) => setName(e.target.value)} />
-        <Button type="submit" kind="prominent" full large disabled={!name.trim()}>Save</Button>
-        <Button full onClick={onClose}>Cancel</Button>
+        <Button type="submit" kind="prominent" full large disabled={!canSave}>Save</Button>
       </form>
     </Sheet>
   );

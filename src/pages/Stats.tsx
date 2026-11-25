@@ -20,7 +20,7 @@ export function Stats() {
   return (
     <Page title="Stats">
       <div className="tiles">
-        <StatTile title="Day Streak" value={String(stats.dailyStreak)} icon="flame" tone="orange" />
+        <StatTile title="Day Streak" value={String(stats.dailyStreak)} icon="star" tone="orange" />
         <StatTile title="Days Studied" value={String(stats.daysStudied)} icon="calendar" tone="red" />
         <StatTile title="Words Practiced" value={String(stats.wordsPracticed)} icon="textBook" />
         <StatTile title="Words Mastered" value={String(stats.wordsMastered)} icon="seal" tone="green" />

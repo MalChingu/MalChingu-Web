@@ -258,11 +258,31 @@ describe("profile picture presets (shared cases)", () => {
   });
 });
 
-import { planLimit, type Plan } from "../plan";
+import { maxGuideDays, planLimit, wordLimit, type Plan } from "../plan";
 import planCases from "./plan.cases.json";
 describe("guide limit (shared cases)", () => {
   it.each(planCases.cases)("$plan with $guides guides", (c) => {
     const { plan, guides, ...expected } = c;
     expect(planLimit(plan as Plan | null, guides)).toEqual(expected);
+  });
+  it.each(planCases.guideDays)("longest guide for $plan", (c) => { expect(maxGuideDays(c.plan as Plan | null)).toBe(c.expect); });
+  it.each(planCases.words)("$plan with $words words", (c) => {
+    const { plan, words, ...expected } = c;
+    expect(wordLimit(plan as Plan | null, words)).toEqual(expected);
+  });
+});
+
+import { hintHasEnglish, hintWords, shortMeaning } from "../hints";
+import hintCases from "./hints.cases.json";
+import type { Level } from "../progress";
+describe("English in hints by level (shared cases)", () => {
+  it.each(hintCases.english)("$level", (c) => {
+    expect([0, 1, 2].map((i) => hintHasEnglish(c.level as Level, i, 3))).toEqual(c.threeHints);
+    expect(hintHasEnglish(c.level as Level, 0, 1)).toBe(c.flashcardHint);
+  });
+  it.each(hintCases.meanings)("short meaning of $meaning", (c) => { expect(shortMeaning(c.meaning)).toBe(c.expect); });
+  it.each(hintCases.words)("$sentence asking $target", (c) => {
+    const target = BUILT_IN.find((w) => w.hangul === c.target)!;
+    expect(hintWords(c.sentence, target, BUILT_IN)).toEqual(c.expect);
   });
 });

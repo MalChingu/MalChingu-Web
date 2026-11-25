@@ -1,5 +1,7 @@
 import { useRef, useState } from "react";
 import { HINT_SLOTS, MAX_MISTAKES, hintAt, isHintRevealed, triesLeft, type Outcome, type QuizSession } from "../core/quiz";
+import { hintHasEnglish, hintWords } from "../core/hints";
+import { useStore } from "../lib/store";
 import { Icon } from "./Icon";
 import { ExampleView, RoundButton } from "./ui";
 
@@ -7,6 +9,7 @@ import { ExampleView, RoundButton } from "./ui";
 export function QuizPanel({ session, onSubmit, onGiveUp, onRevealHint }: {
   session: QuizSession; onSubmit: (answer: string) => Outcome; onGiveUp: () => void; onRevealHint: (index: number) => void;
 }) {
+  const store = useStore();
   const [answer, setAnswer] = useState("");
   const [shake, setShake] = useState(false);
   const input = useRef<HTMLInputElement>(null);
@@ -50,7 +53,8 @@ export function QuizPanel({ session, onSubmit, onGiveUp, onRevealHint }: {
           return (
             <div key={i} className="hint-open">
               <div className="small muted strong">Hint {i + 1}</div>
-              <ExampleView example={example} showEnglish={false} />
+              <ExampleView example={example} showEnglish={false}
+                glossed={hintHasEnglish(store.level, i, HINT_SLOTS) ? hintWords(example.korean, session.word, store.allWords) : null} />
             </div>
           );
         }

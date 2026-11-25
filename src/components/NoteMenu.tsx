@@ -120,13 +120,16 @@ const tidy = (draft: NoteDraft): NoteDraft => ({
  *  all of them), newest first, on two tabs (swipe between them on a phone), with + in the header for a new note. A note opens in the same panel, with ← back to the list; ✓ or Ctrl/⌘ + Enter saves it.
  *  On a desktop it floats above the button so the guide stays readable and scrollable; on a phone it's a sheet.
  *  `draft` is the note being written (null for the list). */
-export function NotesPanel({ guideID, dayNumber, draft, setDraft, onClose, openAll }: {
+export function NotesPanel({ guideID, dayNumber, draft, setDraft, onClose, openAll, single }: {
   guideID: string | null; dayNumber: number | null; draft: NoteDraft | null;
   setDraft: (draft: NoteDraft | null) => void; onClose: () => void; openAll?: () => void;
+  /** Opened from My Notes for one note: a modal with no ← (My Notes already lists them), closed by a click outside
+   *  or Esc, and closed once saved. */
+  single?: boolean;
 }) {
   const store = useStore();
   const wide = useWide();
-  const Frame = wide ? FloatingPanel : Sheet;
+  const Frame = wide && !single ? FloatingPanel : Sheet;
   const titles = new Map(store.data.guides.map((g) => [g.id, g.title]));
   const notes = store.data.notes.filter((n) => (!guideID || n.guide_id === guideID))
     .sort((a, b) => b.created_at.localeCompare(a.created_at));
@@ -136,17 +139,23 @@ export function NotesPanel({ guideID, dayNumber, draft, setDraft, onClose, openA
   /** The note or translation waiting for Delete to be confirmed. */
   const [deleting, setDeleting] = useState<{ kind: "note" | "translation"; id: string } | null>(null);
   const swipe = useSwipe(() => setTab("notes"), () => setTab("translations"));
-  const canSave = !!draft && draft.body.trim().length > 0;
+  // An edited note can be saved once something in it has changed; a new one once it says something.
+  const saved = draft?.id ? store.data.notes.find((n) => n.id === draft.id) : undefined;
+  const changed = !!draft && (!saved || (() => {
+    const t = tidy(draft);
+    return t.body !== saved.body || t.guide_id !== saved.guide_id || t.day_number !== saved.day_number || t.section !== saved.section;
+  })());
+  const canSave = !!draft && draft.body.trim().length > 0 && changed;
   const save = async () => {
     if (!draft || !canSave) return;
-    setDraft(null);   // back to the list, where it shows up
+    if (single) onClose(); else setDraft(null);   // back to the list, where it shows up
     await store.saveNote(tidy(draft));
   };
 
   if (draft) {
     return (
       <Frame title={draft.id ? "Edit Note" : "New Note"} onClose={onClose}
-        leading={<RoundButton icon="chevronLeft" tint="glass" label="Back to Notes" onClick={() => setDraft(null)} size={36} />}
+        leading={single ? undefined : <RoundButton icon="chevronLeft" tint="glass" label="Back to Notes" onClick={() => setDraft(null)} size={36} />}
         trailing={<RoundButton icon="check" tint="green" label="Save Note" onClick={save} disabled={!canSave} size={36} />}>
         <NoteFields draft={draft} onChange={setDraft} onSave={save} />
       </Frame>
@@ -163,7 +172,7 @@ export function NotesPanel({ guideID, dayNumber, draft, setDraft, onClose, openA
       {/* On a phone, a sideways swipe switches between Notes and Translations. */}
       <div className="swipe-area" {...swipe}>
         {tab === "notes" && (notes.length === 0 ? (
-          <p className="muted center small">{guideID ? "No notes for this guide yet. Tap + to write one." : "No notes yet. Tap + to write one."}</p>
+          <p className="muted center small">No notes yet</p>
         ) : (
           <div className="notes-list">
             {notes.map((n) => (
@@ -182,7 +191,7 @@ export function NotesPanel({ guideID, dayNumber, draft, setDraft, onClose, openA
           </div>
         ))}
         {tab === "translations" && (translations.length === 0 ? (
-          <p className="muted center small">{guideID ? "No saved translations for this guide yet." : "No saved translations yet."} Save them from the Translate card.</p>
+          <p className="muted center small">No translations yet</p>
         ) : (
           <div className="notes-list">
             {translations.map((t) => {

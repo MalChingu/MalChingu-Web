@@ -1,0 +1,242 @@
+{
+  "_about": "English in hints, by level: which hints show English (Beginner all 3, Upper Beginner hints 2–3, Intermediate hint 3, Advanced none; a flashcard's one hint up to Intermediate), and the English under each word of a hint sentence (built-in words), the asked-about word left without. Shared by the web, iPhone/Mac and Android tests.",
+  "english": [
+    {
+      "level": "beginner",
+      "threeHints": [
+        true,
+        true,
+        true
+      ],
+      "flashcardHint": true
+    },
+    {
+      "level": "upperBeginner",
+      "threeHints": [
+        false,
+        true,
+        true
+      ],
+      "flashcardHint": true
+    },
+    {
+      "level": "intermediate",
+      "threeHints": [
+        false,
+        false,
+        true
+      ],
+      "flashcardHint": true
+    },
+    {
+      "level": "advanced",
+      "threeHints": [
+        false,
+        false,
+        false
+      ],
+      "flashcardHint": false
+    }
+  ],
+  "meanings": [
+    {
+      "meaning": "커피 (coffee) + 는 · topic",
+      "expect": "coffee"
+    },
+    {
+      "meaning": "Past of 가다 · to go",
+      "expect": "to go (past)"
+    },
+    {
+      "meaning": "Present of 마시다 · to drink",
+      "expect": "to drink"
+    },
+    {
+      "meaning": "Not · 덥다 · to be hot",
+      "expect": "not hot"
+    },
+    {
+      "meaning": "Not (past) · 가다 · to go",
+      "expect": "not go (past)"
+    },
+    {
+      "meaning": "Not · 덥다 · to be hot + -고 (and)",
+      "expect": "not hot"
+    },
+    {
+      "meaning": "I (polite, as the topic)",
+      "expect": "I"
+    },
+    {
+      "meaning": "Not (before a verb)",
+      "expect": "not"
+    },
+    {
+      "meaning": "mom",
+      "expect": "mom"
+    },
+    {
+      "meaning": "to be good",
+      "expect": "to be good"
+    }
+  ],
+  "words": [
+    {
+      "target": "가다",
+      "sentence": "저는 학교에 가요.",
+      "expect": [
+        {
+          "text": "저는",
+          "english": "I",
+          "target": false
+        },
+        {
+          "text": "학교에",
+          "english": "school",
+          "target": false
+        },
+        {
+          "text": "가요.",
+          "english": null,
+          "target": true
+        }
+      ]
+    },
+    {
+      "target": "가다",
+      "sentence": "어제 서울에 갔어요.",
+      "expect": [
+        {
+          "text": "어제",
+          "english": "yesterday",
+          "target": false
+        },
+        {
+          "text": "서울에",
+          "english": null,
+          "target": false
+        },
+        {
+          "text": "갔어요.",
+          "english": null,
+          "target": true
+        }
+      ]
+    },
+    {
+      "target": "학교",
+      "sentence": "오늘 학교에 안 갔어요.",
+      "expect": [
+        {
+          "text": "오늘",
+          "english": "today",
+          "target": false
+        },
+        {
+          "text": "학교에",
+          "english": null,
+          "target": true
+        },
+        {
+          "text": "안",
+          "english": "not",
+          "target": false
+        },
+        {
+          "text": "갔어요.",
+          "english": "to go (past)",
+          "target": false
+        }
+      ]
+    },
+    {
+      "target": "커피",
+      "sentence": "저는 매일 커피를 마셔요.",
+      "expect": [
+        {
+          "text": "저는",
+          "english": "I",
+          "target": false
+        },
+        {
+          "text": "매일",
+          "english": "every day",
+          "target": false
+        },
+        {
+          "text": "커피를",
+          "english": null,
+          "target": true
+        },
+        {
+          "text": "마셔요.",
+          "english": "to drink",
+          "target": false
+        }
+      ]
+    },
+    {
+      "target": "물",
+      "sentence": "물을 많이 마셨어요.",
+      "expect": [
+        {
+          "text": "물을",
+          "english": null,
+          "target": true
+        },
+        {
+          "text": "많이",
+          "english": "a lot",
+          "target": false
+        },
+        {
+          "text": "마셨어요.",
+          "english": "to drink (past)",
+          "target": false
+        }
+      ]
+    },
+    {
+      "target": "친구",
+      "sentence": "어제 친구를 만났어요.",
+      "expect": [
+        {
+          "text": "어제",
+          "english": "yesterday",
+          "target": false
+        },
+        {
+          "text": "친구를",
+          "english": null,
+          "target": true
+        },
+        {
+          "text": "만났어요.",
+          "english": "to meet (past)",
+          "target": false
+        }
+      ]
+    },
+    {
+      "target": "덥다",
+      "sentence": "오늘은 너무 더워요.",
+      "expect": [
+        {
+          "text": "오늘은",
+          "english": "today",
+          "target": false
+        },
+        {
+          "text": "너무",
+          "english": "too",
+          "target": false
+        },
+        {
+          "text": "더워요.",
+          "english": null,
+          "target": true
+        }
+      ]
+    }
+  ]
+}

@@ -8,12 +8,13 @@ import { Flashcards, Round, type PracticeMode } from "./pages/Flashcards";
 import { Guides } from "./pages/Guides";
 import { Profile } from "./pages/Profile";
 import { ProBadge, UpgradeButton } from "./components/Plan";
+import { UpgradeModal } from "./components/UpgradeModal";
 import { AvatarImage } from "./components/Avatar";
 import { SignIn } from "./pages/SignIn";
 import { Stats } from "./pages/Stats";
 import { Today } from "./pages/Today";
 import { WordSheet } from "./pages/WordSheet";
-import { Onboarding, Tour, TOUR_EVENT } from "./components/Onboarding";
+import { Onboarding, Tour } from "./components/Onboarding";
 
 type Tab = "today" | "flashcards" | "guides" | "stats" | "profile";
 const TABS: { id: Tab; label: string; icon: IconName }[] = [
@@ -61,13 +62,8 @@ export function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, [drawer]);
 
-  // The first-time tour, after onboarding (or from Profile → Take the Tour).
+  // The first-time tour, once, right after onboarding.
   const [touring, setTouring] = useState(false);
-  useEffect(() => {
-    const start = () => { setTouring(true); go("today"); };
-    window.addEventListener(TOUR_EVENT, start);
-    return () => window.removeEventListener(TOUR_EVENT, start);
-  });
   const endTour = () => {
     setTouring(false);
     if (!store.settings.tourDone) store.updateSettings({ tourDone: true });
@@ -112,7 +108,8 @@ export function App() {
         inert={compact && !drawer ? true : undefined}>
         <div className="tabs-brand"><Logo size={32} blink="hover" className="brand-logo" /> Korimal</div>
         {TABS.map((t) => (
-          <button key={t.id} type="button" className={`tab ${tab === t.id ? "on" : ""}`} aria-current={tab === t.id ? "page" : undefined}
+          <button key={t.id} type="button"
+            className={`tab ${tab === t.id ? "on" : ""} ${t.id === "profile" ? `profile-tab level-${store.level}` : ""}`} aria-current={tab === t.id ? "page" : undefined}
             onClick={() => go(t.id)}>
             <span className="tab-icon">
               {t.id === "profile" && store.settings.profile.avatar
@@ -143,6 +140,7 @@ export function App() {
           : <Profile />}
       </main>
       {touring && <Tour go={go} onDone={endTour} />}
+      <UpgradeModal />
       {store.openedWord && (
         <WordSheet key={store.openedWord.word.id} word={store.openedWord.word} startInQuiz={store.openedWord.quiz} onClose={store.closeWord} />
       )}

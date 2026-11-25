@@ -208,6 +208,25 @@ try {
     check(true, `${label}: Today greets by name`);
     await page.getByText(/Travel Basics.* · Day 1 of 2/).waitFor();
     check(true, `${label}: today's guide session shows`);
+    // The streak is a star beside the greeting (under it, centred, on a phone); no streak card or stat tiles.
+    const star = page.locator(".page-header .streak-star");
+    check(await star.isVisible() && /^\d+-day streak$/.test(await star.getAttribute("aria-label")), `${label}: Today shows the streak star`);
+    check(await page.locator(".stat-tile").count() === 0 && await page.getByText("Words Practiced").count() === 0,
+      `${label}: Today has no streak card or stat tiles`);
+    const header = await page.locator(".page-header").boundingBox();
+    const titleBox = await page.locator(".page-header h1").boundingBox();
+    const starBox = await star.boundingBox();
+    if (label === "phone") {
+      check(starBox.y >= titleBox.y + titleBox.height - 2 && Math.abs(starBox.x + starBox.width / 2 - (header.x + header.width / 2)) < 3
+        && await page.locator(".page-header h1").evaluate((h) => getComputedStyle(h).textAlign) === "center",
+        "phone: the star sits under the centred greeting");
+    } else {
+      check(starBox.x >= titleBox.x + titleBox.width - 2 && starBox.y < titleBox.y + titleBox.height, "desktop: the star sits right of the greeting");
+    }
+    const [wotd, content, guideCard] = [await page.locator(".wotd").boundingBox(), await page.locator(".page-content").boundingBox(),
+      await page.locator(".today-guides .card").first().boundingBox()];
+    check(Math.abs(wotd.width - content.width) < 2 && Math.abs(guideCard.width - content.width) < 2,
+      `${label}: the word of the day and today's guide run full width`);
 
     if (label === "phone") {
       // Word of the day quiz: a wrong guess opens hint 1, X reveals the answer.
@@ -215,6 +234,8 @@ try {
       await page.getByRole("button", { name: "Check answer" }).click();
       await page.getByText("Hint 1").waitFor();
       check(await page.getByText("Not quite. 2 tries left.").isVisible(), "wrong guess opens hint 1 and costs a try");
+      check(await page.locator(".hint-open .glossed").count() === 1 && await page.locator(".hint-open .glossed-word.target").count() >= 1,
+        "beginner: hint 1 shows each word's English, the asked word without");
       await page.getByRole("button", { name: "Tap to Show Hint 3" }).click();
       check(await page.getByText("Hint 3").isVisible(), "tapping a hint opens it");
       await page.screenshot({ path: `screenshots/today-quiz-${label}.png` });
@@ -299,8 +320,11 @@ try {
       page.once("filechooser", () => { chooser = true; });
       await sheet.getByRole("radio", { name: "Upload your own photo with Pro" }).click();
       await page.waitForTimeout(300);
-      check(!chooser && await sheet.locator('input[type="file"]').count() === 0 && await sheet.isVisible(),
-        "free: the upload tile goes to Upgrade to Pro instead of opening a file");
+      check(!chooser && await sheet.locator('input[type="file"]').count() === 0 && await page.getByRole("dialog", { name: "Upgrade to Pro" }).isVisible(),
+        "free: the upload tile opens Upgrade to Pro instead of a file");
+      await page.keyboard.press("Escape");
+      await page.getByRole("dialog", { name: "Upgrade to Pro" }).waitFor({ state: "detached" });
+      check(await sheet.isVisible(), "Esc closes Upgrade to Pro and leaves Edit Profile open");
       await sheet.getByRole("radio", { name: "Coffee" }).click();
       await page.screenshot({ path: "screenshots/edit-profile-phone.png" });
       await sheet.getByRole("button", { name: "Save" }).click();
@@ -309,7 +333,14 @@ try {
       check(db.profiles[0].avatar === "Coffee", "Edit Profile saves the new picture");
       check((await page.locator(".profile-card img.avatar").getAttribute("src")) === "/profile/Coffee.png", "the profile card shows the new picture");
       await page.getByRole("button", { name: "Edit Profile" }).click();
-      await page.getByRole("dialog", { name: "Edit Profile" }).getByRole("button", { name: "Cancel" }).click();
+      const editor = page.getByRole("dialog", { name: "Edit Profile" });
+      check(await editor.getByRole("button", { name: "Cancel" }).count() === 0 && await editor.getByRole("button", { name: "Save" }).isDisabled(),
+        "Edit Profile has no Cancel, and Save waits for a change");
+      await editor.getByLabel("Your name").fill("Test Learner!");
+      check(await editor.getByRole("button", { name: "Save" }).isEnabled(), "a change turns Save on");
+      await page.keyboard.press("Escape");
+      await editor.waitFor({ state: "detached" });
+      check(await page.getByText("Take the Tour").count() === 0, "Profile has no Take the Tour");
       // Phones have no sidebar: the plan shows in Profile.
       check(await page.locator(".plan-profile").getByRole("button", { name: "Upgrade to Pro" }).isVisible(), "phone: Upgrade to Pro shows in Profile");
       check(await page.locator(".plan-profile").getByText("1 of 2 guides").isVisible(), "phone: Profile shows the guide count");
@@ -602,10 +633,42 @@ try {
     check(button.x > note.x + note.width - 1 && button.y < note.y + note.height && note.y < button.y + button.height,
       "free, 2 guides: Upgrade to Pro sits to the right of the note, in line with it");
     await page.screenshot({ path: "screenshots/guides-limit-reached.png" });
+    // Upgrade to Pro floats up from the button: the price and what Pro adds. ✕, a click outside or Esc closes it.
+    const fromButton = page.locator(".tabs").getByRole("button", { name: "Upgrade to Pro" });
+    await fromButton.click();
+    const upgrade = page.getByRole("dialog", { name: "Upgrade to Pro" });
+    await upgrade.waitFor();
+    await page.waitForTimeout(350);
+    const [modalBox, buttonBox] = [await upgrade.boundingBox(), await fromButton.boundingBox()];
+    check((await upgrade.locator(".upgrade-price").innerText()).replace(/\s+/g, "") === "$5/month(USD)" && await upgrade.locator(".upgrade-benefits li").count() === 4
+      && await upgrade.getByRole("button", { name: "Upgrade for $5/month" }).isVisible(), "Upgrade to Pro shows $5/month and four things Pro adds");
+    check(modalBox.y + modalBox.height <= buttonBox.y + 1, "Upgrade to Pro floats up above the button that opened it");
+    await page.screenshot({ path: "screenshots/upgrade-modal.png" });
+    await page.keyboard.press("Escape");
+    await upgrade.waitFor({ state: "detached" });
+    await fromButton.click();
+    await upgrade.waitFor();
+    await page.mouse.click(1200, 40);
+    await upgrade.waitFor({ state: "detached" });
+    check(true, "Upgrade to Pro closes with Esc and a click outside");
     await page.getByRole("button", { name: "Create Guide" }).click();
     const sheet = page.getByRole("dialog", { name: "Create Guide" });
-    check(await sheet.getByText(/maxed out your guides/).isVisible() && await sheet.getByRole("button", { name: "Upgrade to Pro" }).isVisible(),
-      "free, 2 guides: Create Guide shows the note too");
+    check(await sheet.getByText(/maxed out/).count() === 0 && await sheet.getByRole("button", { name: "Upgrade to Pro" }).count() === 0,
+      "Create Guide has no limit note or button");
+    // Free accounts: guides of up to a week. A longer length opens Upgrade to Pro instead.
+    const modal = page.getByRole("dialog", { name: "Upgrade to Pro" });
+    await sheet.getByRole("radio", { name: "2 weeks" }).click();
+    await modal.waitFor();
+    check(await sheet.getByRole("radio", { name: "1 week" }).getAttribute("aria-checked") === "true",
+      "free: 2 weeks opens Upgrade to Pro and keeps 1 week");
+    await page.screenshot({ path: "screenshots/upgrade-from-length.png" });
+    await modal.getByRole("button", { name: "Close" }).click();
+    await modal.waitFor({ state: "detached" });
+    await sheet.getByRole("button", { name: "More days" }).click();
+    await modal.waitFor();
+    check(await sheet.getByText("7 days").isVisible(), "free: + past 7 days opens Upgrade to Pro");
+    await page.keyboard.press("Escape");
+    await modal.waitFor({ state: "detached" });
     await page.keyboard.press("Escape");
     // On a phone too, the button stays to the right of the note.
     await page.setViewportSize({ width: 390, height: 844 });
@@ -641,6 +704,100 @@ try {
     db.profiles[0].avatar = before;
     PLAN = "free";
     db.study_guides = db.study_guides.filter((g) => g.id !== second.id);
+    await context.close();
+  }
+
+  // My Words at the free limit, My Notes (empty states and the edit modal), the sidebar, and hints for an advanced
+  // learner.
+  {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 860 } });
+    await context.route("https://nxlsnpzfbazwlccxtwpt.supabase.co/**", fakeSupabase);
+    await context.addInitScript((value) => localStorage.setItem("sb-nxlsnpzfbazwlccxtwpt-auth-token", value), JSON.stringify(session));
+    const page = await context.newPage();
+
+    // 50 words: My Words shows the limit note above the search.
+    const words = db.custom_words;
+    db.custom_words = Array.from({ length: 50 }, (_, i) => ({ ...words[0], id: `77777777-7777-4777-8777-${String(900000000000 + i)}`,
+      hangul: `단어${i}`, guide_id: null, day_number: null }));
+    await page.goto("http://localhost:4173/#flashcards");
+    await page.getByRole("button", { name: /My Words/ }).click();
+    const note = page.locator(".guide-limit");
+    await note.waitFor({ timeout: 15000 });
+    check(await note.getByText("50 of 50 words").isVisible() && await note.getByText("You've maxed out your words. Upgrade to Pro for Unlimited Words").isVisible()
+      && await note.getByRole("button", { name: "Upgrade to Pro" }).isVisible(), "free, 50 words: My Words shows the limit note");
+    check((await note.boundingBox()).y < (await page.locator(".search-field").boundingBox()).y, "the word limit note sits above the search");
+    await page.screenshot({ path: "screenshots/my-words-limit.png" });
+    db.custom_words = words;
+
+    // My Notes: empty states for All, This Week and Today.
+    await page.goto("http://localhost:4173/#guides");
+    await page.getByRole("button", { name: /My Notes/ }).click();
+    await page.getByText("No notes yet").waitFor({ timeout: 15000 });
+    await page.getByRole("radio", { name: "This Week" }).click();
+    check(await page.getByText("No notes this week").isVisible(), "My Notes: No notes this week");
+    await page.getByRole("radio", { name: "Today" }).click();
+    check(await page.getByText("No notes today").isVisible(), "My Notes: No notes today");
+    await page.getByRole("radio", { name: "All", exact: true }).click();
+
+    // Editing a note from My Notes: a modal with no ←, ✓ waits for a change, a click outside or Esc closes it.
+    db.user_notes = [{ id: "99999999-9999-4999-8999-999999999991", user_id: USER, guide_id: null, day_number: null, section: null,
+      body: "Ask about 에서", created_at: stamp, updated_at: stamp }];
+    await page.reload();
+    await page.getByRole("button", { name: /My Notes/ }).click();
+    await page.getByRole("button", { name: "Edit Note" }).click();
+    const editor = page.getByRole("dialog", { name: "Edit Note" });
+    await editor.waitFor();
+    check(await editor.getByRole("button", { name: "Back to Notes" }).count() === 0, "editing from My Notes has no Back button");
+    check(await editor.getByRole("button", { name: "Save Note" }).isDisabled(), "✓ waits for a change");
+    await editor.locator("textarea").fill("Ask about 에서 and 에");
+    check(await editor.getByRole("button", { name: "Save Note" }).isEnabled(), "a change turns ✓ on");
+    await page.screenshot({ path: "screenshots/my-notes-edit.png" });
+    await page.mouse.click(40, 840);
+    await editor.waitFor({ state: "detached" });
+    check(db.user_notes[0].body === "Ask about 에서", "a click outside closes it without saving");
+    await page.getByRole("button", { name: "Edit Note" }).click();
+    await editor.waitFor();
+    await page.keyboard.press("Escape");
+    await editor.waitFor({ state: "detached" });
+    check(true, "Esc closes it too");
+    db.user_notes = [];
+
+    // The sidebar: capsules, a tint on hover, the chosen page outlined (Profile in the level's colour).
+    const flashTab = page.locator(".tabs").getByRole("button", { name: "Flashcards", exact: true });
+    await flashTab.hover();
+    await page.waitForTimeout(250);
+    check(await flashTab.evaluate((b) => getComputedStyle(b).backgroundColor) !== "rgba(0, 0, 0, 0)", "a sidebar button tints on hover");
+    await page.locator(".tabs").getByRole("button", { name: "Profile", exact: true }).click();
+    await page.mouse.move(900, 500);
+    await page.waitForTimeout(250);
+    const profileTab = await page.locator(".tabs .profile-tab").evaluate((b) => ({ border: getComputedStyle(b).borderTopColor,
+      radius: getComputedStyle(b).borderTopLeftRadius, level: getComputedStyle(document.querySelector(".level-tag .level-icon")).color }));
+    check(profileTab.border === profileTab.level && parseFloat(profileTab.radius) > 20, `the Profile button is a capsule outlined in the level's colour (${JSON.stringify(profileTab)})`);
+    await page.locator(".tabs").getByRole("button", { name: "Stats", exact: true }).click();
+    await page.mouse.move(900, 500);
+    await page.waitForTimeout(300);
+    const statsTab = await page.locator(".tabs .tab.on").evaluate((b) => getComputedStyle(b).borderTopColor);
+    const accent = await page.evaluate(() => { const p = document.createElement("span"); p.style.color = "var(--accent)"; document.body.append(p); const c = getComputedStyle(p).color; p.remove(); return c; });
+    check(statsTab === accent, "the chosen page is outlined in purple");
+    await page.screenshot({ path: "screenshots/sidebar.png", clip: { x: 0, y: 0, width: 320, height: 860 } });
+
+    // Hints for an advanced learner: no English under the words.
+    const progressBefore = db.word_progress;
+    db.word_progress = Array.from({ length: 400 }, (_, i) => ({ user_id: USER, word_id: `b-known${i}`, streak: 3, best_streak: 3, correct: 3, wrong: 0,
+      dont_know: 0, hints_used: 0, first_reviewed: stamp, last_reviewed: stamp, updated_at: stamp }));
+    await page.goto("http://localhost:4173/#flashcards");
+    await page.reload();   // a hash change alone doesn't reload the data
+    await page.getByRole("button", { name: "Start" }).click({ timeout: 15000 });
+    await page.locator(".hint-button").click();
+    await page.locator(".hint").waitFor();
+    check(await page.locator(".hint .glossed").count() === 0, "advanced: a flashcard hint has no English under the words");
+    db.word_progress = progressBefore;
+    await page.reload();
+    await page.getByRole("button", { name: "Start" }).click();
+    await page.locator(".hint-button").click();
+    await page.locator(".hint").waitFor();
+    check(await page.locator(".hint .glossed").count() === 1, "beginner: a flashcard hint shows the English under the words");
+    await page.screenshot({ path: "screenshots/flashcard-hint-glossed.png" });
     await context.close();
   }
 

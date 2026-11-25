@@ -4,7 +4,8 @@ import { PARTS_OF_SPEECH, posPlural, type PartOfSpeech, type Word } from "../cor
 import { buildDeck } from "../core/progress";
 import { BUILT_IN } from "../core/wordBank";
 import { Icon } from "../components/Icon";
-import { Button, Card, ConfirmDialog, KoreanHeadline, Page, PosTag, RoundButton, Segmented, Sheet, SpeakButton, Stepper, Toggle, WordRow } from "../components/ui";
+import { Button, Card, ConfirmDialog, GlossedKorean, KoreanHeadline, Page, PosTag, RoundButton, Segmented, Sheet, SpeakButton, Stepper, Toggle, WordRow } from "../components/ui";
+import { hintHasEnglish, hintWords, type HintWord } from "../core/hints";
 import { formAnswerRight, formsFor, shownForForm, type CardForm } from "../core/englishForms";
 import { flashcardHint, type FlashcardHint } from "../core/flashcardHint";
 import type { FlashcardSource } from "../lib/settings";
@@ -405,7 +406,9 @@ export function Round({ words, onClose, mode = "meaning", doneLabel = "New Round
                       }} />
                     )}
                   </div>
-                  {hint && (hintShown ? <HintView hint={hint} /> : (
+                  {hint && (hintShown ? <HintView hint={hint}
+                    glossed={hint.kind === "example" && word && hintHasEnglish(store.level, 0, 1)
+                      ? hintWords(hint.example.korean, word, store.allWords) : null} /> : (
                     <button type="button" className="link small hint-button" onClick={() => { setHintShown(true); inputRef.current?.focus(); }}>
                       <Icon name="bulb" size={16} /> Show Hint
                     </button>
@@ -519,14 +522,14 @@ function ShortcutsSheet({ onClose }: { onClose: () => void }) {
 }
 
 /** The card's hint: an example sentence in Korean with its romanization (not the English, which would give the answer
- *  away), or the answer's first letter. */
-function HintView({ hint }: { hint: FlashcardHint }) {
+ *  away; up to Intermediate, each other word's English shows under it), or the answer's first letter. */
+function HintView({ hint, glossed }: { hint: FlashcardHint; glossed: HintWord[] | null }) {
   if (hint.kind === "start") return <p className="hint small" role="status">Starts with “<strong>{hint.text}</strong>…”</p>;
   const { example } = hint;
   return (
     <div className="hint" role="status">
       <div className="row center-row">
-        <span lang="ko"><KoreanText text={example.korean} /></span>
+        {glossed ? <GlossedKorean words={glossed} /> : <span lang="ko"><KoreanText text={example.korean} /></span>}
         <SpeakButton text={example.korean} size={16} />
       </div>
       {example.romanization && <span className="small muted">{example.romanization}</span>}

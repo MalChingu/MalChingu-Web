@@ -1,5 +1,5 @@
 {
-  "_about": "What the Guides page shows for each plan. Free accounts hold 2 guides at a time; Pro (or a plan not loaded yet) shows nothing. Shared by the web, iPhone/Mac and Android tests.",
+  "_about": "What the apps show for each plan. Free accounts hold 2 guides at a time, each at most 7 days, and keep 50 words in My Words (guide vocabulary included); Pro (or a plan not loaded yet) shows nothing. Shared by the web, iPhone/Mac and Android tests.",
   "cases": [
     {
       "plan": null,
@@ -48,6 +48,57 @@
       "canCreate": false,
       "label": "3 guides; free accounts hold 2",
       "message": "You've maxed out your guides. Upgrade to Pro for Unlimited Guides"
+    }
+  ],
+  "guideDays": [
+    {
+      "plan": null,
+      "expect": null
+    },
+    {
+      "plan": "pro",
+      "expect": null
+    },
+    {
+      "plan": "free",
+      "expect": 7
+    }
+  ],
+  "words": [
+    {
+      "plan": null,
+      "words": 80,
+      "full": false,
+      "label": null,
+      "message": null
+    },
+    {
+      "plan": "pro",
+      "words": 200,
+      "full": false,
+      "label": null,
+      "message": null
+    },
+    {
+      "plan": "free",
+      "words": 49,
+      "full": false,
+      "label": null,
+      "message": null
+    },
+    {
+      "plan": "free",
+      "words": 50,
+      "full": true,
+      "label": "50 of 50 words",
+      "message": "You've maxed out your words. Upgrade to Pro for Unlimited Words"
+    },
+    {
+      "plan": "free",
+      "words": 63,
+      "full": true,
+      "label": "63 words; free accounts keep 50",
+      "message": "You've maxed out your words. Upgrade to Pro for Unlimited Words"
     }
   ]
 }

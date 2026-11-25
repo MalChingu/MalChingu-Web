@@ -32,7 +32,7 @@ export function AvatarPicker({ value, onChange, canUpload }: { value: string | n
           aria-label={canUpload ? (photo ? "Your photo. Choose another" : "Upload your own photo") : "Upload your own photo with Pro"}
           title={canUpload ? "Upload Photo" : "Upload your own photo with Pro"}
           className={`avatar-choice avatar-upload ${photo ? "on" : ""}`}
-          onClick={() => (canUpload ? file.current?.click() : upgradeToPro())}>
+          onClick={(e) => (canUpload ? file.current?.click() : upgradeToPro(e.currentTarget))}>
           {photo ? <img src={avatarSrc(photo)} alt="" width={56} height={56} draggable={false} />
             : <span className="avatar-upload-art"><Icon name="camera" size={24} /></span>}
           {!canUpload && <span className="avatar-upload-pro">Pro</span>}
