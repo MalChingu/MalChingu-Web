@@ -50,12 +50,11 @@ export function SpeakButton({ text, size = 20 }: { text: string; size?: number }
 /** One example sentence. `showEnglish` is off when it's used as a quiz hint. */
 export function ExampleView({ example, showEnglish = true }: { example: Example; showEnglish?: boolean }) {
   return (
-    <div className="example">
-      <div className="example-text">
-        <div className="example-korean" lang="ko">{example.korean}</div>
-        <div className="muted">{example.romanization || romanize(example.korean)}</div>
-        {showEnglish && <div>{example.english}</div>}
-      </div>
+    // Always the same lines as a flashcard's question: Hangul, then romanization, then Listen.
+    <div className="example stacked">
+      <div className="example-korean" lang="ko">{example.korean}</div>
+      <div className="muted">{example.romanization || romanize(example.korean)}</div>
+      {showEnglish && <div>{example.english}</div>}
       <SpeakButton text={example.korean} />
     </div>
   );

@@ -59,8 +59,8 @@ async function selectAll<T>(table: string, order: string): Promise<T[]> {
 
 const now = () => new Date().toISOString();
 
-/** Your own row of `public_profiles`: what friends (and, for the username and level, anyone searching) see. */
-interface PublicCard { username: string | null; name: string; avatar: string | null; level: string }
+/** Your own row of `public_profiles`: your username (for good once set) and level. */
+interface PublicCard { username: string | null; level: string }
 
 /** Friends, requests and challenges: loaded from the server each refresh, never kept offline. */
 interface FriendsState { rows: FriendRow[]; challenges: ChallengeRow[]; loaded: boolean; error: string | null }
@@ -193,7 +193,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const [f, c, me] = await Promise.all([
       supabase.rpc("my_friends"),
       supabase.rpc("my_challenges"),
-      supabase.from("public_profiles").select("username,name,avatar,level").eq("user_id", userID).maybeSingle(),
+      supabase.from("public_profiles").select("username,level").eq("user_id", userID).maybeSingle(),
     ]);
     if (ticket !== friendsLoad.current) return;
     const error = f.error ?? c.error ?? me.error;
@@ -559,14 +559,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (error) setError(`Sign-in failed: ${error.message}`);
   }, []);
 
-  // Your card follows your name, picture and level. (The username is changed on its own, below.)
-  const cardFields = useMemo(() => {
-    const avatar = settings.profile.avatar;
-    return { name: settings.profile.name.trim().slice(0, 80), avatar: avatar && avatar.length <= 200_000 ? avatar : null, level };
-  }, [settings.profile.name, settings.profile.avatar, level]);
+  // Your card holds your username and level; friends see your name and picture from your settings (kept once).
+  const cardFields = useMemo(() => ({ level }), [level]);
   useEffect(() => {
     if (!userID || card === undefined || !dataOK) return;
-    if (card && card.name === cardFields.name && card.avatar === cardFields.avatar && card.level === cardFields.level) return;
+    if (card && card.level === cardFields.level) return;
     setCard({ username: card?.username ?? null, ...cardFields });
     supabase.from("public_profiles").upsert({ user_id: userID, ...cardFields, updated_at: now() }, { onConflict: "user_id" })
       .then(({ error }) => { if (error) setFriendsState((s) => ({ ...s, error: `Couldn't update your card for friends: ${error.message}` })); });
