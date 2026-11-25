@@ -129,7 +129,7 @@ function GuideLimit() {
     <div className={`glass card guide-limit ${limit.canCreate ? "" : "full"}`}>
       <div className="guide-limit-text">
         <strong>{limit.label}</strong>
-        <span className="small muted">{limit.message ?? "Free accounts hold 2 study guides at a time. Pro has no limit."}</span>
+        <span className="small muted">{limit.message ?? "Free accounts hold 2 study guides at a time."}</span>
       </div>
       <UpgradeButton full={false} />
     </div>
@@ -359,15 +359,7 @@ function CreateGuide({ onClose }: { onClose: () => void }) {
 
   return (
     <Sheet title="Create Guide" onClose={onClose}>
-      {!limit.canCreate && (
-        <Card>
-          <div className="stack">
-            <strong><Icon name="lock" size={16} /> {limit.label}</strong>
-            <p className="muted small">{limit.message} Claude can still update a guide you have.</p>
-            <UpgradeButton />
-          </div>
-        </Card>
-      )}
+      {!limit.canCreate && <GuideLimit />}
       {!store.data.hasConnectorToken && (
         <Card>
           <div className="stack">

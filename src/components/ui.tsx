@@ -213,7 +213,7 @@ export function FloatingPanel({ title, onClose, children, trailing, leading }: {
   );
 }
 
-/** A row of options where one is chosen (the selected one is light with dark text in both themes). */
+/** A row of options where one is chosen (the selected one is dark with light text). */
 export function Segmented<T extends string>({ options, value, onChange, label }: {
   options: { value: T; label: string }[]; value: T; onChange: (value: T) => void; label: string;
 }) {

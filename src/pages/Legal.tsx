@@ -2,7 +2,7 @@ import { useEffect, type ReactNode } from "react";
 import { Copyright } from "../components/ui";
 
 // The Privacy Policy (/privacy) and Terms of Service (/terms), on Korimal's own site and in its design. They open
-// without signing in, and follow the Appearance setting (or the system's light or dark mode).
+// without signing in.
 
 export type LegalKind = "privacy" | "terms";
 
@@ -45,7 +45,7 @@ function Privacy() {
           <li>Your account: you sign in with Apple or Google. We receive an account identifier and the email address the provider shares, which may be a private relay address, and your name if you choose to share it.</li>
           <li>Your profile: the display name, profile picture, title and username you choose in the app.</li>
           <li>Your study data: the words you add, your progress on each word, quiz and flashcard answers, daily study totals and streaks, the word of the day quiz, study guides and their tasks, your notes and the translations you save.</li>
-          <li>Your settings, such as appearance, flashcard setup and notification times.</li>
+          <li>Your settings, such as your flashcard setup and notification times.</li>
           <li>Your friends: the friend requests you send and receive (including an email address you type to invite someone), your friendships, and the challenges you play with friends and their results.</li>
         </ul>
         <p>Korimal does not request your contacts, location or phone number, and does not use advertising trackers.</p>

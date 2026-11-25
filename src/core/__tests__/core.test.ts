@@ -244,7 +244,7 @@ describe("My Words search (shared cases)", () => {
   });
 });
 
-import { AVATAR_PRESETS, DEFAULT_AVATAR, pickAvatarPreset, toAvatarPreset } from "../avatars";
+import { AVATAR_PRESETS, DEFAULT_AVATAR, pickAvatarPreset, shownAvatar, toAvatarPreset } from "../avatars";
 import avatarCases from "./avatars.cases.json";
 describe("profile picture presets (shared cases)", () => {
   it("match the shared list", () => {
@@ -252,6 +252,7 @@ describe("profile picture presets (shared cases)", () => {
     expect(DEFAULT_AVATAR).toBe(avatarCases.fallback);
   });
   it.each(avatarCases.toPreset)("preset for $value", (c) => { expect(toAvatarPreset(c.value)).toBe(c.expect); });
+  it.each(avatarCases.shown)("shows $expect for $value", (c) => { expect(shownAvatar(c.value)).toBe(c.expect); });
   it.each(avatarCases.pick)("pick replacing $exclude at $random", (c) => {
     expect(pickAvatarPreset(c.exclude, c.random)).toBe(c.expect);
   });

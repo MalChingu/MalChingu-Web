@@ -1,5 +1,6 @@
 import { planLimit } from "../core/plan";
 import { useStore } from "../lib/store";
+import { upgradeToPro } from "../lib/upgrade";
 import { Icon } from "./Icon";
 import { Button } from "./ui";
 
@@ -17,15 +18,18 @@ export function PlanCard({ className = "" }: { className?: string }) {
   const limit = planLimit(store.plan, store.data.guides.length);
   return (
     <div className={`glass card plan-card ${className}`}>
-      <span className="small muted">Free · {limit.label}</span>
-      <UpgradeButton />
+      <div className="plan-card-text">
+        <strong>Free</strong>
+        <span className="small muted">{limit.message ?? limit.label}</span>
+      </div>
+      <UpgradeButton full={false} />
     </div>
   );
 }
 
 export const ProBadge = () => <span className="pro-badge"><Icon name="seal" size={16} /> Pro</span>;
 
-/** Upgrade to Pro. Payments aren't set up yet, so it does nothing for now. */
+/** Upgrade to Pro (see lib/upgrade: it does nothing until payments are set up). */
 export function UpgradeButton({ full = true }: { full?: boolean }) {
-  return <Button kind="prominent" icon="bolt" full={full} onClick={() => {}}>Upgrade to Pro</Button>;
+  return <Button kind="prominent" icon="bolt" full={full} onClick={upgradeToPro}>Upgrade to Pro</Button>;
 }

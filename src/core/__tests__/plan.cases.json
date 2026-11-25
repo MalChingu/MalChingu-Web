@@ -1,13 +1,53 @@
 {
   "_about": "What the Guides page shows for each plan. Free accounts hold 2 guides at a time; Pro (or a plan not loaded yet) shows nothing. Shared by the web, iPhone/Mac and Android tests.",
   "cases": [
-    { "plan": null, "guides": 1, "limited": false, "canCreate": true, "label": null, "message": null },
-    { "plan": "pro", "guides": 7, "limited": false, "canCreate": true, "label": null, "message": null },
-    { "plan": "free", "guides": 0, "limited": true, "canCreate": true, "label": "0 of 2 guides", "message": null },
-    { "plan": "free", "guides": 1, "limited": true, "canCreate": true, "label": "1 of 2 guides", "message": null },
-    { "plan": "free", "guides": 2, "limited": true, "canCreate": false, "label": "2 of 2 guides",
-      "message": "You've reached 2 guides. Delete one to make another, or upgrade to Pro." },
-    { "plan": "free", "guides": 3, "limited": true, "canCreate": false, "label": "3 guides; free accounts hold 2",
-      "message": "Free accounts hold 2 guides. Delete 2 to make another, or upgrade to Pro." }
+    {
+      "plan": null,
+      "guides": 1,
+      "limited": false,
+      "canCreate": true,
+      "label": null,
+      "message": null
+    },
+    {
+      "plan": "pro",
+      "guides": 7,
+      "limited": false,
+      "canCreate": true,
+      "label": null,
+      "message": null
+    },
+    {
+      "plan": "free",
+      "guides": 0,
+      "limited": true,
+      "canCreate": true,
+      "label": "0 of 2 guides",
+      "message": null
+    },
+    {
+      "plan": "free",
+      "guides": 1,
+      "limited": true,
+      "canCreate": true,
+      "label": "1 of 2 guides",
+      "message": null
+    },
+    {
+      "plan": "free",
+      "guides": 2,
+      "limited": true,
+      "canCreate": false,
+      "label": "2 of 2 guides",
+      "message": "You've maxed out your guides. Upgrade to Pro for Unlimited Guides"
+    },
+    {
+      "plan": "free",
+      "guides": 3,
+      "limited": true,
+      "canCreate": false,
+      "label": "3 guides; free accounts hold 2",
+      "message": "You've maxed out your guides. Upgrade to Pro for Unlimited Guides"
+    }
   ]
 }

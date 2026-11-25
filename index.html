@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#5B4FE9" />
+    <meta name="theme-color" content="#f4f3fb" />
     <meta name="description" content="Korimal (코리말), your Korean talking buddy: a word a day, flashcards and study guides." />
     <link rel="icon" href="/favicon.ico" sizes="48x48" />
     <link rel="icon" type="image/svg+xml" href="/logo.svg" />
@@ -18,13 +18,6 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" />
     <title>Korimal</title>
-    <script>
-      // Apply the saved Light/Dark choice before the page draws, so it never flashes the wrong theme.
-      try {
-        var theme = localStorage.getItem("malchingu.theme");
-        if (theme === "light" || theme === "dark") document.documentElement.dataset.theme = theme;
-      } catch (e) {}
-    </script>
   </head>
   <body>
     <div id="root"></div>

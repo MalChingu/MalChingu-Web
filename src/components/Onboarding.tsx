@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { isAvatarPreset, pickAvatarPreset } from "../core/avatars";
+import { isAvatarPreset, isPhotoAvatar, pickAvatarPreset } from "../core/avatars";
 import { normalizeUsername } from "../core/friends";
 import { useStore } from "../lib/store";
 import { AvatarImage, AvatarPicker } from "./Avatar";
@@ -25,7 +25,8 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
   const shown = typed.current ? handle : handle || suggestion;
   const check = useUsernameCheck(shown);
   const [avatar, setAvatar] = useState<string>(() =>
-    isAvatarPreset(store.settings.profile.avatar) ? store.settings.profile.avatar : pickAvatarPreset());
+    isAvatarPreset(store.settings.profile.avatar) || isPhotoAvatar(store.settings.profile.avatar)
+      ? store.settings.profile.avatar : pickAvatarPreset());
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -83,7 +84,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
             <h1 className="onboarding-title">Choose a Picture</h1>
             <p className="muted center">Friends see it next to your name. You can change it later in Profile.</p>
             <div className="onboarding-avatar"><AvatarImage className="avatar" avatar={avatar} size={120} /></div>
-            <AvatarPicker value={avatar} onChange={setAvatar} />
+            <AvatarPicker value={avatar} onChange={setAvatar} canUpload={store.plan === "pro"} />
             <Button icon="refresh" full onClick={() => setAvatar(pickAvatarPreset(avatar))}>Shuffle</Button>
             {error && <p className="error small" role="alert">{error}</p>}
             <div className="button-pair">

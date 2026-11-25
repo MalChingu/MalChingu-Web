@@ -11,7 +11,6 @@ import { TOUR_EVENT } from "../components/Onboarding";
 import { Button, Card, ConfirmDialog, Logo, Page, RoundButton, SectionTitle, Segmented, Sheet, copyText } from "../components/ui";
 import { initials } from "../lib/settings";
 import { speak, useKoreanVoice } from "../lib/speech";
-import { useAppearance, type Appearance } from "../lib/theme";
 import { useStore } from "../lib/store";
 
 /** The policy pages (on this site) and RezPoint's. */
@@ -31,7 +30,6 @@ export function Profile() {
   // About (you, the app, Sign Out) or Settings (the app's and the account's settings).
   const [part, setPart] = useState<"about" | "settings">("about");
   const voice = useKoreanVoice();
-  const [appearance, setAppearance] = useAppearance();
 
 
   const run = async (action: () => Promise<void>) => { setWorking(true); setCopied(false); await action(); setWorking(false); };
@@ -138,13 +136,6 @@ export function Profile() {
       ) : (
         <>
         <Card>
-          <SectionTitle>Appearance</SectionTitle>
-          <Segmented label="Appearance" value={appearance} onChange={setAppearance}
-            options={(["system", "light", "dark"] as Appearance[]).map((o) => ({ value: o, label: o[0].toUpperCase() + o.slice(1) }))} />
-        </Card>
-
-
-        <Card>
           <SectionTitle>Word of the Day</SectionTitle>
           <div className="small muted">Show Word In</div>
           <Segmented label="Show Word In" value={settings.display} onChange={(display) => store.updateSettings({ display })}
@@ -202,7 +193,7 @@ export function Profile() {
   );
 }
 
-/** Edit Profile (the pencil, or tapping the picture): your name and picture. (Your username is set for good.) */
+/** Edit Profile (the pencil, or tapping the picture): your name and picture (a preset, or a photo with Pro). */
 function EditProfileSheet({ onClose }: { onClose: () => void }) {
   const store = useStore();
   const profile = store.settings.profile;
@@ -221,7 +212,7 @@ function EditProfileSheet({ onClose }: { onClose: () => void }) {
           {avatar ? <AvatarImage className="avatar" avatar={avatar} size={96} />
             : <span className="avatar placeholder">{initials(name) || <Icon name="person" size={40} />}</span>}
         </div>
-        <AvatarPicker value={avatar} onChange={setAvatar} />
+        <AvatarPicker value={avatar} onChange={setAvatar} canUpload={store.plan === "pro"} />
         <input className="text-input sheet-input" value={name} aria-label="Your name" placeholder="Your Name" maxLength={80}
           onChange={(e) => setName(e.target.value)} />
         <Button type="submit" kind="prominent" full large disabled={!name.trim()}>Save</Button>

@@ -1,7 +1,8 @@
 /* Malchingu web: the same look as the app — gradient backdrop, frosted-glass cards, capsule buttons. */
 
 :root {
-  color-scheme: light dark;
+  /* Always the light look: the app has no dark mode. */
+  color-scheme: light;
   --base: #f4f3fb;
   --text: #15132b;
   --text-2: rgba(21, 19, 43, 0.6);
@@ -14,7 +15,7 @@
   --yellow: #a16207;
   --teal: #0f766e;
   --purple: #7e22ce;
-  /* Filled buttons and badges carry white text, so they use deeper colours in both themes. */
+  /* Filled buttons and badges carry white text, so they use deeper colours. */
   --accent-fill: #5b4fe9;
   --green-fill: #15803d;
   --red-fill: #c62828;
@@ -38,7 +39,7 @@
   --text-h3: 1.2rem;
   --weight-heading: 800;
   --weight-strong: 700;
-  /* Colours for filled buttons and badges, and things that keep their colour in both themes. */
+  /* Colours for filled buttons and badges. */
   --on-fill: #ffffff;
   --warning-fill: #eab308;
   --on-warning: #3b2a00;
@@ -51,66 +52,6 @@
   --google-border: #747775;
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
-}
-
-/* Dark colours: chosen in Profile → Appearance, or following the system when set to System. */
-:root[data-theme="dark"] {
-  color-scheme: dark;
-  --base: #0e0d1c;
-  --text: #f2f1fa;
-  --text-2: rgba(242, 241, 250, 0.62);
-  --text-3: rgba(242, 241, 250, 0.38);
-  --accent: #a9a9ff;
-  --accent-soft: rgba(143, 143, 255, 0.2);
-  --green: #34d27b;
-  --red: #ff7a7e;
-  --orange: #ffa94d;
-  --yellow: #facc15;
-  --teal: #2dd4bf;
-  --purple: #c084fc;
-  --glass: rgba(36, 34, 60, 0.55);
-  --glass-border: rgba(255, 255, 255, 0.1);
-  --glass-strong: rgba(44, 42, 72, 0.85);
-  --popover: #2c2a48;
-  --field: rgba(255, 255, 255, 0.08);
-  --divider: rgba(255, 255, 255, 0.09);
-  --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
-  --apple-bg: #ffffff;
-  --apple-fg: #000000;
-  --google-bg: #131314;
-  --google-fg: #e3e3e3;
-  --google-border: #8e918f;
-}
-:root[data-theme="light"] { color-scheme: light; }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    color-scheme: dark;
-    --base: #0e0d1c;
-      --text: #f2f1fa;
-      --text-2: rgba(242, 241, 250, 0.62);
-      --text-3: rgba(242, 241, 250, 0.38);
-      --accent: #a9a9ff;
-      --accent-soft: rgba(143, 143, 255, 0.2);
-      --green: #34d27b;
-      --red: #ff7a7e;
-      --orange: #ffa94d;
-      --yellow: #facc15;
-      --teal: #2dd4bf;
-      --purple: #c084fc;
-      --glass: rgba(36, 34, 60, 0.55);
-      --glass-border: rgba(255, 255, 255, 0.1);
-      --glass-strong: rgba(44, 42, 72, 0.85);
-      --popover: #2c2a48;
-      --field: rgba(255, 255, 255, 0.08);
-      --divider: rgba(255, 255, 255, 0.09);
-      --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
-      --apple-bg: #ffffff;
-      --apple-fg: #000000;
-      --google-bg: #131314;
-      --google-fg: #e3e3e3;
-      --google-border: #8e918f;
-  
-  }
 }
 
 * { box-sizing: border-box; }
@@ -369,7 +310,7 @@ progress::-moz-progress-bar { background: var(--accent-fill); }
 /* Flashcards */
 .segmented { display: flex; padding: 3px; border-radius: 999px; background: var(--field); }
 .segmented button { flex: 1; border: 0; background: none; border-radius: 999px; padding: 8px 6px; font-weight: 500; }
-/* The chosen option stands out against the theme: dark with light text in Light, light with dark text in Dark. */
+/* The chosen option stands out: dark with light text. */
 .segmented button.on { background: var(--text); color: var(--base); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18); font-weight: 650; }
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .chip { border: 0; border-radius: 999px; padding: 8px 14px; background: var(--field); font-weight: 500; }
@@ -470,15 +411,11 @@ kbd { font: inherit; font-size: 0.85rem; font-weight: 600; min-width: 28px; text
   display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: min(360px, 100%); height: 52px;
   border-radius: 999px; border: 0; background: var(--apple-bg); color: var(--apple-fg); font-size: 1.1rem; font-weight: 600;
 }
-:root[data-theme="dark"] .apple-button { background: var(--apple-bg); color: var(--apple-fg); }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .apple-button { background: var(--apple-bg); color: var(--apple-fg); } }
-/* Google's own button style: white with a grey outline, or near-black with a lighter outline in dark mode. */
+/* Google's own button style: white with a grey outline. */
 .google-button {
   display: inline-flex; align-items: center; justify-content: center; gap: 10px; width: min(360px, 100%); height: 52px;
   border-radius: 999px; border: 1px solid var(--google-border); background: var(--google-bg); color: var(--google-fg); font-size: 1.1rem; font-weight: 600;
 }
-:root[data-theme="dark"] .google-button { background: var(--google-bg); color: var(--google-fg); border-color: var(--google-border); }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .google-button { background: var(--google-bg); color: var(--google-fg); border-color: var(--google-border); } }
 
 /* Sheets */
 .sheet-backdrop { position: fixed; inset: 0; z-index: 40; background: rgba(10, 8, 30, 0.35); display: flex; align-items: flex-end; justify-content: center; }
@@ -885,7 +822,7 @@ a.easter-egg, a.easter-egg:hover, .legal-footer a.easter-egg, .legal-footer a.ea
 .overview-row .grow { flex: 1 1 140px; }
 @media (max-width: 480px) { .overview-row .button { flex: 1 1 100%; } }
 
-/* Profile pictures: eight presets, chosen from a grid (first sign-in and Edit Profile). */
+/* Profile pictures: seven presets and an upload tile, in a grid (first sign-in and Edit Profile). */
 .avatar-image { border-radius: 50%; object-fit: cover; display: block; flex: none; }
 .avatar-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; justify-items: center; width: 100%; }
 .avatar-choice { border: 0; padding: 3px; border-radius: 50%; background: none; cursor: pointer; line-height: 0;
@@ -893,14 +830,21 @@ a.easter-egg, a.easter-egg:hover, .legal-footer a.easter-egg, .legal-footer a.ea
 .avatar-choice img { width: 56px; height: 56px; border-radius: 50%; display: block; }
 .avatar-choice:hover { transform: scale(1.05); }
 .avatar-choice.on { box-shadow: 0 0 0 3px var(--accent); }
+.avatar-upload { position: relative; }
+.avatar-upload-art { width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; color: var(--accent);
+  background: var(--accent-soft); border: 2px dashed color-mix(in srgb, var(--accent) 45%, transparent); }
+.avatar-upload-pro { position: absolute; right: -4px; bottom: -2px; padding: 1px 7px; border-radius: 999px; font-size: 0.68rem;
+  font-weight: 700; line-height: 1.5; color: var(--on-fill); background: var(--brand-gradient); border: 2px solid var(--base); }
 .avatar-choice:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 @media (prefers-reduced-motion: reduce) { .avatar-choice { transition: none; } .avatar-choice:hover { transform: none; } }
 
 /* Plans: a Pro badge, or Upgrade to Pro. At the bottom of the sidebar on wide screens, in Profile on phones. */
 .pro-badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 999px; align-self: flex-start;
   background: var(--brand-gradient); color: var(--on-fill); font-weight: 700; font-size: 0.92rem; }
-.plan-card { display: flex; flex-direction: column; gap: 10px; padding: 18px; }
-.plan-card.pro { flex-direction: row; align-items: center; gap: 12px; }
+/* The note on the left, Upgrade to Pro on the right in line with it. */
+.plan-card { flex-direction: row; align-items: center; gap: 12px; padding: 18px; }
+.plan-card-text { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.plan-card .button, .guide-limit .button { flex: none; }
 .tabs-plan { display: none; }
 @media (min-width: 900px) {
   .tabs-plan { display: flex; flex-direction: column; margin-top: auto; padding: 8px 2px 4px; }
@@ -909,6 +853,6 @@ a.easter-egg, a.easter-egg:hover, .legal-footer a.easter-egg, .legal-footer a.ea
   .plan-profile { display: none; }
 }
 /* Guides, free accounts: how many of the 2 guides are used, with Upgrade to Pro. */
-.guide-limit { flex-direction: row; align-items: center; gap: 14px; flex-wrap: wrap; padding: 18px; }
-.guide-limit-text { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 200px; }
+.guide-limit { flex-direction: row; align-items: center; gap: 12px; padding: 18px; }
+.guide-limit-text { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
 .guide-limit.full { box-shadow: inset 0 0 0 2px var(--warning-fill); }

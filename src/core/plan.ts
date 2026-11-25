@@ -18,16 +18,15 @@ export interface PlanLimit {
 export function planLimit(plan: Plan | null, guides: number): PlanLimit {
   if (plan !== "free") return { limited: false, canCreate: true, label: null, message: null };
   const full = guides >= FREE_GUIDES;
-  const over = guides - FREE_GUIDES + 1;
   return {
     limited: true,
     canCreate: !full,
     label: guides <= FREE_GUIDES ? `${guides} of ${FREE_GUIDES} guides` : `${guides} guides; free accounts hold ${FREE_GUIDES}`,
-    message: !full ? null : guides === FREE_GUIDES
-      ? `You've reached ${FREE_GUIDES} guides. Delete one to make another, or upgrade to Pro.`
-      : `Free accounts hold ${FREE_GUIDES} guides. Delete ${over} to make another, or upgrade to Pro.`,
+    message: full ? LIMIT_REACHED : null,
   };
 }
+
+export const LIMIT_REACHED = "You've maxed out your guides. Upgrade to Pro for Unlimited Guides";
 
 /** The `plan` field of my_plan(), or null when it's missing. */
 export const readPlan = (value: unknown): Plan | null => (value === "pro" || value === "free" ? value : null);

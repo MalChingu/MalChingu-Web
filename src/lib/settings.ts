@@ -1,4 +1,4 @@
-import { DEFAULT_AVATAR, isAvatarPreset } from "../core/avatars";
+import { DEFAULT_AVATAR, isAvatarPreset, isPhotoAvatar } from "../core/avatars";
 import type { CardForm } from "../core/englishForms";
 import type { DisplayMode, PartOfSpeech } from "../core/models";
 
@@ -7,14 +7,14 @@ import type { DisplayMode, PartOfSpeech } from "../core/models";
 // so nothing the app saved is lost.
 export type RawSettings = Record<string, unknown>;
 
-/** `avatar` is a preset key (see core/avatars). `title` is the id of the earned achievement shown under the name
+/** `avatar` is a preset key or a Pro account's photo (see core/avatars). `title` is the id of the earned achievement shown under the name
  *  (see core/achievements). */
 export interface Profile { name: string; avatar: string | null; title?: string | null }
 
-/** A saved picture as a preset key: an older photo or default picture reads as the default preset, so saving the
- *  profile again never sends a value the database refuses. */
+/** A saved picture: a preset key or a photo; anything else (an older default picture) reads as the default preset, so
+ *  saving the profile again never sends a value the database refuses. */
 export const readAvatar = (value: unknown): string | null =>
-  typeof value === "string" && value ? (isAvatarPreset(value) ? value : DEFAULT_AVATAR) : null;
+  typeof value === "string" && value ? (isAvatarPreset(value) || isPhotoAvatar(value) ? value : DEFAULT_AVATAR) : null;
 
 /** Where a flashcard round's words come from. */
 export type FlashcardSource = "builtIn" | "mine" | "mix";

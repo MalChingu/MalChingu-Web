@@ -1,23 +1,118 @@
 {
-  "_about": "Profile pictures: eight presets, the same as BankingBook's, stored as their key. Anything else shows the fallback. Shared by the web, iPhone/Mac and Android tests.",
-  "presets": ["Astro", "Bolt", "Camera", "Car", "Chess", "Coffee", "Game", "Rocket"],
+  "_about": "Profile pictures: seven presets (BankingBook's, less Camera, whose place in the grid is the upload tile), stored as their key, or (Pro accounts) a photo stored as a base64 JPEG. Anything else shows the fallback. Shared by the web, iPhone/Mac and Android tests.",
+  "presets": [
+    "Astro",
+    "Bolt",
+    "Car",
+    "Chess",
+    "Coffee",
+    "Game",
+    "Rocket"
+  ],
   "fallback": "Astro",
   "toPreset": [
-    { "value": "Rocket", "expect": "Rocket" },
-    { "value": "Chess", "expect": "Chess" },
-    { "value": "rocket", "expect": "Astro" },
-    { "value": "default:3", "expect": "Astro" },
-    { "value": "/9j/4AAQSkZJRg", "expect": "Astro" },
-    { "value": "", "expect": "Astro" },
-    { "value": null, "expect": "Astro" }
+    {
+      "value": "Rocket",
+      "expect": "Rocket"
+    },
+    {
+      "value": "Chess",
+      "expect": "Chess"
+    },
+    {
+      "value": "Camera",
+      "expect": "Astro"
+    },
+    {
+      "value": "rocket",
+      "expect": "Astro"
+    },
+    {
+      "value": "default:3",
+      "expect": "Astro"
+    },
+    {
+      "value": "/9j/4AAQSkZJRg",
+      "expect": "Astro"
+    },
+    {
+      "value": "",
+      "expect": "Astro"
+    },
+    {
+      "value": null,
+      "expect": "Astro"
+    }
+  ],
+  "shown": [
+    {
+      "value": "Rocket",
+      "expect": "Rocket"
+    },
+    {
+      "value": "Camera",
+      "expect": "Astro"
+    },
+    {
+      "value": "/9j/4AAQSkZJRgABAQ==",
+      "expect": "photo"
+    },
+    {
+      "value": "/9j/ not base64!",
+      "expect": "Astro"
+    },
+    {
+      "value": "iVBORw0KGgo=",
+      "expect": "Astro"
+    },
+    {
+      "value": "default:3",
+      "expect": "Astro"
+    },
+    {
+      "value": "rocket",
+      "expect": "Astro"
+    },
+    {
+      "value": "",
+      "expect": null
+    },
+    {
+      "value": null,
+      "expect": null
+    }
   ],
   "pick": [
-    { "_note": "random in [0, 1) picks among the presets, skipping the one being replaced",
-      "exclude": null, "random": 0.0, "expect": "Astro" },
-    { "exclude": null, "random": 0.99, "expect": "Rocket" },
-    { "exclude": "Astro", "random": 0.0, "expect": "Bolt" },
-    { "exclude": "Chess", "random": 0.5, "expect": "Car" },
-    { "exclude": "Rocket", "random": 0.99, "expect": "Game" },
-    { "exclude": "default:2", "random": 0.2, "expect": "Bolt" }
+    {
+      "_note": "random in [0, 1) picks among the presets, skipping the one being replaced",
+      "exclude": null,
+      "random": 0.0,
+      "expect": "Astro"
+    },
+    {
+      "exclude": null,
+      "random": 0.99,
+      "expect": "Rocket"
+    },
+    {
+      "exclude": "Astro",
+      "random": 0.0,
+      "expect": "Bolt"
+    },
+    {
+      "exclude": "Chess",
+      "random": 0.5,
+      "expect": "Coffee"
+    },
+    {
+      "exclude": "Rocket",
+      "random": 0.99,
+      "expect": "Game"
+    },
+    {
+      "exclude": "default:2",
+      "random": 0.2,
+      "expect": "Bolt"
+    }
   ]
 }

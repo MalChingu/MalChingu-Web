@@ -17,7 +17,7 @@ const USER = "44444444-4444-4444-8444-444444444444";
 const GUIDE = "55555555-5555-4555-8555-555555555555";
 const today = (() => { const d = new Date(); const p = (n) => String(n).padStart(2, "0"); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`; })();
 const stamp = new Date().toISOString();
-const PRESETS = ["Astro", "Bolt", "Camera", "Car", "Chess", "Coffee", "Game", "Rocket"];
+const PRESETS = ["Astro", "Bolt", "Car", "Chess", "Coffee", "Game", "Rocket"];
 /** The account's plan, as my_plan() returns it: free (2 guides at a time) or pro. */
 let PLAN = "free";
 
@@ -172,9 +172,10 @@ try {
       await setup.getByRole("button", { name: "Continue" }).click();
       await setup.getByRole("heading", { name: "Choose a Picture" }).waitFor();
       const choices = setup.getByRole("radiogroup", { name: "Profile picture" }).getByRole("radio");
-      check(await choices.count() === 8, "the picture step offers the eight presets");
+      check(await choices.count() === 8 && await setup.getByRole("radio", { name: "Upload your own photo with Pro" }).isVisible(),
+        "the picture step offers the seven presets and an upload tile (Pro)");
       check(await setup.locator('[role="radio"][aria-checked="true"]').count() === 1, "one picture is picked for you");
-      check(await setup.getByRole("button", { name: /Upload/ }).count() === 0, "there's no photo upload");
+      check(await setup.locator('input[type="file"]').count() === 0, "a free account can't upload a photo");
       await setup.getByRole("radio", { name: "Rocket" }).click();
       check(await setup.getByRole("radio", { name: "Rocket" }).getAttribute("aria-checked") === "true", "tapping a picture picks it");
       await setup.getByRole("button", { name: "Shuffle" }).click();
@@ -286,7 +287,13 @@ try {
       const sheet = page.getByRole("dialog", { name: "Edit Profile" });
       check(await sheet.getByText(/@testlearner/).count() === 0 && await sheet.getByRole("textbox").count() === 1,
         "Edit Profile has the name and picture only, not the username");
-      check(await sheet.getByRole("radio").count() === 8, "Edit Profile offers the eight pictures");
+      check(await sheet.getByRole("radio").count() === 8, "Edit Profile offers the seven presets and the upload tile");
+      let chooser = false;
+      page.once("filechooser", () => { chooser = true; });
+      await sheet.getByRole("radio", { name: "Upload your own photo with Pro" }).click();
+      await page.waitForTimeout(300);
+      check(!chooser && await sheet.locator('input[type="file"]').count() === 0 && await sheet.isVisible(),
+        "free: the upload tile goes to Upgrade to Pro instead of opening a file");
       await sheet.getByRole("radio", { name: "Coffee" }).click();
       await page.screenshot({ path: "screenshots/edit-profile-phone.png" });
       await sheet.getByRole("button", { name: "Save" }).click();
@@ -298,7 +305,9 @@ try {
       await page.getByRole("dialog", { name: "Edit Profile" }).getByRole("button", { name: "Cancel" }).click();
       // Phones have no sidebar: the plan shows in Profile.
       check(await page.locator(".plan-profile").getByRole("button", { name: "Upgrade to Pro" }).isVisible(), "phone: Upgrade to Pro shows in Profile");
-      check(await page.locator(".plan-profile").getByText("Free · 1 of 2 guides").isVisible(), "phone: Profile shows the guide count");
+      check(await page.locator(".plan-profile").getByText("1 of 2 guides").isVisible(), "phone: Profile shows the guide count");
+      const [text, upgradeBox] = [await page.locator(".plan-profile .plan-card-text").boundingBox(), await page.locator(".plan-profile .button").boundingBox()];
+      check(upgradeBox.x > text.x + text.width - 1, "phone: Upgrade to Pro sits to the right of the note");
     } else {
       // Wide screens: Upgrade to Pro at the bottom of the sidebar, above Text Size; not in Profile.
       const upgrade = page.locator(".tabs").getByRole("button", { name: "Upgrade to Pro" });
@@ -319,45 +328,35 @@ try {
     await context.close();
   }
 
-  // Appearance: follows the system, and Light / Dark in Profile override it and survive a reload.
+  // No dark mode: a dark device (or an old saved Dark choice) still gets the light look, and there's no Appearance setting.
   {
     const context = await browser.newContext({ viewport: { width: 390, height: 844 }, colorScheme: "dark" });
     await context.route("https://nxlsnpzfbazwlccxtwpt.supabase.co/**", fakeSupabase);
-    await context.addInitScript((value) => localStorage.setItem("sb-nxlsnpzfbazwlccxtwpt-auth-token", value), JSON.stringify(session));
+    await context.addInitScript((value) => {
+      localStorage.setItem("sb-nxlsnpzfbazwlccxtwpt-auth-token", value);
+      localStorage.setItem("malchingu.theme", "dark");
+    }, JSON.stringify(session));
     const page = await context.newPage();
-    const base = () => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--base").trim());
-    // Appearance is under Profile → Settings.
-    const settingsPart = () => page.getByRole("radio", { name: "Settings", exact: true }).click({ timeout: 15000 });
-    await page.goto("http://localhost:4173/#profile");
-    await settingsPart();
-    await page.getByRole("radio", { name: "System" }).waitFor({ timeout: 15000 });
-    check(await base() === "#0e0d1c", "System follows a dark device");
-    await page.screenshot({ path: "screenshots/profile-dark-system.png" });
-    await page.getByRole("radio", { name: "Light" }).click();
-    check(await base() === "#f4f3fb", "Light overrides a dark device");
-    await page.reload();
-    await settingsPart();
-    await page.getByRole("radio", { name: "Light" }).waitFor({ timeout: 15000 });
-    check(await base() === "#f4f3fb" && await page.getByRole("radio", { name: "Light" }).getAttribute("aria-checked") === "true",
-      "Light is kept after a reload");
-    await page.screenshot({ path: "screenshots/profile-light-override.png" });
-    await page.getByRole("radio", { name: "Dark" }).click();
+    const look = () => page.evaluate(() => ({ base: getComputedStyle(document.documentElement).getPropertyValue("--base").trim(),
+      scheme: getComputedStyle(document.documentElement).colorScheme, body: getComputedStyle(document.body).backgroundColor }));
     await page.goto("http://localhost:4173/#today");
     await page.getByRole("heading", { name: "Welcome Back, Test" }).waitFor({ timeout: 15000 });
-    check(await base() === "#0e0d1c", "Dark applies across pages");
-    await page.screenshot({ path: "screenshots/today-dark.png" });
+    const today = await look();
+    check(today.base === "#f4f3fb" && today.scheme === "light" && today.body === "rgb(244, 243, 251)",
+      `a dark device still gets the light look (${JSON.stringify(today)})`);
+    await page.screenshot({ path: "screenshots/today-on-dark-device.png" });
     await page.goto("http://localhost:4173/#profile");
-    await settingsPart();
-    await page.getByRole("radio", { name: "System" }).click();
-    check(await page.evaluate(() => localStorage.getItem("malchingu.theme")) === null, "System clears the override");
+    await page.getByRole("radio", { name: "Settings", exact: true }).click({ timeout: 15000 });
+    await page.getByText("Word of the Day", { exact: true }).waitFor();
+    check(await page.getByText("Appearance", { exact: true }).count() === 0, "Profile → Settings has no Appearance setting");
     await page.waitForLoadState("networkidle");
     await context.close();
   }
 
-  // Both themes on every screen and dialog: text contrast (axe-core), the chosen tab's colours,
+  // Every screen and dialog: text contrast (axe-core), the chosen tab's colours,
   // equal content widths across pages, and nothing spilling sideways on a phone.
-  const expectedTab = { light: ["rgb(21, 19, 43)", "rgb(244, 243, 251)"], dark: ["rgb(242, 241, 250)", "rgb(14, 13, 28)"] };
-  for (const scheme of ["light", "dark"]) {
+  const expectedTab = { light: ["rgb(21, 19, 43)", "rgb(244, 243, 251)"] };
+  for (const scheme of ["light"]) {
     const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, colorScheme: scheme });
     await context.route("https://nxlsnpzfbazwlccxtwpt.supabase.co/**", fakeSupabase);
     await context.addInitScript((value) => localStorage.setItem("sb-nxlsnpzfbazwlccxtwpt-auth-token", value), JSON.stringify(session));
@@ -386,7 +385,7 @@ try {
       return [st.backgroundColor, st.color];
     });
     check(chosen[0] === expectedTab[scheme][0] && chosen[1] === expectedTab[scheme][1],
-      `${scheme}: chosen tab is ${scheme === "light" ? "dark with light" : "light with dark"} text (${chosen})`);
+      `${scheme}: chosen tab is dark with light text (${chosen})`);
     await page.getByRole("button", { name: "Start" }).click();
     await audit("Flashcard card", "flashcard");
     await page.getByRole("button", { name: "I don't know" }).click();
@@ -476,15 +475,15 @@ try {
     check(true, `${scheme}: a link made on another device shows here`);
     db.connector_tokens = [];
 
-    // The Profile tab uses the learner's picture when there is one; an old photo shows the default preset.
+    // The Profile tab uses the learner's picture when there is one; an old default picture shows the default preset.
     db.profiles[0].settings.profile.avatar = "Rocket";
     await page.reload();
     await page.locator("img.tab-avatar").first().waitFor({ timeout: 10000 });
     check(await page.locator("img.tab-avatar").first().evaluate((img) => img.complete && img.naturalWidth > 0), `${scheme}: profile tab shows the picture`);
-    db.profiles[0].settings.profile.avatar = "/9j/4AAQSkZJRgABAQ";
+    db.profiles[0].settings.profile.avatar = "default:3";
     await page.reload();
     await page.locator("img.tab-avatar").first().waitFor({ timeout: 10000 });
-    check((await page.locator("img.tab-avatar").first().getAttribute("src")) === "/profile/Astro.png", `${scheme}: an old photo shows the default picture`);
+    check((await page.locator("img.tab-avatar").first().getAttribute("src")) === "/profile/Astro.png", `${scheme}: an old default picture shows the default preset`);
     delete db.profiles[0].settings.profile.avatar;
     await page.reload();
     await page.getByRole("heading", { name: "Profile" }).waitFor();
@@ -590,14 +589,25 @@ try {
     db.study_guides.push(second);
     await page.reload();
     await limit.getByText("2 of 2 guides").waitFor({ timeout: 15000 });
-    check(await limit.getByText("You've reached 2 guides. Delete one to make another, or upgrade to Pro.").isVisible(),
-      "free, 2 guides: Guides says the limit is reached and what to do");
+    check(await limit.getByText("You've maxed out your guides. Upgrade to Pro for Unlimited Guides").isVisible(),
+      "free, 2 guides: Guides says the guides are maxed out");
+    const [note, button] = [await limit.locator(".guide-limit-text").boundingBox(), await limit.getByRole("button").boundingBox()];
+    check(button.x > note.x + note.width - 1 && button.y < note.y + note.height && note.y < button.y + button.height,
+      "free, 2 guides: Upgrade to Pro sits to the right of the note, in line with it");
     await page.screenshot({ path: "screenshots/guides-limit-reached.png" });
     await page.getByRole("button", { name: "Create Guide" }).click();
     const sheet = page.getByRole("dialog", { name: "Create Guide" });
-    check(await sheet.getByText(/You've reached 2 guides/).isVisible() && await sheet.getByRole("button", { name: "Upgrade to Pro" }).isVisible(),
+    check(await sheet.getByText(/maxed out your guides/).isVisible() && await sheet.getByRole("button", { name: "Upgrade to Pro" }).isVisible(),
       "free, 2 guides: Create Guide shows the note too");
     await page.keyboard.press("Escape");
+    // On a phone too, the button stays to the right of the note.
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.waitForTimeout(200);
+    const [noteP, buttonP] = [await limit.locator(".guide-limit-text").boundingBox(), await limit.getByRole("button").boundingBox()];
+    check(buttonP.x > noteP.x + noteP.width - 1 && buttonP.y < noteP.y + noteP.height,
+      "phone, 2 guides: Upgrade to Pro stays to the right of the note");
+    await page.screenshot({ path: "screenshots/guides-limit-phone.png" });
+    await page.setViewportSize({ width: 1280, height: 860 });
     PLAN = "pro";
     await page.reload();
     const badge = page.locator(".tabs .pro-badge");
@@ -605,6 +615,23 @@ try {
     check((await badge.boundingBox()).y < (await page.locator(".tab.text-size").boundingBox()).y, "pro: the sidebar shows a Pro badge above Text Size");
     check(await limit.count() === 0 && await page.getByRole("button", { name: "Upgrade to Pro" }).count() === 0, "pro: no limit note or Upgrade button");
     await page.screenshot({ path: "screenshots/guides-pro.png" });
+    // Pro: upload your own photo in Edit Profile; it's saved as a small JPEG.
+    const before = db.profiles[0].settings.profile.avatar;
+    await page.getByRole("button", { name: "Profile", exact: true }).click();
+    await page.getByRole("button", { name: "Change profile picture" }).click();
+    const editor = page.getByRole("dialog", { name: "Edit Profile" });
+    const [picker] = await Promise.all([page.waitForEvent("filechooser"), editor.getByRole("radio", { name: "Upload your own photo" }).click()]);
+    await picker.setFiles("public/profile/Car.png");
+    await editor.locator(".onboarding-avatar img[src^='data:image/jpeg']").waitFor();
+    check(await editor.getByRole("radio", { name: "Your photo. Choose another" }).getAttribute("aria-checked") === "true"
+      && await editor.locator('[role="radio"][aria-checked="true"]').count() === 1, "pro: the upload tile shows the photo, chosen instead of a preset");
+    await page.screenshot({ path: "screenshots/edit-profile-pro.png" });
+    await editor.getByRole("button", { name: "Save" }).click();
+    await page.waitForLoadState("networkidle");
+    const photo = db.profiles[0].settings.profile.avatar ?? "";
+    check(photo.startsWith("/9j/") && photo.length < 24000, `pro: the photo is saved as a small JPEG (${photo.length} characters)`);
+    check((await page.locator(".profile-card img.avatar").getAttribute("src")).startsWith("data:image/jpeg"), "pro: the profile card shows the photo");
+    db.profiles[0].settings.profile.avatar = before;
     PLAN = "free";
     db.study_guides = db.study_guides.filter((g) => g.id !== second.id);
     await context.close();
