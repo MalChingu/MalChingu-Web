@@ -506,10 +506,14 @@ kbd { font: inherit; font-size: 0.85rem; font-weight: 600; min-width: 28px; text
     flex-direction: column; justify-content: flex-start; gap: 4px; padding: 16px 12px; border-radius: 28px;
   }
   .tabs-brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 1.15rem; padding: 6px 10px 20px; }
-  /* Like BankingBook: capsules with a 1px border (clear until chosen, so nothing shifts), a light tint on hover,
+  /* Like BankingBook: capsules with a border (clear until chosen, so nothing shifts), a light tint on hover,
      and the chosen page outlined in purple (Profile in the colour of your level). */
-  .tab { flex: none; flex-direction: row; gap: 12px; padding: 10px 14px; font-size: 1rem; border-radius: 999px;
-    border: 1px solid transparent; transition: background-color 0.15s, border-color 0.15s; cursor: pointer; }
+  /* The border is 2px, like the profile card's on Profile → About (clear until chosen, so nothing shifts). */
+  .tab { flex: none; flex-direction: row; gap: 12px; padding: 9px 13px; font-size: 1rem; border-radius: 999px;
+    border: 2px solid transparent; transition: background-color 0.15s, border-color 0.15s; cursor: pointer; }
+  /* Montserrat's line box sits its capitals 1–2px high; trimmed to cap height and baseline, the label centres
+     against the icon. */
+  .tab > span:not(.tab-icon) { text-box: trim-both cap alphabetic; }
   .tab:hover { background: color-mix(in srgb, var(--accent) 10%, transparent); }
   .tab.on { border-color: var(--accent); background: var(--accent-soft); }
   .tab.profile-tab.on { border-color: var(--level); }
@@ -869,6 +873,18 @@ a.easter-egg, a.easter-egg:hover, .legal-footer a.easter-egg, .legal-footer a.ea
 /* Plans: a Pro badge, or Upgrade to Pro. At the bottom of the sidebar on wide screens, in Profile on phones. */
 .pro-badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 999px; align-self: flex-start;
   background: var(--brand-gradient); color: var(--on-fill); font-weight: 700; font-size: 0.92rem; }
+/* The badge you can press (a Pro account's): a light sweeps across it when pointed at, and it opens what Pro adds. */
+button.pro-badge { position: relative; overflow: hidden; isolation: isolate; border: 0; font-family: inherit; cursor: pointer;
+  transition: box-shadow 0.2s, transform 0.2s; }
+button.pro-badge::after { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, 0.6) 50%, transparent 70%); transform: translateX(-130%); }
+button.pro-badge:hover, button.pro-badge:focus-visible { box-shadow: 0 6px 18px rgba(80, 60, 220, 0.35); }
+button.pro-badge:hover::after, button.pro-badge:focus-visible::after { transform: translateX(130%); transition: transform 0.75s ease-in-out; }
+button.pro-badge:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) {
+  button.pro-badge::after { display: none; }
+  button.pro-badge:hover { filter: brightness(1.08); }
+}
 /* The note on the left, Upgrade to Pro on the right in line with it. */
 .plan-card { flex-direction: row; align-items: center; gap: 12px; padding: 18px; }
 .plan-card-text { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }

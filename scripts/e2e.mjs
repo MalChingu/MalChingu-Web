@@ -706,6 +706,30 @@ try {
     check((await badge.boundingBox()).y < (await page.locator(".tab.text-size").boundingBox()).y, "pro: the sidebar shows a Pro badge above Text Size");
     check(await limit.count() === 0 && await page.getByRole("button", { name: "Upgrade to Pro" }).count() === 0, "pro: no limit note or Upgrade button");
     await page.screenshot({ path: "screenshots/guides-pro.png" });
+    // The Pro badge shines when pointed at and opens what Pro adds, without the price or a button.
+    await badge.hover();
+    await page.waitForTimeout(400);
+    const shine = await badge.evaluate((el) => getComputedStyle(el, "::after").transform);
+    check(shine !== "none" && !shine.includes("-"), `pro: pointing at the badge sweeps a shine across it (${shine})`);
+    await badge.click();
+    const features = page.getByRole("dialog", { name: "Korimal Pro" });
+    await features.waitFor();
+    check(await features.locator(".upgrade-benefits li").count() === 4 && await features.getByText("Coming Soon").count() === 0
+      && await features.locator(".upgrade-price").count() === 0 && await features.getByRole("button").count() === 1,
+      "pro: the badge opens what Pro adds, with no price and no button but ✕");
+    await page.waitForTimeout(350);
+    await page.screenshot({ path: "screenshots/pro-features.png" });
+    await page.keyboard.press("Escape");
+    await features.waitFor({ state: "detached" });
+    // Sidebar buttons: a 2px border like the profile card's, and the label centred against the icon.
+    const tab = page.locator(".tab.on").first();
+    const [tabBox, labelBox, border] = await tab.evaluate((el) => {
+      const label = [...el.children].find((c) => !c.classList.contains("tab-icon"));
+      const r = el.getBoundingClientRect(); const l = label.getBoundingClientRect();
+      return [{ y: r.y, h: r.height }, { y: l.y, h: l.height }, getComputedStyle(el).borderTopWidth];
+    });
+    const off = Math.abs((labelBox.y + labelBox.h / 2) - (tabBox.y + tabBox.h / 2));
+    check(border === "2px" && off < 1, `sidebar: 2px border and the label centred (border ${border}, ${off.toFixed(2)}px off centre)`);
     // Pro: upload your own photo in Edit Profile; it's saved as a small JPEG.
     const before = db.profiles[0].avatar;
     await page.getByRole("button", { name: "Profile", exact: true }).click();

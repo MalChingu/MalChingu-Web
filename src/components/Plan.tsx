@@ -1,6 +1,6 @@
 import { planLimit } from "../core/plan";
 import { useStore } from "../lib/store";
-import { upgradeToPro } from "../lib/upgrade";
+import { showProFeatures, upgradeToPro } from "../lib/upgrade";
 import { Icon } from "./Icon";
 import { Button } from "./ui";
 
@@ -27,7 +27,13 @@ export function PlanCard({ className = "" }: { className?: string }) {
   );
 }
 
-export const ProBadge = () => <span className="pro-badge"><Icon name="seal" size={16} /> Pro</span>;
+/** A Pro account's badge: it shines when pointed at, and opens what Pro adds (no price, nothing to buy). */
+export const ProBadge = () => (
+  <button type="button" className="pro-badge" aria-label="Korimal Pro: what Pro adds" title="What Pro adds"
+    onClick={(e) => showProFeatures(e.currentTarget)}>
+    <Icon name="seal" size={16} /> Pro
+  </button>
+);
 
 /** Upgrade to Pro: opens the Upgrade modal from this button (see components/UpgradeModal). */
 export function UpgradeButton({ full = true }: { full?: boolean }) {

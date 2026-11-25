@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
-import { PRO_BENEFITS, PRO_PRICE, setUpgradeOpener } from "../lib/upgrade";
+import { PRO_BENEFITS, PRO_PRICE, setUpgradeOpener, type UpgradeMode } from "../lib/upgrade";
 import { pageZoom } from "../lib/zoom";
 import { Icon, type IconName } from "./Icon";
 import { Button } from "./ui";
@@ -10,14 +10,15 @@ const GAP = 10;
 
 /** Upgrade to Pro: the price and what Pro adds, floating up from the control that opened it (above it when there's
  *  room, otherwise below). Closes with ✕, a click outside, or Esc. Payments aren't set up yet, so the button
- *  doesn't charge anything. Mounted once in App. */
+ *  doesn't charge anything. A Pro account's badge opens it with just what Pro adds. Mounted once in App. */
 export function UpgradeModal() {
   const [anchor, setAnchor] = useState<DOMRect | null | undefined>(undefined);
+  const [mode, setMode] = useState<UpgradeMode>("upgrade");
   const card = useRef<HTMLDivElement>(null);
   const [place, setPlace] = useState<CSSProperties>({ visibility: "hidden" });
 
   useEffect(() => {
-    setUpgradeOpener((rect) => setAnchor(rect));
+    setUpgradeOpener((rect, how) => { setMode(how); setAnchor(rect); });
     return () => setUpgradeOpener(null);
   }, []);
 
@@ -48,20 +49,23 @@ export function UpgradeModal() {
     const above = r.top - GAP - height >= 16;
     const top = above ? r.top - GAP - height : Math.min(r.bottom + GAP, vh - height - 16);
     setPlace({ width, left, top, transformOrigin: `${centre - left}px ${above ? "100%" : "0%"}` });
-  }, [open, anchor]);
+  }, [open, anchor, mode]);
 
   if (!open) return null;
   const close = () => setAnchor(undefined);
+  const pro = mode === "pro";
   return createPortal(
     <div className="upgrade-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) close(); }}>
-      <div ref={card} className="upgrade-modal glass" role="dialog" aria-modal="true" aria-label="Upgrade to Pro" style={place}>
+      <div ref={card} className="upgrade-modal glass" role="dialog" aria-modal="true" aria-label={pro ? "Korimal Pro" : "Upgrade to Pro"} style={place}>
         <button type="button" className="icon-button upgrade-close" aria-label="Close" onClick={close}><Icon name="x" size={18} /></button>
         <div className="upgrade-head">
           <span className="pro-badge"><Icon name="seal" size={16} /> Pro</span>
           <h2>Korimal Pro</h2>
-          <div className="upgrade-price">{PRO_PRICE
-            ? <><strong>{PRO_PRICE.split("/")[0]}</strong><span className="muted">/month (USD)</span></>
-            : <strong>Coming Soon</strong>}</div>
+          {pro ? <span className="small muted">Your account has everything Pro adds.</span> : (
+            <div className="upgrade-price">{PRO_PRICE
+              ? <><strong>{PRO_PRICE.split("/")[0]}</strong><span className="muted">/month (USD)</span></>
+              : <strong>Coming Soon</strong>}</div>
+          )}
         </div>
         <ul className="upgrade-benefits">
           {PRO_BENEFITS.map((b) => (
@@ -72,8 +76,10 @@ export function UpgradeModal() {
           ))}
         </ul>
         {/* Checkout comes later (Stripe); until then the button can't be pressed. */}
-        <Button kind="prominent" icon="bolt" full large disabled={!PRO_PRICE} onClick={() => {}}>
-          {PRO_PRICE ? `Upgrade for ${PRO_PRICE}` : "Coming Soon"}</Button>
+        {!pro && (
+          <Button kind="prominent" icon="bolt" full large disabled={!PRO_PRICE} onClick={() => {}}>
+            {PRO_PRICE ? `Upgrade for ${PRO_PRICE}` : "Coming Soon"}</Button>
+        )}
       </div>
     </div>,
     document.body,
