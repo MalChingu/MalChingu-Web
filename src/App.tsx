@@ -7,11 +7,12 @@ import { useStore } from "./lib/store";
 import { Flashcards, Round, type PracticeMode } from "./pages/Flashcards";
 import { Guides } from "./pages/Guides";
 import { Profile } from "./pages/Profile";
-import { avatarSrc } from "./lib/avatar";
+import { AvatarImage } from "./components/Avatar";
 import { SignIn } from "./pages/SignIn";
 import { Stats } from "./pages/Stats";
 import { Today } from "./pages/Today";
 import { WordSheet } from "./pages/WordSheet";
+import { Onboarding, Tour, TOUR_EVENT } from "./components/Onboarding";
 
 type Tab = "today" | "flashcards" | "guides" | "stats" | "profile";
 const TABS: { id: Tab; label: string; icon: IconName }[] = [
@@ -59,6 +60,19 @@ export function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, [drawer]);
 
+  // The first-time tour, after onboarding (or from Profile → Take the Tour).
+  const [touring, setTouring] = useState(false);
+  useEffect(() => {
+    const start = () => { setTouring(true); go("today"); };
+    window.addEventListener(TOUR_EVENT, start);
+    return () => window.removeEventListener(TOUR_EVENT, start);
+  });
+  const endTour = () => {
+    setTouring(false);
+    if (!store.settings.tourDone) store.updateSettings({ tourDone: true });
+    go("today");
+  };
+
   useEffect(() => {
     const onHash = () => setTab(tabFromHash());
     window.addEventListener("hashchange", onHash);
@@ -76,6 +90,10 @@ export function App() {
 
   if (!store.ready) return <div className="app-background loading-screen" aria-busy="true" />;
   if (!store.session) return <div className="app-background"><SignIn /></div>;
+  // First sign-in: name, username and picture before anything else.
+  if (store.loaded && store.username === null) {
+    return <Onboarding onDone={() => { setTouring(true); go("today"); }} />;
+  }
 
   return (
     <div className="app-background app">
@@ -97,7 +115,7 @@ export function App() {
             onClick={() => go(t.id)}>
             <span className="tab-icon">
               {t.id === "profile" && store.settings.profile.avatar
-                ? <img className="tab-avatar" src={avatarSrc(store.settings.profile.avatar)} alt="" width={24} height={24} />
+                ? <AvatarImage className="tab-avatar" avatar={store.settings.profile.avatar} size={24} />
                 : <Icon name={t.icon} size={22} />}
               {/* A friend request or a challenge is waiting. */}
               {t.id === "profile" && store.friendsWaiting > 0 && <span className="tab-dot" aria-label="Something from a friend is waiting" />}
@@ -121,6 +139,7 @@ export function App() {
           : tab === "stats" ? <Stats />
           : <Profile />}
       </main>
+      {touring && <Tour go={go} onDone={endTour} />}
       {store.openedWord && (
         <WordSheet key={store.openedWord.word.id} word={store.openedWord.word} startInQuiz={store.openedWord.quiz} onClose={store.closeWord} />
       )}

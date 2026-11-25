@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { challengeNeedsMe, duelWinner, friendLabel, isValidUsername, looksLikeEmail, normalizeUsername, orderFriends, percent,
   shortLabel, usernameCandidates, weekStatus, weekWinner, type ChallengeRow, type FriendRow, type UserSearchRow } from "../core/friends";
 import { levelLabel, type Level } from "../core/progress";
 import { dayString } from "../core/wordOfDay";
-import { avatarSrc } from "../lib/avatar";
+import { AvatarImage } from "./Avatar";
 import { initials } from "../lib/settings";
 import { USERNAME_RULE, useStore } from "../lib/store";
 import { Icon } from "./Icon";
@@ -14,7 +14,7 @@ import { Button, Card, ConfirmDialog, RoundButton, SectionTitle, Sheet } from ".
 
 /** A round picture, or initials on the app's gradient; an envelope for a request sent to an email. */
 export function PersonPicture({ avatar, name, size, mail }: { avatar: string | null; name: string; size: number; mail?: boolean }) {
-  if (avatar) return <img className="person-picture" src={avatarSrc(avatar)} alt="" width={size} height={size} style={{ width: size, height: size }} />;
+  if (avatar) return <AvatarImage className="person-picture" avatar={avatar} size={size} />;
   const letters = initials(name.replace(/^@/, ""));
   return (
     <span className="person-picture placeholder" style={{ width: size, height: size, fontSize: size * 0.36 }} aria-hidden="true">
@@ -29,22 +29,9 @@ const isWaiting = (f: FriendRow, challenges: ChallengeRow[]) =>
 export function FriendsCard() {
   const store = useStore();
   const [openID, setOpenID] = useState<string | null>(null);
-  const [sheet, setSheet] = useState<"add" | "username" | "usernameThenAdd" | null>(null);
+  const [adding, setAdding] = useState(false);
   const rows = orderFriends(store.friends);
   const open = store.friends.find((f) => f.id === openID) ?? null;
-
-  // Ask once for a username (Not Now counts); after that, only when + is tapped without one.
-  const asked = useRef(false);
-  useEffect(() => {
-    if (asked.current || !store.loaded || store.username !== null || store.settings.usernameAsked) return;
-    asked.current = true;
-    setSheet("username");
-  }, [store.loaded, store.username, store.settings.usernameAsked]);
-
-  const closeUsername = () => {
-    if (!store.settings.usernameAsked) store.updateSettings({ usernameAsked: true });
-    setSheet(sheet === "usernameThenAdd" ? "add" : null);
-  };
 
   return (
     <Card>
@@ -67,7 +54,7 @@ export function FriendsCard() {
           })}
         </div>
         <button type="button" className="friend" aria-label="Add Friend" title="Add Friend"
-          onClick={() => setSheet(store.username ? "add" : "usernameThenAdd")}>
+          onClick={() => setAdding(true)}>
           <span className="friend-picture friend-add"><Icon name="plus" size={24} strokeWidth={2.4} /></span>
         </button>
       </div>
@@ -75,8 +62,7 @@ export function FriendsCard() {
 
       {/* Hidden while a duel is played, then back with its result. */}
       {open && !store.duel && <FriendSheet friend={open} onClose={() => setOpenID(null)} />}
-      {sheet === "add" && <AddFriendSheet onClose={() => setSheet(null)} />}
-      {(sheet === "username" || sheet === "usernameThenAdd") && <UsernameSheet onClose={closeUsername} />}
+      {adding && <AddFriendSheet onClose={() => setAdding(false)} />}
     </Card>
   );
 }
@@ -348,35 +334,16 @@ function AddFriendSheet({ onClose }: { onClose: () => void }) {
 }
 
 /** Choosing or changing your username, with a suggestion from your name and a live check that it's free. */
-export function UsernameSheet({ onClose }: { onClose: () => void }) {
+export type UsernameState = "empty" | "invalid" | "checking" | "free" | "taken" | "unknown";
+
+/** Checks a typed username as you type (a short pause first): free, taken, or not valid. */
+export function useUsernameCheck(text: string): UsernameState {
   const store = useStore();
-  const current = store.username ?? null;
-  const [text, setText] = useState(current ?? "");
-  const [state, setState] = useState<"empty" | "invalid" | "checking" | "free" | "taken" | "unknown" | "current">("empty");
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const typed = useRef(false);
   const name = normalizeUsername(text);
-
-  // Without a username yet, fill in the first free suggestion (unless you've started typing).
-  useEffect(() => {
-    if (current) return;
-    let live = true;
-    (async () => {
-      for (const candidate of usernameCandidates(store.settings.profile.name)) {
-        const free = await store.usernameAvailable(candidate);
-        if (!live || typed.current) return;
-        if (free !== false) { setText(candidate); return; }
-      }
-    })();
-    return () => { live = false; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
+  const [state, setState] = useState<UsernameState>("empty");
   useEffect(() => {
     if (!name) { setState("empty"); return; }
     if (!isValidUsername(name)) { setState("invalid"); return; }
-    if (name === current) { setState("current"); return; }
     setState("checking");
     let live = true;
     const timer = window.setTimeout(async () => {
@@ -385,39 +352,35 @@ export function UsernameSheet({ onClose }: { onClose: () => void }) {
     }, 250);
     return () => { live = false; window.clearTimeout(timer); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [name, current]);
+  }, [name]);
+  return state;
+}
 
-  const save = async () => {
-    if (state === "current") { onClose(); return; }
-    setSaving(true);
-    setError(null);
-    const failed = await store.setUsername(name);
-    setSaving(false);
-    if (failed) setError(failed); else onClose();
-  };
+/** The first free username suggested from a name, or "" while none is found. */
+export function useUsernameSuggestion(name: string, skip: boolean): string {
+  const store = useStore();
+  const [suggestion, setSuggestion] = useState("");
+  useEffect(() => {
+    if (skip) return;
+    let live = true;
+    (async () => {
+      for (const candidate of usernameCandidates(name)) {
+        const free = await store.usernameAvailable(candidate);
+        if (!live) return;
+        if (free !== false) { setSuggestion(candidate); return; }
+      }
+    })();
+    return () => { live = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [name, skip]);
+  return suggestion;
+}
 
+export function UsernameStatus({ state }: { state: UsernameState }) {
   const status = {
     empty: null, checking: <span className="muted">Checking…</span>, free: <span className="good"><Icon name="check" size={14} /> Available</span>,
     taken: <span className="error">That username is taken.</span>, invalid: <span className="error">{USERNAME_RULE}</span>,
     unknown: <span className="muted">Couldn't check right now; you can still try saving.</span>,
-    current: <span className="muted">This is your username.</span>,
   }[state];
-
-  return (
-    <Sheet title={current ? "Change Username" : "Choose a Username"} onClose={onClose}>
-      <form className="stack" onSubmit={(e) => { e.preventDefault(); if (state === "free" || state === "unknown" || state === "current") save(); }}>
-        <p className="muted">Friends find you by your username. Anyone signed in to Korimal can find your username, picture and level; only friends see your name.</p>
-        <label className="username-field">
-          <span className="muted" aria-hidden="true">@</span>
-          <input value={text} aria-label="Username" autoFocus maxLength={21} autoCapitalize="off" autoCorrect="off" spellCheck={false}
-            placeholder="username" onChange={(e) => { typed.current = true; setText(e.target.value); setError(null); }} />
-        </label>
-        <div className="small" role="status">{status}</div>
-        {error && <p className="error small" role="alert">{error}</p>}
-        <Button type="submit" kind="prominent" full large disabled={saving || !(state === "free" || state === "unknown" || state === "current")}>Save</Button>
-        <Button full onClick={onClose}>{current ? "Cancel" : "Not Now"}</Button>
-        {!current && <p className="small muted center">You can choose one later in Settings.</p>}
-      </form>
-    </Sheet>
-  );
+  return <div className="small" role="status">{status}</div>;
 }

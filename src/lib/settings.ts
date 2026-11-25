@@ -25,8 +25,8 @@ export interface Settings {
   flashcardSeconds: number;
   /** Whether a card offers one hint (an example sentence). */
   flashcardHints: boolean;
-  /** Whether the app has asked once for a username (Not Now counts), so it doesn't ask again on its own. */
-  usernameAsked: boolean;
+  /** The first-time tour of Today, Flashcards, Guides and Stats has been shown (finished or skipped). */
+  tourDone: boolean;
   profile: Profile;
 }
 
@@ -45,13 +45,13 @@ export function readSettings(raw: RawSettings): Settings {
     })(),
     flashcardSeconds: [10, 20, 30].includes(raw.flashcard_seconds as number) ? (raw.flashcard_seconds as number) : 0,
     flashcardHints: raw.flashcard_hints !== false,
-    usernameAsked: raw.username_asked === true,
+    tourDone: raw.tour_done === true,
     profile: { name: (profile.name as string) ?? "", avatar: (profile.avatar as string) ?? null, title: (profile.title as string) ?? null },
   };
 }
 
 /** Keys older versions saved that nothing reads any more; dropped whenever settings are saved. */
-export const OBSOLETE_KEYS = ["word_types", "include_my_words"];
+export const OBSOLETE_KEYS = ["word_types", "include_my_words", "username_asked"];
 
 /** The saved settings without the obsolete keys. */
 export function withoutObsolete(raw: RawSettings): RawSettings {
@@ -70,7 +70,7 @@ export function settingsPatch(change: Partial<Settings>, raw: RawSettings): RawS
   if (change.flashcardForms !== undefined) patch.flashcard_forms = change.flashcardForms;
   if (change.flashcardSeconds !== undefined) patch.flashcard_seconds = change.flashcardSeconds;
   if (change.flashcardHints !== undefined) patch.flashcard_hints = change.flashcardHints;
-  if (change.usernameAsked !== undefined) patch.username_asked = change.usernameAsked;
+  if (change.tourDone !== undefined) patch.tour_done = change.tourDone;
   if (change.profile !== undefined) {
     patch.profile = { ...((raw.profile ?? {}) as object), name: change.profile.name, avatar: change.profile.avatar,
       ...(change.profile.title !== undefined ? { title: change.profile.title } : {}) };

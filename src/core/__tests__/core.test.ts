@@ -243,3 +243,16 @@ describe("My Words search (shared cases)", () => {
     expect(matchesSearch(onceCases.searchWord, c.query)).toBe(c.expect);
   });
 });
+
+import { DEFAULT_AVATARS, isDefaultAvatar, pickDefaultAvatar } from "../avatars";
+import avatarCases from "./avatars.cases.json";
+describe("default pictures (shared cases)", () => {
+  it("match the shared list and never use the icon's colours", () => {
+    expect(DEFAULT_AVATARS).toEqual(avatarCases.avatars);
+    for (const a of DEFAULT_AVATARS) for (const c of a.colors) expect(avatarCases.iconColors).not.toContain(c);
+  });
+  it.each(avatarCases.pick)("pick replacing $exclude at $random", (c) => {
+    expect(pickDefaultAvatar(c.exclude, c.random)).toBe(c.expect);
+  });
+  it.each(avatarCases.isDefault)("is default: $avatar", (c) => { expect(isDefaultAvatar(c.avatar)).toBe(c.expect); });
+});

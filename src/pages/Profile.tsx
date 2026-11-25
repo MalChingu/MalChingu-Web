@@ -1,12 +1,15 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { displayLabel, type DisplayMode } from "../core/models";
 import { ACHIEVEMENTS, shownTitle } from "../core/achievements";
 import { levelLabel } from "../core/progress";
 import { BUILT_IN } from "../core/wordBank";
 import { Icon } from "../components/Icon";
-import { FriendsCard, UsernameSheet } from "../components/Friends";
-import { Button, Card, ConfirmDialog, Logo, Page, SectionTitle, Segmented, copyText } from "../components/ui";
-import { avatarSrc, squareJPEGBase64 } from "../lib/avatar";
+import { FriendsCard } from "../components/Friends";
+import { AvatarImage } from "../components/Avatar";
+import { TOUR_EVENT } from "../components/Onboarding";
+import { Button, Card, ConfirmDialog, Logo, Page, RoundButton, SectionTitle, Segmented, Sheet, copyText } from "../components/ui";
+import { isDefaultAvatar, pickDefaultAvatar } from "../core/avatars";
+import { squareJPEGBase64 } from "../lib/avatar";
 import { initials } from "../lib/settings";
 import { speak, useKoreanVoice } from "../lib/speech";
 import { useAppearance, type Appearance } from "../lib/theme";
@@ -22,22 +25,16 @@ const LINKS = {
 export function Profile() {
   const store = useStore();
   const { settings } = store;
-  const [name, setName] = useState(settings.profile.name);
+  const [editingName, setEditingName] = useState(false);
   const [copied, setCopied] = useState(false);
   const [working, setWorking] = useState(false);
   const [confirming, setConfirming] = useState<"turnOff" | "signOut" | "removePicture" | null>(null);
   // About (you, the app, Sign Out) or Settings (the app's and the account's settings).
   const [part, setPart] = useState<"about" | "settings">("about");
-  const [choosingUsername, setChoosingUsername] = useState(false);
   const file = useRef<HTMLInputElement>(null);
   const voice = useKoreanVoice();
   const [appearance, setAppearance] = useAppearance();
 
-  useEffect(() => setName(settings.profile.name), [settings.profile.name]);
-
-  const saveName = () => {
-    if (name.trim() !== settings.profile.name) store.updateSettings({ profile: { ...settings.profile, name: name.trim() } });
-  };
 
   const run = async (action: () => Promise<void>) => { setWorking(true); setCopied(false); await action(); setWorking(false); };
 
@@ -54,16 +51,19 @@ export function Profile() {
         <>
         {/* The card's border takes the colour of the level badge. */}
         <div className={`glass card profile-card level-${store.level}`} style={{ padding: 22 }}>
+          <span className="profile-edit">
+            <RoundButton icon="pencil" tint="glass" label="Edit Name" size={38} onClick={() => setEditingName(true)} />
+          </span>
           <div className="center stack">
             {/* The camera (bottom right) changes the picture; the ✕ (bottom left) removes it, after asking. */}
             <div className="avatar-box">
               <button type="button" className="avatar-button" aria-label="Change profile picture" onClick={() => file.current?.click()}>
                 {settings.profile.avatar
-                  ? <img className="avatar" src={avatarSrc(settings.profile.avatar)} alt="" />
+                  ? <AvatarImage className="avatar" avatar={settings.profile.avatar} size={96} />
                   : <span className="avatar placeholder">{initials(settings.profile.name) || <Icon name="person" size={40} />}</span>}
                 <span className="avatar-camera"><Icon name="camera" size={16} /></span>
               </button>
-              {settings.profile.avatar && (
+              {settings.profile.avatar && !isDefaultAvatar(settings.profile.avatar) && (
                 <button type="button" className="avatar-remove" aria-label="Remove picture" title="Remove Picture"
                   onClick={() => setConfirming("removePicture")}>
                   <Icon name="x" size={15} strokeWidth={2.8} />
@@ -77,9 +77,7 @@ export function Profile() {
               try { store.updateSettings({ profile: { ...settings.profile, avatar: await squareJPEGBase64(picked) } }); }
               catch { store.setError("Couldn't read that picture."); }
             }} />
-            <input className="name-input" value={name} placeholder="Your Name" aria-label="Your name"
-              onChange={(e) => setName(e.target.value)} onBlur={saveName}
-              onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }} />
+            <h2 className="profile-name">{settings.profile.name || "Your Name"}</h2>
             {store.username && <span className="profile-username muted">@{store.username}</span>}
             {title && <span className="profile-title muted">{title.title}</span>}
             <span className={`level-tag level-${store.level}`}><Icon name="cap" size={16} className="level-icon" /> {levelLabel[store.level]}</span>
@@ -125,6 +123,9 @@ export function Profile() {
           </div>
           <div className="row toggle-row"><span>Built-In Words</span><span className="muted">{BUILT_IN.length}</span></div>
           <div className="row toggle-row"><span>My Words</span><span className="muted">{store.myWords.length}</span></div>
+          <button type="button" className="row toggle-row doc-link" onClick={() => window.dispatchEvent(new Event(TOUR_EVENT))}>
+            <span>Take the Tour</span><Icon name="chevron" size={16} className="muted" />
+          </button>
         </Card>
 
         <Card>
@@ -157,14 +158,6 @@ export function Profile() {
             options={(["system", "light", "dark"] as Appearance[]).map((o) => ({ value: o, label: o[0].toUpperCase() + o.slice(1) }))} />
         </Card>
 
-        <Card>
-          <SectionTitle>Username</SectionTitle>
-          <button type="button" className="row toggle-row doc-link username-row" onClick={() => setChoosingUsername(true)}>
-            <span>{store.username ? `@${store.username}` : "None yet"}</span>
-            <span className="accent strong">{store.username ? "Change" : "Choose"}</span>
-          </button>
-          <p className="small muted">Friends find you by your username. Anyone signed in can find your username, picture and level; only friends see your name.</p>
-        </Card>
 
         <Card>
           <SectionTitle>Word of the Day</SectionTitle>
@@ -210,21 +203,43 @@ export function Profile() {
         </>
       )}
 
-      {choosingUsername && <UsernameSheet onClose={() => setChoosingUsername(false)} />}
+      {editingName && <NameSheet onClose={() => setEditingName(false)} />}
       {confirming === "turnOff" && (
         <ConfirmDialog title="Turn Off the Connector?" message="The link stops working in Claude. You can create a new link afterwards and add it to Claude again."
           confirmLabel="Turn Off" onCancel={() => setConfirming(null)}
           onConfirm={() => { setConfirming(null); run(store.revokeConnectorLink); }} />
       )}
       {confirming === "removePicture" && (
-        <ConfirmDialog title="Remove Picture?" message="Your picture is removed from your profile on every device."
+        <ConfirmDialog title="Remove Picture?" message="Your photo is deleted from every device, and you get one of Korimal's pictures instead."
           confirmLabel="Remove" onCancel={() => setConfirming(null)}
-          onConfirm={() => { setConfirming(null); store.updateSettings({ profile: { ...settings.profile, avatar: null } }); }} />
+          onConfirm={() => { setConfirming(null); store.updateSettings({ profile: { ...settings.profile, avatar: pickDefaultAvatar() } }); }} />
       )}
       {confirming === "signOut" && (
         <ConfirmDialog title="Sign Out?" message="Your words, stats and guides stay in your account and come back when you sign in again."
           confirmLabel="Sign Out" onCancel={() => setConfirming(null)} onConfirm={() => { setConfirming(null); store.signOut(); }} />
       )}
     </Page>
+  );
+}
+
+/** Edit your name (Profile's pencil). Your username can't be changed. */
+function NameSheet({ onClose }: { onClose: () => void }) {
+  const store = useStore();
+  const profile = store.settings.profile;
+  const [name, setName] = useState(profile.name);
+  const save = () => {
+    if (name.trim() && name.trim() !== profile.name) store.updateSettings({ profile: { ...profile, name: name.trim() } });
+    onClose();
+  };
+  return (
+    <Sheet title="Edit Name" onClose={onClose}>
+      <form className="stack" onSubmit={(e) => { e.preventDefault(); save(); }}>
+        <input className="text-input sheet-input" value={name} aria-label="Your name" placeholder="Your Name" autoFocus maxLength={80}
+          onChange={(e) => setName(e.target.value)} />
+        {store.username && <p className="small muted">Your username, @{store.username}, can't be changed.</p>}
+        <Button type="submit" kind="prominent" full large disabled={!name.trim()}>Save</Button>
+        <Button full onClick={onClose}>Cancel</Button>
+      </form>
+    </Sheet>
   );
 }

@@ -1,0 +1,142 @@
+import { useRef, useState } from "react";
+import { isDefaultAvatar, pickDefaultAvatar } from "../core/avatars";
+import { normalizeUsername } from "../core/friends";
+import { squareJPEGBase64 } from "../lib/avatar";
+import { useStore } from "../lib/store";
+import { AvatarImage } from "./Avatar";
+import { useUsernameCheck, useUsernameSuggestion, UsernameStatus } from "./Friends";
+import { Icon } from "./Icon";
+import { Button, Logo } from "./ui";
+
+/** The account's name from Apple or Google, when they gave one. */
+function nameFromAccount(meta: Record<string, unknown> | undefined): string {
+  const full = meta?.full_name ?? meta?.name;
+  return typeof full === "string" ? full.trim() : "";
+}
+
+/** First sign-in: your name, a username (for good) and a picture (optional: a default one is picked for you).
+ *  Shown until the account has a username. */
+export function Onboarding({ onDone }: { onDone: () => void }) {
+  const store = useStore();
+  const [step, setStep] = useState(0);
+  const [name, setName] = useState(() => store.settings.profile.name || nameFromAccount(store.session?.user.user_metadata));
+  const [handle, setHandle] = useState("");
+  const typed = useRef(false);
+  const suggestion = useUsernameSuggestion(name, typed.current || step !== 1);
+  const shown = typed.current ? handle : handle || suggestion;
+  const check = useUsernameCheck(shown);
+  const [avatar, setAvatar] = useState<string>(() => store.settings.profile.avatar ?? pickDefaultAvatar());
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const file = useRef<HTMLInputElement>(null);
+
+  const finish = async () => {
+    setSaving(true);
+    setError(null);
+    await store.updateSettings({ profile: { ...store.settings.profile, name: name.trim(), avatar } });
+    const failed = await store.setUsername(shown);
+    setSaving(false);
+    if (failed) { setError(failed); setStep(1); return; }
+    onDone();
+  };
+
+  return (
+    <div className="onboarding app-background" role="dialog" aria-modal="true" aria-label="Set Up Your Profile">
+      <div className="onboarding-card glass">
+        <Logo size={64} blink="loop" />
+        <div className="onboarding-dots" aria-label={`Step ${step + 1} of 3`}>
+          {[0, 1, 2].map((i) => <span key={i} className={i === step ? "on" : i < step ? "done" : ""} />)}
+        </div>
+
+        {step === 0 && (
+          <form className="stack onboarding-step" onSubmit={(e) => { e.preventDefault(); if (name.trim()) setStep(1); }}>
+            <h1 className="onboarding-title">Welcome to Korimal</h1>
+            <p className="muted center">What should we call you?</p>
+            <input className="text-input sheet-input" value={name} aria-label="Your name" placeholder="Your Name" autoFocus maxLength={80}
+              onChange={(e) => setName(e.target.value)} />
+            <p className="small muted center">Friends see your name. You can change it later in Profile.</p>
+            <Button type="submit" kind="prominent" full large disabled={!name.trim()}>Continue</Button>
+          </form>
+        )}
+
+        {step === 1 && (
+          <form className="stack onboarding-step"
+            onSubmit={(e) => { e.preventDefault(); if (check === "free" || check === "unknown") setStep(2); }}>
+            <h1 className="onboarding-title">Choose a Username</h1>
+            <p className="muted center">Friends find you by it.</p>
+            <label className="username-field">
+              <span className="muted" aria-hidden="true">@</span>
+              <input value={shown} aria-label="Username" autoFocus maxLength={21} autoCapitalize="off" autoCorrect="off" spellCheck={false}
+                placeholder="username" onChange={(e) => { typed.current = true; setHandle(normalizeUsername(e.target.value)); setError(null); }} />
+            </label>
+            <UsernameStatus state={check} />
+            <p className="small caption-note"><Icon name="lock" size={14} /> This cannot be changed later.</p>
+            {error && <p className="error small" role="alert">{error}</p>}
+            <div className="button-pair">
+              <Button full onClick={() => setStep(0)}>Back</Button>
+              <Button type="submit" kind="prominent" full disabled={!(check === "free" || check === "unknown")}>Continue</Button>
+            </div>
+          </form>
+        )}
+
+        {step === 2 && (
+          <div className="stack onboarding-step">
+            <h1 className="onboarding-title">Add a Picture</h1>
+            <p className="muted center">Optional. Upload your own, or keep one of ours.</p>
+            <div className="onboarding-avatar"><AvatarImage className="avatar" avatar={avatar} size={120} /></div>
+            <div className="button-pair">
+              <Button icon="camera" full onClick={() => file.current?.click()}>Upload Photo</Button>
+              <Button icon="refresh" full onClick={() => setAvatar(pickDefaultAvatar(isDefaultAvatar(avatar) ? avatar : null))}>Shuffle</Button>
+            </div>
+            <input ref={file} type="file" accept="image/*" hidden aria-label="Upload photo" onChange={async (e) => {
+              const picked = e.target.files?.[0];
+              e.target.value = "";
+              if (!picked) return;
+              try { setAvatar(await squareJPEGBase64(picked)); } catch { setError("Couldn't read that picture."); }
+            }} />
+            {error && <p className="error small" role="alert">{error}</p>}
+            <div className="button-pair">
+              <Button full onClick={() => setStep(1)}>Back</Button>
+              <Button kind="prominent" full disabled={saving} onClick={finish}>{saving ? "Saving…" : "Start Learning"}</Button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export type TourTab = "today" | "flashcards" | "guides" | "stats";
+
+const TOUR: { tab: TourTab; title: string; text: string }[] = [
+  { tab: "today", title: "Today", text: "Your word of the day to guess, with hints if you need them, and today's tasks from your study guides." },
+  { tab: "flashcards", title: "Flashcards", text: "Quick rounds of built-in words and My Words: the meaning, or the past form of verbs. Swipe right to answer." },
+  { tab: "guides", title: "Guides", text: "Day-by-day study plans that Claude builds from your tutor's notes, with notes, Check Yourself and vocabulary." },
+  { tab: "stats", title: "Stats", text: "Your streak, accuracy, right, wrong and didn't-know answers, and your best streaks." },
+];
+
+/** A short first-time tour: each of the four pages in turn, with a sentence about it. */
+export function Tour({ go, onDone }: { go: (tab: TourTab) => void; onDone: () => void }) {
+  const [index, setIndex] = useState(0);
+  const step = TOUR[index];
+  const last = index === TOUR.length - 1;
+  const move = (next: number) => { setIndex(next); go(TOUR[next].tab); };
+  return (
+    <div className="tour" role="dialog" aria-label={`Tour: ${step.title}`}>
+      <div className="tour-card glass">
+        <div className="row">
+          <span className="small muted grow">{index + 1} of {TOUR.length}</span>
+          <button type="button" className="link small" onClick={onDone}>Skip Tour</button>
+        </div>
+        <h2 className="tour-title">{step.title}</h2>
+        <p>{step.text}</p>
+        <div className="button-pair">
+          <Button full disabled={index === 0} onClick={() => move(index - 1)}>Back</Button>
+          <Button kind="prominent" full onClick={() => (last ? onDone() : move(index + 1))}>{last ? "Done" : "Next"}</Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export const TOUR_EVENT = "korimal:tour";

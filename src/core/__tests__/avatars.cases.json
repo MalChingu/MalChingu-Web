@@ -1,0 +1,26 @@
+{
+  "_about": "Default pictures: the app logo on one of five backgrounds, none of them the app icon's purple-to-teal. Stored as the key (9 bytes) instead of an image. Shared by the web, iPhone/Mac and Android tests.",
+  "avatars": [
+    { "key": "default:1", "colors": ["#F26B5B"], "ink": "#B4372A" },
+    { "key": "default:2", "colors": ["#F5A524"], "ink": "#A16207" },
+    { "key": "default:3", "colors": ["#EC4899", "#F97316"], "ink": "#BE185D" },
+    { "key": "default:4", "colors": ["#16A34A", "#84CC16"], "ink": "#166534" },
+    { "key": "default:5", "colors": ["#1E3A8A", "#38BDF8"], "ink": "#1E3A8A" }
+  ],
+  "iconColors": ["#5B4FE9", "#7C5CF0", "#22B8C7"],
+  "pick": [
+    { "_note": "random in [0, 1) picks among the keys, skipping the one being replaced",
+      "exclude": null, "random": 0.0, "expect": "default:1" },
+    { "exclude": null, "random": 0.99, "expect": "default:5" },
+    { "exclude": "default:1", "random": 0.0, "expect": "default:2" },
+    { "exclude": "default:3", "random": 0.5, "expect": "default:4" },
+    { "exclude": "default:5", "random": 0.99, "expect": "default:4" },
+    { "exclude": "photo", "random": 0.2, "expect": "default:2" }
+  ],
+  "isDefault": [
+    { "avatar": "default:3", "expect": true },
+    { "avatar": "default:9", "expect": false },
+    { "avatar": "/9j/4AAQSkZJRg", "expect": false },
+    { "avatar": null, "expect": false }
+  ]
+}

@@ -154,6 +154,36 @@ try {
     page.on("pageerror", (e) => errors.push(e.message));
     await page.goto("http://localhost:4173/#today");
 
+    if (label === "phone") {
+      // First sign-in: name, then a username (for good), then a picture; then a tour of the four pages.
+      const setup = page.getByRole("dialog", { name: "Set Up Your Profile" });
+      await setup.waitFor({ timeout: 15000 });
+      check(await setup.getByLabel("Your name").inputValue() === "Test Learner", "onboarding starts with the name filled in");
+      await setup.getByRole("button", { name: "Continue" }).click();
+      await setup.getByText("Available").waitFor();
+      const suggested = await setup.getByLabel("Username").inputValue();
+      check(suggested === "testlearner", `onboarding suggests a username from the name (${suggested})`);
+      check(await setup.getByText("This cannot be changed later.").isVisible(), "the username step says it can't be changed later");
+      await page.screenshot({ path: "screenshots/onboarding-username.png" });
+      await setup.getByRole("button", { name: "Continue" }).click();
+      await setup.getByRole("heading", { name: "Add a Picture" }).waitFor();
+      check(await setup.locator(".onboarding-avatar svg").count() === 1, "a default picture is picked for you");
+      await setup.getByRole("button", { name: "Shuffle" }).click();
+      await page.screenshot({ path: "screenshots/onboarding-picture.png" });
+      await setup.getByRole("button", { name: "Start Learning" }).click();
+      await setup.waitFor({ state: "detached" });
+      check(db.public_profiles[0]?.username === "testlearner", "the username is saved");
+      check(/^default:[1-5]$/.test(db.profiles[0].settings.profile.avatar), `the default picture is saved by its key (${db.profiles[0].settings.profile.avatar})`);
+      const tour = page.getByRole("dialog", { name: /^Tour:/ });
+      await tour.waitFor();
+      for (const stop of ["Today", "Flashcards", "Guides", "Stats"]) {
+        check(await page.getByRole("dialog", { name: `Tour: ${stop}` }).isVisible(), `the tour shows ${stop}`);
+        await tour.getByRole("button", { name: stop === "Stats" ? "Done" : "Next" }).click();
+      }
+      await tour.waitFor({ state: "detached" });
+      check(db.profiles[0].settings.tour_done === true, "the tour is shown once");
+    }
+
     await page.getByRole("heading", { name: "Welcome Back, Test" }).waitFor({ timeout: 15000 });
     check(true, `${label}: Today greets by name`);
     await page.getByText(/Travel Basics.* · Day 1 of 2/).waitFor();
@@ -211,19 +241,7 @@ try {
     for (const tab of ["Guides", "Stats", "Profile"]) {
       await page.getByRole("button", { name: tab, exact: true }).click();
       await page.waitForTimeout(400);
-      if (tab === "Profile") {
-        // A new account is asked once for a username, with one suggested from the name; Not Now counts as asked.
-        const ask = page.getByRole("dialog", { name: "Choose a Username" });
-        if (label === "phone") {
-          await ask.getByText("Available").waitFor();
-          const suggested = await ask.getByLabel("Username").inputValue();
-          check(suggested === "testlearner", `Profile asks for a username, suggesting one from the name (${suggested})`);
-          await ask.getByRole("button", { name: "Not Now" }).click();
-          await ask.waitFor({ state: "detached" });
-        } else {
-          check(await ask.count() === 0, `${label}: the username is only asked for once`);
-        }
-      }
+      if (tab === "Profile") check(await page.getByRole("dialog", { name: "Set Up Your Profile" }).count() === 0, `${label}: set-up is only once`);
       await page.screenshot({ path: `screenshots/${tab.toLowerCase()}-${label}.png`, fullPage: label === "desktop" });
     }
     await page.getByRole("button", { name: "Guides", exact: true }).click();
@@ -248,7 +266,14 @@ try {
     await page.screenshot({ path: `screenshots/guide-${label}.png`, fullPage: true });
 
     await page.getByRole("button", { name: "Profile", exact: true }).click();
-    check(await page.getByLabel("Your name").inputValue() === "Test Learner", `${label}: profile shows the name`);
+    check(await page.locator(".profile-name").innerText() === "Test Learner", `${label}: profile shows the name`);
+    check(await page.getByText("@testlearner").isVisible(), `${label}: profile shows the username`);
+    if (label === "phone") {
+      await page.getByRole("button", { name: "Edit Name" }).click();
+      const sheet = page.getByRole("dialog", { name: "Edit Name" });
+      check(await sheet.getByText("can't be changed").isVisible(), "editing the name says the username can't change");
+      await sheet.getByRole("button", { name: "Cancel" }).click();
+    }
     check(await page.getByText("Beginner").isVisible(), `${label}: profile shows the level`);
     const borders = await page.evaluate(() => ({
       card: getComputedStyle(document.querySelector(".profile-card")).borderTopColor,
@@ -480,7 +505,7 @@ try {
     await page.reload();
     await page.getByRole("heading", { name: "Profile" }).waitFor();
     check(await page.locator(".loading-dots").isVisible(), "Profile also waits with dots while loading");
-    await page.getByLabel("Your name").waitFor({ timeout: 10000 });
+    await page.locator(".profile-name").waitFor({ timeout: 10000 });
     await context.close();
   }
 
