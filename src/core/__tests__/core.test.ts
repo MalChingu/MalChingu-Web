@@ -310,3 +310,9 @@ describe("hints for a beginner: every word has English except the one being aske
     expect(missing).toEqual([]);
   });
 });
+
+import { streakHeat } from "../streak";
+import streakCases from "./streak.cases.json";
+describe("streak star colour (shared cases)", () => {
+  it.each(streakCases.cases)("$days days → $heat", ({ days, heat }) => { expect(streakHeat(days)).toBe(heat); });
+});

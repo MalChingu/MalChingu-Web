@@ -6,6 +6,7 @@ import { attempts, isMastered, type WordProgress } from "../core/progress";
 import { displayRomanization, romanize } from "../core/romanizer";
 import { speak, useKoreanVoice } from "../lib/speech";
 import { useStore } from "../lib/store";
+import { streakHeat } from "../core/streak";
 import { Icon, type IconName } from "./Icon";
 import { pageZoom } from "../lib/zoom";
 
@@ -100,11 +101,21 @@ export function WordRow({ word, progress, onClick }: { word: Word; progress?: Wo
 /** The daily streak: an outlined star (orange once there's a streak) with the number of days inside. */
 export function StreakStar({ days, size = 58 }: { days: number; size?: number }) {
   const label = `${days}-day streak`;
+  const heat = streakHeat(days);
   return (
-    <span className={`streak-star ${days > 0 ? "orange" : "muted"}`} role="img" aria-label={label} title={label}
-      style={{ width: size, height: size }}>
-      <Icon name="star" size={size} strokeWidth={1.6} />
+    <span className={`streak-star heat-${heat}`} role="img" aria-label={label} title={label} style={{ width: size, height: size }}>
+      <Icon name="star" size={size} strokeWidth={1.6} className="streak-star-outline" />
+      {/* Pointed at, a light sweeps along the outline and across the number (like the Pro badge). */}
+      <span className="streak-shine" aria-hidden="true" />
       <span className="streak-star-count" style={{ fontSize: size * (days > 99 ? 0.22 : 0.28) }}>{days}</span>
+      {/* While the streak is alive, little sparkles twinkle around it. */}
+      {heat !== "none" && (
+        <span className="streak-sparkles" aria-hidden="true">
+          {[0, 1, 2].map((i) => (
+            <svg key={i} className={`sparkle s${i}`} viewBox="0 0 24 24"><path d="M12 1.5 14.2 9.8 22.5 12l-8.3 2.2L12 22.5l-2.2-8.3L1.5 12l8.3-2.2z" /></svg>
+          ))}
+        </span>
+      )}
     </span>
   );
 }

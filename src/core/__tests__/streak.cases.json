@@ -1,0 +1,16 @@
+{
+  "_about": "The streak star's colour, like a flame from coolest to hottest: no streak; 1–9 days red; 10–49 orange; 50–99 yellow; 100–199 white-hot; 200 and up blue. Shared by the web, iPhone/Mac and Android tests.",
+  "cases": [
+    { "days": 0, "heat": "none" },
+    { "days": 1, "heat": "red" },
+    { "days": 9, "heat": "red" },
+    { "days": 10, "heat": "orange" },
+    { "days": 49, "heat": "orange" },
+    { "days": 50, "heat": "yellow" },
+    { "days": 99, "heat": "yellow" },
+    { "days": 100, "heat": "white" },
+    { "days": 199, "heat": "white" },
+    { "days": 200, "heat": "blue" },
+    { "days": 365, "heat": "blue" }
+  ]
+}

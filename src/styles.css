@@ -489,10 +489,46 @@ kbd { font: inherit; font-size: 0.85rem; font-weight: 600; min-width: 28px; text
    greeting; on phones it goes under it, and both are centred. */
 .today-layout, .today-main, .today-guides { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 @media (min-width: 900px) { .today-layout, .today-guides { gap: 20px; } }
-.streak-star { position: relative; display: inline-grid; place-items: center; flex: none; }
-.streak-star svg { position: absolute; inset: 0; }
-.streak-star-count { position: relative; top: 6%; font-weight: 800; font-family: var(--font-display); line-height: 1; color: var(--orange); }
-.streak-star.muted .streak-star-count { color: var(--text-2); }
+/* The streak star: a flame's colours from coolest to hottest as the streak grows (core/streak.ts). --heat is the outline,
+   --heat-text the number (dark enough to read), --spark the twinkles. */
+.streak-star { position: relative; display: inline-grid; place-items: center; flex: none; user-select: none; -webkit-user-select: none;
+  --heat: var(--text-3); --heat-text: var(--text-2); --spark: transparent; color: var(--heat); }
+.streak-star.heat-red { --heat: #dc2626; --heat-text: #b91c1c; --spark: #f87171; }
+.streak-star.heat-orange { --heat: #ea580c; --heat-text: #c2410c; --spark: #fb923c; }
+.streak-star.heat-yellow { --heat: #eab308; --heat-text: #a16207; --spark: #facc15; }
+/* White-hot: a white outline that glows warm, so it still shows on a light page. */
+.streak-star.heat-white { --heat: #fffdf5; --heat-text: #b45309; --spark: #fcd34d; }
+.streak-star.heat-white .streak-star-outline { filter: drop-shadow(0 0 1.5px #f59e0b) drop-shadow(0 0 5px #fcd34d); }
+.streak-star.heat-blue { --heat: #2563eb; --heat-text: #1d4ed8; --spark: #93c5fd; }
+.streak-star-outline { position: absolute; inset: 0; }
+.streak-star-count { position: relative; top: 6%; font-weight: 800; font-family: var(--font-display); line-height: 1; color: var(--heat-text);
+  /* The number is painted by a band clipped to the text: --heat-text except for the light band the shine sweeps across. */
+  background: linear-gradient(110deg, var(--heat-text) 40%, #ffe6a8 50%, var(--heat-text) 60%) 100% 0 / 250% 100% no-repeat;
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+/* The shine: a light band sweeps along the outline (a mask of the same star) and across the number when pointed at. At
+   rest (100%) and at the end (0%) only the edges of the gradient show; the band passes over in between. */
+.streak-shine { position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(110deg, transparent 40%, rgba(255, 244, 214, 0.95) 50%, transparent 60%) 100% 0 / 250% 100% no-repeat;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 2.8l2.85 5.95 6.55.85-4.8 4.55 1.2 6.5L12 17.5l-5.8 3.15 1.2-6.5-4.8-4.55 6.55-.85z'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 2.8l2.85 5.95 6.55.85-4.8 4.55 1.2 6.5L12 17.5l-5.8 3.15 1.2-6.5-4.8-4.55 6.55-.85z'/%3E%3C/svg%3E") center / 100% 100% no-repeat; }
+.streak-star:hover .streak-shine, .streak-star:hover .streak-star-count {
+  background-position: 0% 0; transition: background-position 0.75s ease-in-out; }
+/* Sparkles: three small four-pointed stars that twinkle in turn around the star. */
+.streak-sparkles { position: absolute; inset: 0; pointer-events: none; }
+.sparkle { position: absolute; fill: var(--spark); opacity: 0; animation: twinkle 2.7s ease-in-out infinite; }
+.sparkle.s0 { width: 30%; height: 30%; top: -10%; right: -12%; }
+.sparkle.s1 { width: 20%; height: 20%; top: 34%; left: -18%; animation-delay: 0.9s; }
+.sparkle.s2 { width: 22%; height: 22%; bottom: -4%; right: -16%; animation-delay: 1.8s; }
+@keyframes twinkle {
+  0%, 100% { opacity: 0; transform: scale(0.3) rotate(0deg); }
+  40% { opacity: 1; transform: scale(1) rotate(45deg); }
+  70% { opacity: 0; transform: scale(0.4) rotate(90deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .streak-shine { display: none; }
+  .streak-star:hover .streak-star-count { background-position: 100% 0; transition: none; }
+  .sparkle { animation: none; opacity: 0.85; }
+}
 @media (max-width: 899px) {
   .today-page .page-header { flex-direction: column; align-items: center; gap: 6px; }
   .today-page .page-header h1 { text-align: center; }
@@ -883,6 +919,7 @@ a.easter-egg, a.easter-egg:hover, .legal-footer a.easter-egg, .legal-footer a.ea
 
 /* Plans: a Pro badge, or Upgrade to Pro. At the bottom of the sidebar on wide screens, in Profile on phones. */
 .pro-badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 999px; align-self: flex-start;
+  user-select: none; -webkit-user-select: none;
   background: var(--brand-gradient); color: var(--on-fill); font-weight: 700; font-size: 0.92rem; }
 /* The badge you can press (a Pro account's): a light sweeps across it when pointed at, and it opens what Pro adds. */
 button.pro-badge { position: relative; overflow: hidden; isolation: isolate; border: 0; font-family: inherit; cursor: pointer;

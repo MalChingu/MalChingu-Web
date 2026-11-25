@@ -243,6 +243,12 @@ try {
         "phone: the star sits under the centred greeting");
     } else {
       check(starBox.x >= titleBox.x + titleBox.width - 2 && starBox.y < titleBox.y + titleBox.height, "desktop: the star sits right of the greeting");
+      // Pointed at, a light sweeps along the star and across the number.
+      await page.locator(".streak-star").first().hover();
+      await page.waitForTimeout(400);
+      const sweep = await page.locator(".streak-shine").first().evaluate((el) => getComputedStyle(el).backgroundPositionX);
+      check(sweep !== "150%", `desktop: pointing at the streak star sweeps a shine across it (${sweep})`);
+      await page.mouse.move(5, 5);
     }
     const [wotd, content, guideCard] = [await page.locator(".wotd").boundingBox(), await page.locator(".page-content").boundingBox(),
       await page.locator(".today-guides .card").first().boundingBox()];
