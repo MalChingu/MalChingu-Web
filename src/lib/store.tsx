@@ -10,14 +10,15 @@ import { challengeNeedsMe, friendLabel, isValidUsername, looksLikeEmail, normali
   type ChallengeRow, type FriendRow, type UserSearchRow } from "../core/friends";
 import { dayString, wordOfDay } from "../core/wordOfDay";
 import { readPlan, type Plan } from "../core/plan";
-import { readSettings, settingsPatch, withoutObsolete, type RawSettings, type Settings } from "./settings";
+import { readSettings, settingsPatch, type ProfileRow, type Settings } from "./settings";
 import { CONNECTOR_BASE_URL, supabase } from "./supabase";
 
 // App state for a signed-in learner: everything is read from and written straight to Supabase,
 // the same tables the iPhone/Mac app syncs with.
 
 interface Data {
-  settingsRaw: RawSettings;
+  /** Your row of `profiles`: the settings, one column each. */
+  profile: ProfileRow;
   customWords: CustomWordRow[];
   progress: WordProgress[];
   studyDays: StudyDay[];
@@ -45,7 +46,7 @@ interface DailyQuizRow {
   updated_at: string;
 }
 
-const EMPTY: Data = { settingsRaw: {}, customWords: [], progress: [], studyDays: [], guides: [], sessions: [], tasks: [],
+const EMPTY: Data = { profile: {}, customWords: [], progress: [], studyDays: [], guides: [], sessions: [], tasks: [],
   notes: [], savedTranslations: [], hasConnectorToken: false, connectorToken: null, dailyQuiz: null };
 
 async function selectAll<T>(table: string, order: string): Promise<T[]> {
@@ -219,7 +220,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const started = performance.now();
     try {
       const [profiles, customWords, progress, studyDays, guides, sessions, tasks, tokens, quizzes, notes, savedTranslations] = await Promise.all([
-        selectAll<{ settings: RawSettings }>("profiles", "user_id"),
+        selectAll<ProfileRow>("profiles", "user_id"),
         selectAll<CustomWordRow>("custom_words", "id"),
         selectAll<WordProgress>("word_progress", "word_id"),
         selectAll<StudyDay>("study_days", "day"),
@@ -234,7 +235,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         selectAll<UserNoteRow>("user_notes", "id"),
         selectAll<SavedTranslationRow>("saved_translations", "id"),
       ]);
-      const loaded: Data = { settingsRaw: profiles[0]?.settings ?? {}, customWords, progress, studyDays, guides, sessions, tasks,
+      const loaded: Data = { profile: profiles[0] ?? {}, customWords, progress, studyDays, guides, sessions, tasks,
         notes, savedTranslations, hasConnectorToken: tokens.length > 0, connectorToken: tokens[0]?.token ?? null, dailyQuiz: quizzes[0] ?? null };
       // Keep anything edited here after this load started; the server copy is older than the edit.
       setData((current) => {
@@ -281,7 +282,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     };
   }, [userID, refresh]);
 
-  const settings = useMemo(() => readSettings(data.settingsRaw), [data.settingsRaw]);
+  const settings = useMemo(() => readSettings(data.profile), [data.profile]);
   const myWordsList = useMemo(() => activeCustomWords(data.customWords), [data.customWords]);
   const myWords = useMemo(() => [...data.customWords]
     .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at)), [data.customWords]);
@@ -423,26 +424,25 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const giveUpDaily = useCallback(() => { if (quiz) saveQuiz(giveUp(quiz)); }, [quiz, saveQuiz]);
   const revealDailyHint = useCallback((i: number) => { if (quiz) saveQuiz(revealHint(quiz, i)); }, [quiz, saveQuiz]);
 
-  // Settings are saved one at a time, newest last: quick changes (two chips in a row) could otherwise reach the
-  // server out of order and leave the older settings saved. A change waiting behind a newer one is skipped.
-  const pendingSettings = useRef<RawSettings | null>(null);
+  // Settings are saved one at a time, newest last, and only the columns that changed: quick changes (two chips in a
+  // row) could otherwise reach the server out of order. Changes waiting to be sent are combined into one save.
+  const pendingPatch = useRef<ProfileRow | null>(null);
   const settingsQueue = useRef<Promise<void>>(Promise.resolve());
   const updateSettings = useCallback(async (change: Partial<Settings>) => {
     if (!userID) return;
-    const base = pendingSettings.current ?? data.settingsRaw;
-    const merged = { ...withoutObsolete(base), ...settingsPatch(change, base), updated_at: now() };
-    pendingSettings.current = merged;
-    edit("settingsRaw");
-    setData((d) => ({ ...d, settingsRaw: merged }));
+    const patch: ProfileRow = { ...settingsPatch(change), updated_at: now() };
+    pendingPatch.current = { ...(pendingPatch.current ?? {}), ...patch };
+    edit("profile");
+    setData((d) => ({ ...d, profile: { ...d.profile, ...patch } }));
     settingsQueue.current = settingsQueue.current.then(async () => {
-      if (pendingSettings.current !== merged) return;   // a newer change will save everything
-      const { error } = await supabase.from("profiles")
-        .upsert({ user_id: userID, settings: merged, updated_at: merged.updated_at }, { onConflict: "user_id" });
-      if (pendingSettings.current === merged) pendingSettings.current = null;
+      const sending = pendingPatch.current;
+      if (!sending) return;   // an earlier save already sent this change
+      pendingPatch.current = null;
+      const { error } = await supabase.from("profiles").upsert({ user_id: userID, ...sending }, { onConflict: "user_id" });
       if (error) setError(`Couldn't save settings: ${error.message}`);
     });
     await settingsQueue.current;
-  }, [userID, data.settingsRaw]);
+  }, [userID]);
 
   /** Deletes words for good; their progress goes with them (the database removes it too). */
   const deleteWords = useCallback(async (ids: string[]) => {

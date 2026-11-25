@@ -23,7 +23,8 @@ let PLAN = "free";
 
 /** The stand-in database. */
 const db = {
-  profiles: [{ user_id: USER, settings: { display: "both", profile: { name: "Test Learner" }, word_notification: true, word_notification_minutes: 540 }, updated_at: stamp }],
+  // Every setting is its own column.
+  profiles: [{ user_id: USER, name: "Test Learner", display: "both", word_notification: true, word_notification_minutes: 540, updated_at: stamp }],
   custom_words: [
     { id: "77777777-7777-4777-8777-777777777771", user_id: USER, hangul: "바다", romanization: "bada", meanings: ["sea", "ocean"], pos: "noun",
       examples: [{ korean: "바다에 가요.", romanization: "badae gayo.", english: "I go to the sea." }], tenses: null, source: "claude",
@@ -191,7 +192,7 @@ try {
       await setup.getByRole("button", { name: "Start Learning" }).click();
       await setup.waitFor({ state: "detached" });
       check(db.public_profiles[0]?.username === "testlearner", "the username is saved");
-      const saved = db.profiles[0].settings.profile.avatar;
+      const saved = db.profiles[0].avatar;
       check(saved === "Rocket", `the picture is saved by its preset key (${saved})`);
       const tour = page.getByRole("dialog", { name: /^Tour:/ });
       await tour.waitFor();
@@ -200,7 +201,7 @@ try {
         await tour.getByRole("button", { name: stop === "Stats" ? "Done" : "Next" }).click();
       }
       await tour.waitFor({ state: "detached" });
-      check(db.profiles[0].settings.tour_done === true, "the tour is shown once");
+      check(db.profiles[0].tour_done === true, "the tour is shown once");
     }
 
     await page.getByRole("heading", { name: "Welcome Back, Test" }).waitFor({ timeout: 15000 });
@@ -305,7 +306,7 @@ try {
       await sheet.getByRole("button", { name: "Save" }).click();
       await sheet.waitFor({ state: "detached" });
       await page.waitForLoadState("networkidle");
-      check(db.profiles[0].settings.profile.avatar === "Coffee", "Edit Profile saves the new picture");
+      check(db.profiles[0].avatar === "Coffee", "Edit Profile saves the new picture");
       check((await page.locator(".profile-card img.avatar").getAttribute("src")) === "/profile/Coffee.png", "the profile card shows the new picture");
       await page.getByRole("button", { name: "Edit Profile" }).click();
       await page.getByRole("dialog", { name: "Edit Profile" }).getByRole("button", { name: "Cancel" }).click();
@@ -482,15 +483,15 @@ try {
     db.connector_tokens = [];
 
     // The Profile tab uses the learner's picture when there is one; an old default picture shows the default preset.
-    db.profiles[0].settings.profile.avatar = "Rocket";
+    db.profiles[0].avatar = "Rocket";
     await page.reload();
     await page.locator("img.tab-avatar").first().waitFor({ timeout: 10000 });
     check(await page.locator("img.tab-avatar").first().evaluate((img) => img.complete && img.naturalWidth > 0), `${scheme}: profile tab shows the picture`);
-    db.profiles[0].settings.profile.avatar = "default:3";
+    db.profiles[0].avatar = "default:3";
     await page.reload();
     await page.locator("img.tab-avatar").first().waitFor({ timeout: 10000 });
     check((await page.locator("img.tab-avatar").first().getAttribute("src")) === "/profile/Astro.png", `${scheme}: an old default picture shows the default preset`);
-    delete db.profiles[0].settings.profile.avatar;
+    delete db.profiles[0].avatar;
     await page.reload();
     await page.getByRole("heading", { name: "Profile" }).waitFor();
 
@@ -622,7 +623,7 @@ try {
     check(await limit.count() === 0 && await page.getByRole("button", { name: "Upgrade to Pro" }).count() === 0, "pro: no limit note or Upgrade button");
     await page.screenshot({ path: "screenshots/guides-pro.png" });
     // Pro: upload your own photo in Edit Profile; it's saved as a small JPEG.
-    const before = db.profiles[0].settings.profile.avatar;
+    const before = db.profiles[0].avatar;
     await page.getByRole("button", { name: "Profile", exact: true }).click();
     await page.getByRole("button", { name: "Change profile picture" }).click();
     const editor = page.getByRole("dialog", { name: "Edit Profile" });
@@ -634,10 +635,10 @@ try {
     await page.screenshot({ path: "screenshots/edit-profile-pro.png" });
     await editor.getByRole("button", { name: "Save" }).click();
     await page.waitForLoadState("networkidle");
-    const photo = db.profiles[0].settings.profile.avatar ?? "";
+    const photo = db.profiles[0].avatar ?? "";
     check(photo.startsWith("/9j/") && photo.length < 24000, `pro: the photo is saved as a small JPEG (${photo.length} characters)`);
     check((await page.locator(".profile-card img.avatar").getAttribute("src")).startsWith("data:image/jpeg"), "pro: the profile card shows the photo");
-    db.profiles[0].settings.profile.avatar = before;
+    db.profiles[0].avatar = before;
     PLAN = "free";
     db.study_guides = db.study_guides.filter((g) => g.id !== second.id);
     await context.close();
@@ -651,7 +652,9 @@ try {
     `study_days counts quiz and flashcard answers (${JSON.stringify(days[0] ?? {})})`);
   check(progress.some((p) => p.dont_know > 0 && p.hints_used > 0), "don't-knows and hints recorded");
   check(db.guide_tasks.filter((t) => t.done).length === 1, "ticked task saved");
-  check(db.profiles[0].settings.word_notification === true, "app-only settings kept intact");
+  check(db.profiles[0].word_notification === true && db.profiles[0].word_notification_minutes === 540,
+    "app-only settings kept intact");
+  check(!("settings" in db.profiles[0]), "settings are saved as columns, not a JSON object");
   const quiz = db.daily_quiz[0];
   check(db.daily_quiz.length === 1 && quiz.day === today && quiz.state === "failed" && quiz.recorded === true
     && quiz.revealed_hints.includes(2), `today's quiz saved to the shared table (${JSON.stringify(quiz ?? {})})`);

@@ -2,10 +2,27 @@ import { DEFAULT_AVATAR, isAvatarPreset, isPhotoAvatar } from "../core/avatars";
 import type { CardForm } from "../core/englishForms";
 import type { DisplayMode, PartOfSpeech } from "../core/models";
 
-// `profiles.settings` is shared with the app, which also stores fields the web doesn't use
-// (notification times, widget options). Edits patch this object rather than rebuild it,
-// so nothing the app saved is lost.
-export type RawSettings = Record<string, unknown>;
+/** Your row of `profiles`: every setting is its own column (typed and checked by the database), shared with the
+ *  iPhone, Mac and Android apps, which also use the notification and widget columns. */
+export interface ProfileRow {
+  name?: string;
+  avatar?: string | null;
+  title?: string | null;
+  display?: string;
+  quiz_on_tap?: boolean;
+  deck_size?: number;
+  flashcard_source?: string;
+  flashcard_types?: string[];
+  flashcard_forms?: string[];
+  flashcard_seconds?: number;
+  flashcard_hints?: boolean;
+  tour_done?: boolean;
+  word_notification?: boolean;
+  word_notification_minutes?: number;
+  practice_reminder?: boolean;
+  practice_reminder_minutes?: number;
+  updated_at?: string;
+}
 
 /** `avatar` is a preset key or a Pro account's photo (see core/avatars). `title` is the id of the earned achievement shown under the name
  *  (see core/achievements). */
@@ -39,37 +56,26 @@ export interface Settings {
 
 const FORMS: CardForm[] = ["dictionary", "past", "present"];
 
-export function readSettings(raw: RawSettings): Settings {
-  const profile = (raw.profile ?? {}) as Record<string, unknown>;
+const POS: PartOfSpeech[] = ["verb", "adjective", "noun", "adverb", "phrase"];
+
+export function readSettings(row: ProfileRow): Settings {
+  const forms = FORMS.filter((f) => (row.flashcard_forms ?? []).includes(f));
   return {
-    display: (raw.display as DisplayMode) ?? "both",
-    deckSize: (raw.deck_size as number) ?? 10,
-    flashcardSource: (["builtIn", "mine", "mix"] as const).find((s) => s === raw.flashcard_source) ?? "builtIn",
-    flashcardTypes: Array.isArray(raw.flashcard_types) ? (raw.flashcard_types as PartOfSpeech[]) : [],
-    flashcardForms: (() => {
-      const forms = Array.isArray(raw.flashcard_forms) ? FORMS.filter((f) => (raw.flashcard_forms as string[]).includes(f)) : [];
-      return forms.length ? forms : ["dictionary"];
-    })(),
-    flashcardSeconds: [10, 20, 30].includes(raw.flashcard_seconds as number) ? (raw.flashcard_seconds as number) : 0,
-    flashcardHints: raw.flashcard_hints !== false,
-    tourDone: raw.tour_done === true,
-    profile: { name: (profile.name as string) ?? "", avatar: readAvatar(profile.avatar), title: (profile.title as string) ?? null },
+    display: (["korean", "romanization", "both"] as DisplayMode[]).find((d) => d === row.display) ?? "both",
+    deckSize: typeof row.deck_size === "number" ? row.deck_size : 10,
+    flashcardSource: (["builtIn", "mine", "mix"] as const).find((s) => s === row.flashcard_source) ?? "builtIn",
+    flashcardTypes: POS.filter((p) => (row.flashcard_types ?? []).includes(p)),
+    flashcardForms: forms.length ? forms : ["dictionary"],
+    flashcardSeconds: [10, 20, 30].includes(row.flashcard_seconds as number) ? (row.flashcard_seconds as number) : 0,
+    flashcardHints: row.flashcard_hints !== false,
+    tourDone: row.tour_done === true,
+    profile: { name: row.name ?? "", avatar: readAvatar(row.avatar), title: row.title ?? null },
   };
 }
 
-/** Keys older versions saved that nothing reads any more; dropped whenever settings are saved. */
-export const OBSOLETE_KEYS = ["word_types", "include_my_words", "username_asked"];
-
-/** The saved settings without the obsolete keys. */
-export function withoutObsolete(raw: RawSettings): RawSettings {
-  const out = { ...raw };
-  for (const key of OBSOLETE_KEYS) delete out[key];
-  return out;
-}
-
-/** Patch for each setting, in the app's column names. */
-export function settingsPatch(change: Partial<Settings>, raw: RawSettings): RawSettings {
-  const patch: RawSettings = {};
+/** The columns a change touches (only those are sent, so two devices changing different settings don't clash). */
+export function settingsPatch(change: Partial<Settings>): ProfileRow {
+  const patch: ProfileRow = {};
   if (change.display !== undefined) patch.display = change.display;
   if (change.deckSize !== undefined) patch.deck_size = change.deckSize;
   if (change.flashcardSource !== undefined) patch.flashcard_source = change.flashcardSource;
@@ -79,8 +85,9 @@ export function settingsPatch(change: Partial<Settings>, raw: RawSettings): RawS
   if (change.flashcardHints !== undefined) patch.flashcard_hints = change.flashcardHints;
   if (change.tourDone !== undefined) patch.tour_done = change.tourDone;
   if (change.profile !== undefined) {
-    patch.profile = { ...((raw.profile ?? {}) as object), name: change.profile.name, avatar: change.profile.avatar,
-      ...(change.profile.title !== undefined ? { title: change.profile.title } : {}) };
+    patch.name = change.profile.name;
+    patch.avatar = change.profile.avatar;
+    if (change.profile.title !== undefined) patch.title = change.profile.title;
   }
   return patch;
 }
