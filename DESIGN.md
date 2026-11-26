@@ -37,7 +37,8 @@ update it when the design changes. It's identical in all three repos (`malchingu
 | Orange | `#B45309` | `--orange` | `colors.orange` | `.orange` | Advanced level, hint bulb |
 | Teal | `#0F766E` | `--teal` | `colors.teal` | `.teal` | Upper Beginner level **only** |
 | Purple | `#7E22CE` | `--purple` | `colors.purple` | `.purple` | Intermediate level |
-| Glass | white 62% (web) / 66% (Android), 75–80% edge | `--glass`, `--glass-border` | `colors.card`, `colors.cardBorder` | `.glassEffect` | Cards |
+| Glass | white 62% with backdrop blur and 170% saturation (web) / white 50% with no blur (Android, the same look), 75–80% edge | `--glass`, `--glass-border` | `colors.card`, `colors.cardBorder` | `.glassEffect` | Cards. Tinted by the wash, never solid white |
+| Field | white 70% | `--field` | `colors.field` | `.background.opacity(0.6)` | Text fields (the quiz's answer box), open hints, segmented tracks. Lighter than a card; never grey |
 | Glass strong | white 82%, 75% edge | `--glass-strong` | `GlassButton` | `.glass` | Neutral buttons, round neutral buttons |
 | Wash | `#5B4FE9` 28% → `#22B8C7` 17% → `#EC4899` 14% (135°) | `--wash` | `colors.wash` | `AppBackground` | Behind every page |
 | Pro gradient | `#5B4FE9` → `#22B8C7` | `--brand-gradient` | `proGradient` | `ProBadge.gradient` | Pro badge and label, initials placeholder |
@@ -104,7 +105,9 @@ Heights: default 44px/dp, large 52, compact 36. Icons in buttons are 18px/dp, wi
 ## 5. Cards, sheets and popups
 
 - **Card:** glass, radius 26px (web, Apple) / 28dp (Android `GlassCard`), padding 18–20, 12 between rows, full
-  width. A section label goes at the top when the card has a heading.
+  width. A section label goes at the top when the card has a heading. White things in a card (glass buttons, fields)
+  must stand out from it; if a card looks solid white, it's too opaque.
+- **Empty states:** centred text in a card ("No Words Yet", "No notes yet"), never left-aligned.
 - **Rows in a card:** at least 44 tall, dividers in `--divider` (Text at 9%). A row that opens something ends in a
   muted ›.
 - **Page layout:** 16px/dp side gutter, 16 between cards, content up to 720 wide (760 on the web's main column; Mac
@@ -127,7 +130,8 @@ Heights: default 44px/dp, large 52, compact 36. Icons in buttons are 18px/dp, wi
 - **Select:** one shared style per platform. Web: the global `select` rule (`--select-pad`, see `CLAUDE.md`);
   Android: `SelectRow`; Apple: menu `Picker`.
 - **Switch rows:** the label wraps rather than running up to the switch (24dp gap on Android).
-- **Text fields:** capsule, field colour, no autocorrect for answers and usernames.
+- **Text fields:** capsule, the Field colour, no outline until focused (then the accent at 16%; red for a wrong
+  answer), no autocorrect for answers and usernames. Never Material's grey outline or a `surface` fill.
 
 ## 7. Icons and marks
 
@@ -147,7 +151,8 @@ Heights: default 44px/dp, large 52, compact 36. Icons in buttons are 18px/dp, wi
 - **Web:** `Page` header (`.page-header`): Back on the left, round actions on the right, a 2rem title. It scrolls with
   the page.
 - **Android:** `Page` (`ui/Page.kt`): the same. The header is the list's first item and scrolls away; nothing is
-  pinned. A page-coloured strip fades in behind the status bar once the page has scrolled.
+  pinned. Behind the status bar is a strip of the page's own background (`washBackground()`, lined up with the
+  window), so it can't be seen and scrolled cards disappear under the clock. Never a lighter or white band.
 - **Apple:** the system large title, which collapses into the navigation bar. The Mac draws `MacPageBar`.
 - **Free accounts:** Upgrade to Pro, compact and centered right under the title, only on pages with a Pro limit (Study
   Guides, My Words). Not on My Notes.
