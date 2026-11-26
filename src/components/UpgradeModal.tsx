@@ -73,12 +73,11 @@ export function UpgradeModal() {
   const body = (
       <div ref={card} className={`upgrade-modal glass ${hover ? "hovering" : ""}`} role="dialog" aria-modal={hover ? undefined : true}
         aria-label={pro ? "Korimal Pro" : "Upgrade to Pro"} style={place}>
-        {/* Free accounts: the price (Coming Soon for now). A Pro account's badge shows just the list. */}
-        {!pro && (
+        {/* Free accounts: the price, once there is one (until then only the button says Coming Soon). A Pro account's
+            badge shows just the list. */}
+        {!pro && PRO_PRICE && (
           <div className="upgrade-head">
-            <div className="upgrade-price">{PRO_PRICE
-              ? <><strong>{PRO_PRICE.split("/")[0]}</strong><span className="muted">/month (USD)</span></>
-              : <strong>Coming Soon</strong>}</div>
+            <div className="upgrade-price"><strong>{PRO_PRICE.split("/")[0]}</strong><span className="muted">/month (USD)</span></div>
           </div>
         )}
         <ul className="upgrade-benefits">
