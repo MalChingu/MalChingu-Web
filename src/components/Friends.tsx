@@ -10,8 +10,9 @@ import { USERNAME_RULE, useStore } from "../lib/store";
 import { Icon } from "./Icon";
 import { Button, Card, ConfirmDialog, RoundButton, SectionTitle, Sheet } from "./ui";
 
-// Profile → About → Friends: a row of friends' pictures with + at the end, a page for each friend (Accept, Challenge
-// Friend, Remove Friend), adding by username or email, and choosing a username.
+// Profile → About → Friends: a row of friends' pictures, then Friend Requests (with a count of requests to you) and +;
+// a page for each friend or request (Accept, Challenge Friend, Remove Friend), adding by username or email, and
+// choosing a username.
 
 /** A round picture, or initials on the app's gradient; an envelope for a request sent to an email. */
 export function PersonPicture({ avatar, name, size, mail }: { avatar: string | null; name: string; size: number; mail?: boolean }) {
@@ -31,7 +32,12 @@ export function FriendsCard() {
   const store = useStore();
   const [openID, setOpenID] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
-  const rows = orderFriends(store.friends);
+  const [requesting, setRequesting] = useState(false);
+  const ordered = orderFriends(store.friends);
+  // The row holds friends; requests (to you and from you) are under Friend Requests.
+  const friends = ordered.filter((f) => f.status === "accepted");
+  const requests = ordered.filter((f) => f.status === "pending");
+  const incoming = requests.filter((f) => f.direction === "incoming").length;
   const open = store.friends.find((f) => f.id === openID) ?? null;
 
   return (
@@ -39,21 +45,27 @@ export function FriendsCard() {
       <SectionTitle>Friends</SectionTitle>
       <div className="friends-row">
         <div className="friends-scroll">
-          {rows.map((f) => {
-            const sent = f.status === "pending" && f.direction === "outgoing";
+          {friends.map((f) => {
             const waiting = isWaiting(f, store.challenges);
             return (
-              <button key={f.id} type="button" className={`friend ${sent ? "sent" : ""}`} onClick={() => setOpenID(f.id)}
-                aria-label={`${friendLabel(f)}${sent ? ", request sent" : f.status === "pending" ? ", wants to be your friend" : waiting ? ", challenge waiting" : ""}`}>
+              <button key={f.id} type="button" className="friend" onClick={() => setOpenID(f.id)}
+                aria-label={`${friendLabel(f)}${waiting ? ", challenge waiting" : ""}`}>
                 <span className="friend-picture">
-                  <PersonPicture avatar={f.avatar} name={f.name || f.username || ""} size={52} mail={!f.user_id || (sent && !f.username)} />
+                  <PersonPicture avatar={f.avatar} name={f.name || f.username || ""} size={52} />
                   {waiting && <span className="friend-dot" />}
                 </span>
-                <span className="friend-caption">{sent ? "Sent" : shortLabel(f)}</span>
+                <span className="friend-caption">{shortLabel(f)}</span>
               </button>
             );
           })}
         </div>
+        <button type="button" className="friend" title="Friend Requests"
+          aria-label={incoming > 0 ? `Friend Requests, ${incoming} new` : "Friend Requests"} onClick={() => setRequesting(true)}>
+          <span className="friend-picture friend-add">
+            <Icon name="people" size={24} strokeWidth={2.2} />
+            {incoming > 0 && <span className="friend-count" aria-hidden="true">{incoming}</span>}
+          </span>
+        </button>
         <button type="button" className="friend" aria-label="Add Friend" title="Add Friend"
           onClick={() => setAdding(true)}>
           <span className="friend-picture friend-add"><Icon name="plus" size={24} strokeWidth={2.4} /></span>
@@ -63,8 +75,41 @@ export function FriendsCard() {
 
       {/* Hidden while a duel is played, then back with its result. */}
       {open && !store.duel && <FriendSheet friend={open} onClose={() => setOpenID(null)} />}
+      {requesting && <RequestsSheet requests={requests} onClose={() => setRequesting(false)}
+        onOpen={(id) => { setRequesting(false); setOpenID(id); }} />}
       {adding && <AddFriendSheet onClose={() => setAdding(false)} />}
     </Card>
+  );
+}
+
+/** Friend Requests: requests to you, then the ones you sent. Each opens its page (Accept or Decline, Cancel Request). */
+function RequestsSheet({ requests, onClose, onOpen }: { requests: FriendRow[]; onClose: () => void; onOpen: (id: string) => void }) {
+  const groups = [
+    { title: "Incoming", rows: requests.filter((f) => f.direction === "incoming") },
+    { title: "Sent", rows: requests.filter((f) => f.direction === "outgoing") },
+  ].filter((g) => g.rows.length > 0);
+  return (
+    <Sheet title="Friend Requests" onClose={onClose}>
+      {groups.length === 0 ? (
+        <p className="muted center">No friend requests right now.</p>
+      ) : groups.map((g) => (
+        <section key={g.title} className="stack" aria-label={g.title}>
+          <SectionTitle>{g.title}</SectionTitle>
+          <div className="divided">
+            {g.rows.map((f) => (
+              <button key={f.id} type="button" className="row request-row" onClick={() => onOpen(f.id)}>
+                <PersonPicture avatar={f.avatar} name={f.name || f.username || ""} size={44} mail={!f.user_id} />
+                <span className="grow stack tiny-gap">
+                  <span className="strong">{friendLabel(f)}</span>
+                  {f.name && (f.username || f.email) && <span className="small muted">{f.username ? `@${f.username}` : f.email}</span>}
+                </span>
+                <Icon name="chevron" size={18} className="muted" />
+              </button>
+            ))}
+          </div>
+        </section>
+      ))}
+    </Sheet>
   );
 }
 
@@ -82,6 +127,8 @@ function FriendSheet({ friend, onClose }: { friend: FriendRow; onClose: () => vo
   const [confirmBlock, setConfirmBlock] = useState(false);
   const label = friendLabel(friend);
   const first = shortLabel(friend);
+  const incoming = friend.status === "pending" && friend.direction === "incoming";
+  const sent = friend.status === "pending" && friend.direction === "outgoing";
   const challenges = store.challenges.filter((c) => c.friend_id === friend.user_id);
   const openDuel = challenges.some((c) => c.kind === "duel" && !(c.my_done && c.their_done));
   const openWeek = challenges.some((c) => c.kind === "week" && (c.status === "pending" || weekStatus(c.end_day ?? "", dayString()).kind === "running"));
@@ -96,7 +143,7 @@ function FriendSheet({ friend, onClose }: { friend: FriendRow; onClose: () => vo
   };
 
   return (
-    <Sheet title={label} onClose={onClose}>
+    <Sheet title={incoming ? "Incoming Friend Request" : sent ? "Sent Friend Request" : label} onClose={onClose}>
       <div className="center stack friend-page">
         <PersonPicture avatar={friend.avatar} name={friend.name || friend.username || ""} size={96} mail={!friend.user_id} />
         {friend.name && <div className="friend-page-name">{friend.name}</div>}
@@ -105,9 +152,8 @@ function FriendSheet({ friend, onClose }: { friend: FriendRow; onClose: () => vo
         {friend.level && <LevelTag level={friend.level} />}
       </div>
 
-      {friend.status === "pending" && friend.direction === "incoming" && (
+      {incoming && (
         <div className="stack">
-          <p className="center">{first} wants to be your friend.</p>
           <div className="button-pair">
             <Button full disabled={busy} onClick={() => run(() => store.removeFriend(friend.id)).then((ok) => ok && onClose())}>Decline</Button>
             <Button kind="prominent" icon="check" full disabled={busy} onClick={() => run(() => store.acceptFriend(friend.id))}>Accept</Button>
@@ -116,7 +162,7 @@ function FriendSheet({ friend, onClose }: { friend: FriendRow; onClose: () => vo
         </div>
       )}
 
-      {friend.status === "pending" && friend.direction === "outgoing" && (
+      {sent && (
         <div className="stack">
           <p className="center muted">
             {friend.user_id

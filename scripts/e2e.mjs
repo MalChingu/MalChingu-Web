@@ -84,6 +84,16 @@ async function fakeSupabase(route) {
     BLOCKS = [{ user_id: p_user, username: friend?.username ?? null, name: friend?.name ?? null, avatar: friend?.avatar ?? null, created_at: stamp }, ...BLOCKS];
     return json(null);
   }
+  if (url.pathname === "/rest/v1/rpc/accept_friend") {
+    const { p_id } = request.postDataJSON();
+    FRIENDS = FRIENDS.map((f) => f.id === p_id ? { ...f, status: "accepted" } : f);
+    return json(null);
+  }
+  if (url.pathname === "/rest/v1/rpc/remove_friend") {
+    const { p_id } = request.postDataJSON();
+    FRIENDS = FRIENDS.filter((f) => f.id !== p_id);
+    return json(null);
+  }
   if (url.pathname === "/rest/v1/rpc/unblock_user") {
     const { p_user } = request.postDataJSON();
     BLOCKS = BLOCKS.filter((b) => b.user_id !== p_user);
@@ -970,6 +980,74 @@ try {
     check(await page.locator(".hint .glossed").count() === 1, "beginner: a flashcard hint shows the English under the words");
     await page.screenshot({ path: "screenshots/flashcard-hint-glossed.png" });
     await context.close();
+  }
+
+  // Friend requests: the row holds friends only; Friend Requests (beside +) counts requests to you and lists them with
+  // the ones you sent; a request's page is "Incoming Friend Request", with no name in the title and no "wants to be
+  // your friend" line.
+  {
+    const requestsFixture = [
+      { id: "99999999-9999-4999-8999-999999999980", user_id: FRIEND, direction: "outgoing", status: "accepted", username: "minji",
+        name: "Minji", avatar: "Rocket", level: "beginner", email: null, created_at: stamp },
+      { id: "99999999-9999-4999-8999-999999999981", user_id: "99999999-9999-4999-8999-999999999992", direction: "incoming", status: "pending",
+        username: "lightspeed", name: "LightSpeed", avatar: "Bolt", level: "beginner", email: null, created_at: stamp },
+      { id: "99999999-9999-4999-8999-999999999982", user_id: "99999999-9999-4999-8999-999999999993", direction: "outgoing", status: "pending",
+        username: "hana", name: "Hana", avatar: "Coffee", level: "intermediate", email: null, created_at: stamp },
+      { id: "99999999-9999-4999-8999-999999999983", user_id: null, direction: "outgoing", status: "pending",
+        username: null, name: null, avatar: null, level: null, email: "pal@example.com", created_at: stamp },
+    ];
+    for (const viewport of [{ width: 390, height: 844 }, { width: 1280, height: 860 }]) {
+      FRIENDS = requestsFixture.map((f) => ({ ...f }));
+      const phone = viewport.width < 900;
+      const context = await browser.newContext({ viewport });
+      await context.route("https://nxlsnpzfbazwlccxtwpt.supabase.co/**", fakeSupabase);
+      await context.addInitScript((value) => localStorage.setItem("sb-nxlsnpzfbazwlccxtwpt-auth-token", value), JSON.stringify(session));
+      const page = await context.newPage();
+      await page.goto("http://localhost:4173/#profile");
+      const requestsButton = page.getByRole("button", { name: /^Friend Requests/ });
+      await requestsButton.waitFor({ timeout: 15000 });
+      await page.locator(".friends-scroll .friend").first().waitFor();
+      const size = phone ? "phone" : "desktop";
+      const row = await page.locator(".friends-scroll .friend").evaluateAll((els) => els.map((el) => el.getAttribute("aria-label")));
+      check(row.length === 1 && row[0] === "Minji", `${size}: the friends row holds friends only (${row.join(", ")})`);
+      const [requestsBox, addBox] = [await requestsButton.boundingBox(), await page.getByRole("button", { name: "Add Friend" }).boundingBox()];
+      check(await requestsButton.getAttribute("aria-label") === "Friend Requests, 1 new" && (await requestsButton.innerText()).trim() === "1"
+        && Math.abs(requestsBox.y - addBox.y) < 1 && requestsBox.x < addBox.x && addBox.x - (requestsBox.x + requestsBox.width) < 20,
+        `${size}: Friend Requests sits just left of +, with 1 for the request to you`);
+      await page.locator(".friends-row").screenshot({ path: `screenshots/friends-row-${size}.png` });
+      if (!phone) { await context.close(); continue; }
+      await requestsButton.click();
+      const list = page.getByRole("dialog", { name: "Friend Requests" });
+      await list.waitFor();
+      const incoming = await list.getByRole("region", { name: "Incoming" }).getByRole("button").allInnerTexts();
+      const sent = await list.getByRole("region", { name: "Sent" }).getByRole("button").allInnerTexts();
+      check(incoming.length === 1 && incoming[0].includes("LightSpeed") && sent.length === 2 && sent[0].includes("Hana")
+        && sent[1].includes("pal@example.com"), `Friend Requests lists the request to you, then the two you sent (${incoming} | ${sent})`);
+      await page.waitForTimeout(450);
+      await page.screenshot({ path: "screenshots/friend-requests.png" });
+      await list.getByRole("button", { name: /LightSpeed/ }).click();
+      const request = page.getByRole("dialog", { name: "Incoming Friend Request" });
+      await request.waitFor();
+      check(await list.count() === 0, "opening a request closes the list");
+      check(await request.getByText("LightSpeed", { exact: true }).isVisible() && await request.getByText("@lightspeed").isVisible()
+        && await request.getByText(/wants to be your friend/).count() === 0
+        && await request.getByRole("heading", { name: "LightSpeed" }).count() === 0,
+        "the request's page is titled Incoming Friend Request: the name under the picture, no 'wants to be your friend'");
+      await page.waitForTimeout(450);
+      await page.screenshot({ path: "screenshots/incoming-friend-request.png" });
+      await request.getByRole("button", { name: "Accept" }).click();
+      await page.getByRole("dialog", { name: "LightSpeed" }).waitFor();
+      check(FRIENDS.find((f) => f.username === "lightspeed")?.status === "accepted", "Accept makes them a friend (the page becomes theirs)");
+      await page.keyboard.press("Escape");
+      await page.locator(".friends-scroll .friend").nth(1).waitFor();
+      check(await requestsButton.getAttribute("aria-label") === "Friend Requests" && await page.locator(".friend-count").count() === 0,
+        "with no requests to you, Friend Requests has no count");
+      await requestsButton.click();
+      await page.getByRole("dialog", { name: "Friend Requests" }).getByRole("button", { name: /Hana/ }).click();
+      await page.getByRole("dialog", { name: "Sent Friend Request" }).waitFor();
+      check(true, "a request you sent opens as Sent Friend Request");
+      await context.close();
+    }
   }
 
   // Safety: Block from a friend's page, the Blocked list and Unblock in Settings, the name filter, the pictures, and
