@@ -198,6 +198,9 @@ try {
         "onboarding starts with the name empty, for you to type");
       const look = await setup.locator(".onboarding-card").evaluate((el) => [getComputedStyle(el).backgroundColor, el.classList.contains("glass")]);
       check(look[0] === "rgba(0, 0, 0, 0)" && !look[1], `onboarding sits on the page, with no card (${look})`);
+      check(await setup.getByText("Friends see your name", { exact: false }).count() === 0
+        && await setup.getByRole("button", { name: "Sign in with a Different Account" }).isVisible(),
+        "the name step has nothing under the field, and Sign in with a Different Account under Continue");
       await setup.getByLabel("Your name").fill("Test Learner");
       await setup.getByRole("button", { name: "Continue" }).click();
       await setup.getByText("Available").waitFor();
@@ -207,6 +210,7 @@ try {
       await page.screenshot({ path: "screenshots/onboarding-username.png" });
       await setup.getByRole("button", { name: "Continue" }).click();
       await setup.getByRole("heading", { name: "Choose a Picture" }).waitFor();
+      check(await setup.getByText("Friends see it next to your name", { exact: false }).count() === 0, "the picture step has nothing under its title");
       const choices = setup.getByRole("radiogroup", { name: "Profile picture" }).getByRole("radio");
       check(await choices.count() === 8 && await setup.getByRole("radio", { name: "Upload your own photo with Pro" }).isVisible(),
         "the picture step offers the seven presets and an upload tile (Pro)");
@@ -1003,6 +1007,24 @@ try {
     await page.getByRole("button", { name: "Sign in with Apple" }).waitFor({ timeout: 10000 });
     check(deleteCalls === 1, "Delete Account calls the delete-account function once and signs out");
     await context.close();
+  }
+
+  // Onboarding's first step: Sign in with a Different Account signs out, back to the sign-in page.
+  {
+    const kept = db.public_profiles;
+    db.public_profiles = [];   // an account that hasn't chosen a username yet
+    const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    await context.route("https://nxlsnpzfbazwlccxtwpt.supabase.co/**", fakeSupabase);
+    await context.addInitScript((value) => { if (!sessionStorage.getItem("seeded")) { localStorage.setItem("sb-nxlsnpzfbazwlccxtwpt-auth-token", value); sessionStorage.setItem("seeded", "1"); } }, JSON.stringify(session));
+    const page = await context.newPage();
+    await page.goto("http://localhost:4173/#today");
+    const setup = page.getByRole("dialog", { name: "Set Up Your Profile" });
+    await setup.waitFor({ timeout: 15000 });
+    await setup.getByRole("button", { name: "Sign in with a Different Account" }).click();
+    await page.getByRole("button", { name: "Sign in with Google" }).waitFor({ timeout: 10000 });
+    check(await setup.count() === 0, "Sign in with a Different Account signs out to the sign-in page");
+    await context.close();
+    db.public_profiles = kept;
   }
 
   // korimal.com: the sitemap, robots.txt and canonical address; and /delete-account, the page Google Play links to.

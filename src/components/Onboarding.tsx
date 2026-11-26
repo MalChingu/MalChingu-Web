@@ -58,10 +58,11 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
             <p className="muted center">What should we call you?</p>
             <input className="text-input sheet-input" value={name} aria-label="Your name" placeholder="Your Name" autoFocus maxLength={80}
               onChange={(e) => setName(e.target.value)} />
-            {nameAllowed(name)
-              ? <p className="small muted center">Friends see your name. You can change it later in Profile.</p>
-              : <p className="small error center" role="alert">{NAME_REFUSED}</p>}
+            {/* Nothing under the field unless the name can't be used. */}
+            {!nameAllowed(name) && <p className="small error center" role="alert">{NAME_REFUSED}</p>}
             <Button type="submit" kind="prominent" full large disabled={!nameOK}>Continue</Button>
+            {/* Signed in with the wrong account: back to the sign-in page. */}
+            <button type="button" className="link center onboarding-switch" onClick={() => store.signOut()}>Sign in with a Different Account</button>
           </form>
         )}
 
@@ -85,7 +86,6 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
         {step === 2 && (
           <div className="stack onboarding-step">
             <h1 className="onboarding-title">Choose a Picture</h1>
-            <p className="muted center">Friends see it next to your name. You can change it later in Profile.</p>
             <div className="onboarding-avatar"><AvatarImage className="avatar" avatar={avatar} size={120} /></div>
             <AvatarPicker value={avatar} onChange={setAvatar} canUpload={store.plan === "pro"} />
             {error && <p className="error small" role="alert">{error}</p>}
