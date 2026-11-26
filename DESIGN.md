@@ -187,7 +187,8 @@ Heights: default 44px/dp, large 52, compact 36. Icons in buttons are 18px/dp, wi
   centred place (the line never re-centres as it grows).
 - **Timing (the same everywhere):** logo at once; English first, from 0.35s at 80ms a letter; a 0.4s beat; then
   Korean at 120ms a syllable; done at about 2.1s. Never both at once. It stays until the app has loaded (whether the
-  account needs setting up is known), then fades out over 0.3s. With Reduce Motion / animations off, no typing: the
+  account needs setting up is known), at most 4s more (then the app's loading screen takes over), and fades out over
+  0.3s. With Reduce Motion / animations off, no typing: the
   English shows at 0.3s and the Korean at 0.8s.
 - **Code:** Apple `SplashView` (shown by `KTalkApp`), Android `ui/splash/Splash.kt` (shown by `MainActivity`). Android's
   system launch screen is the base colour with no icon, so the logo isn't shown twice.
