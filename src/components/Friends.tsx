@@ -82,8 +82,8 @@ export function FriendsCard() {
   );
 }
 
-/** Friend Requests: requests to you, then the ones you sent. Each row has ✓ (accept) or ✕ (cancel) beside its arrow;
- *  the rest of the row opens its page (Accept or Decline, Cancel Request). */
+/** Friend Requests: requests to you, then the ones you sent. Beside each row's arrow: ✕ (decline) and ✓ (accept) for a
+ *  request to you, ✕ (cancel) for one you sent. The rest of the row opens its page. */
 function RequestsSheet({ requests, onClose, onOpen }: { requests: FriendRow[]; onClose: () => void; onOpen: (id: string) => void }) {
   const store = useStore();
   const [busy, setBusy] = useState(false);
@@ -118,13 +118,16 @@ function RequestsSheet({ requests, onClose, onOpen }: { requests: FriendRow[]; o
                       {f.name && f.username && <span className="small muted">@{f.username}</span>}
                     </span>
                   </button>
-                  {/* Quick: accept or cancel without opening the page. */}
+                  {/* Quick: decline or accept a request to you, cancel one you sent, without opening the page. */}
                   <span className="request-quick" onClick={(e) => e.stopPropagation()}>
-                    {incoming
-                      ? <RoundButton icon="check" tint="green" size={36} label={`Accept ${friendLabel(f)}`} disabled={busy}
-                          onClick={() => act(() => store.acceptFriend(f.id))} />
-                      : <RoundButton icon="x" tint="red" size={36} label={`Cancel Request to ${friendLabel(f)}`} disabled={busy}
-                          onClick={() => act(() => store.removeFriend(f.id))} />}
+                    {incoming ? (
+                      <>
+                        <QuickButton kind="decline" label={`Decline ${friendLabel(f)}`} disabled={busy} onClick={() => act(() => store.removeFriend(f.id))} />
+                        <QuickButton kind="accept" label={`Accept ${friendLabel(f)}`} disabled={busy} onClick={() => act(() => store.acceptFriend(f.id))} />
+                      </>
+                    ) : (
+                      <QuickButton kind="decline" label={`Cancel Request to ${friendLabel(f)}`} disabled={busy} onClick={() => act(() => store.removeFriend(f.id))} />
+                    )}
                   </span>
                   <Icon name="chevron" size={18} className="muted" />
                 </div>
@@ -135,6 +138,15 @@ function RequestsSheet({ requests, onClose, onOpen }: { requests: FriendRow[]; o
       ))}
       {error && <p className="error small" role="alert">{error}</p>}
     </Sheet>
+  );
+}
+
+/** ✓ or ✕ in an outlined circle (green or red), like the app's other outlined marks. */
+function QuickButton({ kind, label, disabled, onClick }: { kind: "accept" | "decline"; label: string; disabled: boolean; onClick: () => void }) {
+  return (
+    <button type="button" className={`quick-button ${kind}`} aria-label={label} title={label} disabled={disabled} onClick={onClick}>
+      <Icon name={kind === "accept" ? "checkCircle" : "xCircle"} size={28} strokeWidth={2} />
+    </button>
   );
 }
 

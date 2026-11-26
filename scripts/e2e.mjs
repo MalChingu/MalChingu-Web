@@ -995,6 +995,7 @@ try {
       person(2, "99999999-9999-4999-8999-999999999994", "incoming", "pending", "sora", "Sora", "Astro"),
       person(3, "99999999-9999-4999-8999-999999999993", "outgoing", "pending", "hana", "Hana", "Coffee"),
       person(4, "99999999-9999-4999-8999-999999999995", "outgoing", "pending", "jun", "Jun", "Game"),
+      person(5, "99999999-9999-4999-8999-999999999996", "incoming", "pending", "dami", "Dami", "Chess"),
     ];
     for (const viewport of [{ width: 390, height: 844 }, { width: 1280, height: 860 }]) {
       FRIENDS = requestsFixture.map((f) => ({ ...f }));
@@ -1011,9 +1012,9 @@ try {
       const row = await page.locator(".friends-scroll .friend").evaluateAll((els) => els.map((el) => el.getAttribute("aria-label")));
       check(row.length === 1 && row[0] === "Minji", `${size}: the friends row holds friends only (${row.join(", ")})`);
       const [requestsBox, addBox] = [await requestsButton.boundingBox(), await page.getByRole("button", { name: "Add Friend" }).boundingBox()];
-      check(await requestsButton.getAttribute("aria-label") === "Friend Requests, 2 new" && (await requestsButton.innerText()).trim() === "2"
+      check(await requestsButton.getAttribute("aria-label") === "Friend Requests, 3 new" && (await requestsButton.innerText()).trim() === "3"
         && Math.abs(requestsBox.y - addBox.y) < 1 && requestsBox.x < addBox.x && addBox.x - (requestsBox.x + requestsBox.width) < 20,
-        `${size}: Friend Requests sits just left of +, with 2 for the requests to you`);
+        `${size}: Friend Requests sits just left of +, with 3 for the requests to you`);
       await page.locator(".friends-row").screenshot({ path: `screenshots/friends-row-${size}.png` });
       if (!phone) { await context.close(); continue; }
       await requestsButton.click();
@@ -1021,11 +1022,19 @@ try {
       await list.waitFor();
       const names = (group) => list.getByRole("region", { name: group }).locator(".request-open").allInnerTexts();
       const [incoming, sent] = [await names("Incoming"), await names("Sent")];
-      check(incoming.length === 2 && incoming[0].includes("LightSpeed") && sent.length === 2 && sent[0].includes("Hana"),
+      check(incoming.length === 3 && incoming[0].includes("LightSpeed") && sent.length === 2 && sent[0].includes("Hana"),
         `Friend Requests lists the requests to you, then the ones you sent (${incoming} | ${sent})`);
-      check(await list.getByRole("button", { name: "Accept LightSpeed" }).isVisible() && await list.getByRole("button", { name: "Cancel Request to Hana" }).isVisible()
-        && await list.getByRole("button", { name: /^Cancel Request to LightSpeed|^Accept Hana/ }).count() === 0,
-        "each request to you has ✓ beside its arrow, each one you sent has ✕");
+      check(await list.getByRole("button", { name: "Accept LightSpeed" }).isVisible() && await list.getByRole("button", { name: "Decline LightSpeed" }).isVisible()
+        && await list.getByRole("button", { name: "Cancel Request to Hana" }).isVisible()
+        && await list.getByRole("button", { name: /^Cancel Request to LightSpeed|^Accept Hana|^Decline Hana/ }).count() === 0,
+        "each request to you has ✕ (decline) and ✓ (accept) beside its arrow, each one you sent has ✕ (cancel)");
+      // Outlined marks in green and red, not filled circles.
+      const marks = await list.locator(".request-row", { hasText: "LightSpeed" }).locator(".quick-button").evaluateAll((els) => els.map((el) => {
+        const st = getComputedStyle(el); return [el.getAttribute("aria-label"), st.backgroundColor, st.color, el.querySelector("svg")?.getAttribute("fill")];
+      }));
+      check(marks.length === 2 && marks[0][0] === "Decline LightSpeed" && marks[1][0] === "Accept LightSpeed"
+        && marks.every((m) => m[1] === "rgba(0, 0, 0, 0)" && m[3] === "none") && marks[0][2] === "rgb(198, 40, 40)" && marks[1][2] === "rgb(21, 128, 61)",
+        `✕ then ✓, outlined in red and green with no fill (${JSON.stringify(marks)})`);
       await page.waitForTimeout(450);   // the sheet has finished sliding up
       const [quick, arrow] = [await list.getByRole("button", { name: "Accept LightSpeed" }).boundingBox(),
         await list.locator(".request-row", { hasText: "LightSpeed" }).locator("svg").last().boundingBox()];
@@ -1037,6 +1046,9 @@ try {
       await list.locator(".request-open", { hasText: "Sora" }).waitFor({ state: "detached" });
       check(FRIENDS.find((f) => f.username === "sora")?.status === "accepted" && await list.isVisible()
         && await page.getByRole("dialog", { name: "Incoming Friend Request" }).count() === 0, "✓ accepts right there, without opening the request");
+      await list.getByRole("button", { name: "Decline Dami" }).click();
+      await list.locator(".request-open", { hasText: "Dami" }).waitFor({ state: "detached" });
+      check(!FRIENDS.some((f) => f.username === "dami") && await list.isVisible(), "✕ declines a request to you right there");
       await list.getByRole("button", { name: "Cancel Request to Jun" }).click();
       await list.locator(".request-open", { hasText: "Jun" }).waitFor({ state: "detached" });
       check(!FRIENDS.some((f) => f.username === "jun") && await list.isVisible(), "✕ cancels a request you sent right there");
