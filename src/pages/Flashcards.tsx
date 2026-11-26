@@ -4,7 +4,7 @@ import { PARTS_OF_SPEECH, posPlural, type PartOfSpeech, type Word } from "../cor
 import { buildDeck } from "../core/progress";
 import { BUILT_IN } from "../core/wordBank";
 import { Icon } from "../components/Icon";
-import { Button, Card, ConfirmDialog, GlossedKorean, KoreanHeadline, Page, PosTag, RoundButton, Segmented, Sheet, SpeakButton, Stepper, Toggle, WordRow } from "../components/ui";
+import { Button, Card, ConfirmDialog, GlossedKorean, KoreanHeadline, Page, PosTag, RoundButton, Segmented, Sheet, SpeakButton, Stepper, Toggle, WordRow, useMediaQuery } from "../components/ui";
 import { hintHasEnglish, hintWords, type HintWord } from "../core/hints";
 import { formAnswerRight, formsFor, shownForForm, type CardForm } from "../core/englishForms";
 import { flashcardHint, type FlashcardHint } from "../core/flashcardHint";
@@ -164,6 +164,9 @@ export function Round({ words, onClose, mode = "meaning", doneLabel = "New Round
   const [dragX, setDragX] = useState(0);
   const drag = useRef<{ x: number; id: number } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  /** A mouse and keyboard: the answer box is ready to type in on its own. On a touch screen it waits for a tap, so the
+   *  on-screen keyboard doesn't jump up over the card. */
+  const typing = useMediaQuery("(hover: hover) and (pointer: fine)");
   const [helpOpen, setHelpOpen] = useState(false);
   /** Whether this card's one hint is showing. */
   const [hintShown, setHintShown] = useState(false);
@@ -270,10 +273,10 @@ export function Round({ words, onClose, mode = "meaning", doneLabel = "New Round
   }, [seconds, answering, helpOpen, index, word]);
   useEffect(() => { if (seconds && answering && remaining <= 0) timeUp(); });
 
-  // The answer box is ready to type in on every card (and after closing Keyboard Shortcuts).
+  // With a keyboard, the answer box is ready to type in on every card (and after closing Keyboard Shortcuts).
   useEffect(() => {
-    if (answering && !helpOpen) inputRef.current?.focus({ preventScroll: true });
-  }, [index, answering, helpOpen]);
+    if (typing && answering && !helpOpen) inputRef.current?.focus({ preventScroll: true });
+  }, [index, answering, helpOpen, typing]);
 
   // Ctrl+L listens and Ctrl+D is "I don't know", even while typing. Arrow keys work like swipes, except while
   // typing in the answer field; Enter moves on after an answer.
@@ -387,7 +390,7 @@ export function Round({ words, onClose, mode = "meaning", doneLabel = "New Round
                 <div className="answer-stack">
                   <span className="small muted">{mode === "past" ? "Past form (polite)" : `Meaning of the ${form === "dictionary" ? "dictionary" : form} form`}</span>
                   <div className="answer-row">
-                    <input ref={inputRef} className="flashcard-input" value={answer} lang={mode === "past" ? "ko" : "en"} autoFocus
+                    <input ref={inputRef} className="flashcard-input" value={answer} lang={mode === "past" ? "ko" : "en"} autoFocus={typing}
                       placeholder={mode === "past" ? "Type it in Korean" : "Meaning in English"}
                       autoCapitalize="off" autoCorrect="off" spellCheck={false} enterKeyHint="done"
                       aria-label={mode === "past" ? "Past form in Korean" : `Meaning of the ${form === "dictionary" ? "dictionary" : form} form, in English`}
@@ -401,7 +404,7 @@ export function Round({ words, onClose, mode = "meaning", doneLabel = "New Round
                           setAnswer(said);
                           setHeard(said);
                           setNudge("Check what was heard, then submit");
-                          inputRef.current?.focus();
+                          if (typing) inputRef.current?.focus();
                         } else setNudge(heardNothing(heard));
                       }} />
                     )}
@@ -409,7 +412,7 @@ export function Round({ words, onClose, mode = "meaning", doneLabel = "New Round
                   {hint && (hintShown ? <HintView hint={hint}
                     glossed={hint.kind === "example" && word && hintHasEnglish(store.level, 0, 1)
                       ? hintWords(hint.example.korean, word, store.allWords) : null} /> : (
-                    <button type="button" className="link small hint-button" onClick={() => { setHintShown(true); inputRef.current?.focus(); }}>
+                    <button type="button" className="link small hint-button" onClick={() => { setHintShown(true); if (typing) inputRef.current?.focus(); }}>
                       <Icon name="bulb" size={16} /> Show Hint
                     </button>
                   ))}

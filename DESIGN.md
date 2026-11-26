@@ -132,6 +132,14 @@ Heights: default 44px/dp, large 52, compact 36. Icons in buttons are 18px/dp, wi
 - **Switch rows:** the label wraps rather than running up to the switch (24dp gap on Android).
 - **Text fields:** capsule, the Field colour, no outline until focused (then the accent at 16%; red for a wrong
   answer), no autocorrect for answers and usernames. Never Material's grey outline or a `surface` fill.
+- **Answer boxes** (Today's quiz, a word's quiz, flashcards, Past Form) are one size everywhere: 44px tall with 1.1rem
+  text on the web, `titleMedium` on Android, `.title3` at 44pt on Apple. A flashcard's is centred; it isn't bigger.
+- **The keyboard:** on phones and tablets (Android, iPhone, iPad, the web on a touch screen) nothing focuses an answer
+  box on its own, so the on-screen keyboard only comes up when the box is tapped. With a mouse and keyboard (the web on
+  a computer, the Mac) a flashcard's box is ready to type in.
+- **A button waiting for input** (the ✓ before anything is typed) is faded to 45%, keeping its colour and icon. Never
+  invisible: on the Mac a disabled `.glassProminent` loses its tint, so Apple fades it with `.opacity` instead of
+  `.disabled`, and the action ignores an empty answer.
 
 ## 7. Icons and marks
 

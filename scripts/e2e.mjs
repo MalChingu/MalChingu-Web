@@ -1014,10 +1014,33 @@ try {
       return { want, input: getComputedStyle(document.querySelector(".flashcard-input")).backgroundColor,
         hint: getComputedStyle(document.querySelector(".hint")).backgroundColor };
     });
+    const box = await page.locator(".flashcard-input").evaluate((el) => { const st = getComputedStyle(el); return [Math.round(el.getBoundingClientRect().height), st.fontSize]; });
+    check(box[0] === 44 && box[1] === "17.6px", `a flashcard's answer box is the size of Today's (44px tall, 1.1rem text) (${box})`);
     check(whites.input === whites.want && whites.hint === whites.want && whites.want === "rgba(255, 255, 255, 0.7)",
       `a flashcard's answer box and hint are the field white, like Today's (${JSON.stringify(whites)})`);
     await page.locator(".flashcard-bottom").screenshot({ path: "screenshots/flashcard-hint-white.png" });
     await page.screenshot({ path: "screenshots/flashcard-hint-glossed.png" });
+    await context.close();
+  }
+
+  // Flashcards and the keyboard: with a mouse and keyboard the answer box is ready to type in; on a touch phone it
+  // waits for a tap, so the on-screen keyboard doesn't jump up over the card.
+  for (const touch of [true, false]) {
+    const context = await browser.newContext(touch ? { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true }
+      : { viewport: { width: 1280, height: 860 } });
+    await context.route("https://nxlsnpzfbazwlccxtwpt.supabase.co/**", fakeSupabase);
+    await context.addInitScript((value) => localStorage.setItem("sb-nxlsnpzfbazwlccxtwpt-auth-token", value), JSON.stringify(session));
+    const page = await context.newPage();
+    await page.goto("http://localhost:4173/#flashcards");
+    await page.getByRole("button", { name: "Start" }).click({ timeout: 15000 });
+    await page.getByRole("heading", { name: /1 \/ \d+/ }).waitFor();
+    await page.waitForTimeout(300);
+    const focused = await page.evaluate(() => document.activeElement?.classList.contains("flashcard-input") ?? false);
+    check(focused === !touch, touch ? "touch phone: a flashcard doesn't open the keyboard on its own" : "desktop: a flashcard's answer box is ready to type in");
+    if (touch) {
+      await page.locator(".flashcard-input").tap();
+      check(await page.evaluate(() => document.activeElement?.classList.contains("flashcard-input") ?? false), "touch phone: tapping the box opens it");
+    }
     await context.close();
   }
 
