@@ -28,7 +28,7 @@ update it when the design changes. It's identical in all three repos (`malchingu
 | Base | `#F4F3FB` | `--base` | `colors.base` | system background | Page background under the wash |
 | Text | `#15132B` | `--text` | `onSurface` | `.primary` | Body text |
 | Text 2 | `#15132B` 60% | `--text-2` | `onSurfaceVariant` (`#55526B`) | `.secondary` | Secondary text, section labels, placeholders |
-| Accent | `#5B4FE9` (fill), `#4338CA` (text) | `--accent-fill`, `--accent` | `primary` | `Color.brand` (the AccentColor asset; `.tint(.brand)` app-wide, never system blue) | The main action, links, chosen tab, focus |
+| Accent | `#5B4FE9` (fill), `#4338CA` (text) | `--accent-fill`, `--accent` | `primary` | the AccentColor asset (`#5B4FE9`, never system blue) and `Color.brand`; no app-wide `.tint`, which turns neutral `.glass` buttons purple | The main action, links, chosen tab, focus |
 | Accent soft | `#5B4FE9` 16% | `--accent-soft` | `primary` 16% | `.tint.opacity(0.16)` | Round + / requests buttons, chosen tab background |
 | Green | `#15803D` | `--green`, `--green-fill` | `colors.green`, `colors.greenFill` | `.green` | **Right only** (see rules) |
 | Red | `#C62828` | `--red`, `--red-fill` | `colors.red`, `colors.redFill` | `.red` | Wrong, destructive, cancel or decline marks |
@@ -94,7 +94,7 @@ Every button is a capsule (fully rounded). A screen has at most one prominent bu
 | Destructive | Red fill, white text | Sign Out, confirming a delete | `kind="destructive"`, `.sign-out` | `Button` with `colors.redFill` | `.borderedProminent` + `.red` / `role: .destructive` |
 | Compact | 36px tall, 16px sides, no shadow | In a row next to text (Unblock, Play Duel) | `compact` | `GlassButton(compact = true)` | `.controlSize(.small)` |
 | Large | 52px tall | Full-width actions under a card's content | `large full` | `GlassButton(large = true)`, 52dp min | `.controlSize(.large)` |
-| Round icon | 36–60px circle, white icon | Red ✕ / green ✓ answer buttons, accent →, glass for neutral page actions (+, ?, ⋯, Back) | `RoundButton` | `RoundIconButton` + `RoundTint` | circle `.glass` / `roundButton` |
+| Round icon | 36–60px circle, white icon | Red ✕ / green ✓ answer buttons, accent →, glass for neutral page actions (+, ?, ⋯, Back, the top bar's ✕): white glass with a dark icon, never tinted | `RoundButton` | `RoundIconButton` + `RoundTint` | circle `.glass` / `roundButton` |
 | Quick mark | Outlined ✓ / ✕ circle icon, no fill, 40px target | Accept / decline / cancel beside a row's arrow; ✓ before ✕, and every ✕ in one column | `QuickButton` | `QuickButton` (Friends.kt) | `quickButton` |
 | Text link | Accent text, no box | Secondary navigation (Sign in with a Different Account, RezPoint Inc.) | `.link`, `<a>` | `TextButton` | `.buttonStyle(.plain)` + `.tint` |
 | Upgrade / checkout | Prominent with ⚡; **faded (60%) and inert until checkout exists** | Upgrade to Pro | `UpgradeButton` (`.soon`) | `CheckoutButton`, `UpgradeButton` | `CheckoutButton`, `UpgradeButton` |
