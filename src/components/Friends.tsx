@@ -82,8 +82,9 @@ export function FriendsCard() {
   );
 }
 
-/** Friend Requests: requests to you, then the ones you sent. Beside each row's arrow: ✕ (decline) and ✓ (accept) for a
- *  request to you, ✕ (cancel) for one you sent. The rest of the row opens its page. */
+/** Friend Requests: requests to you, then the ones you sent. Beside each row's arrow: ✓ (accept) and ✕ (decline) for a
+ *  request to you, ✕ (cancel) for one you sent, so every ✕ lines up next to the arrow. The rest of the row opens its
+ *  page. */
 function RequestsSheet({ requests, onClose, onOpen }: { requests: FriendRow[]; onClose: () => void; onOpen: (id: string) => void }) {
   const store = useStore();
   const [busy, setBusy] = useState(false);
@@ -118,12 +119,12 @@ function RequestsSheet({ requests, onClose, onOpen }: { requests: FriendRow[]; o
                       {f.name && f.username && <span className="small muted">@{f.username}</span>}
                     </span>
                   </button>
-                  {/* Quick: decline or accept a request to you, cancel one you sent, without opening the page. */}
+                  {/* Quick: accept or decline a request to you, cancel one you sent, without opening the page. */}
                   <span className="request-quick" onClick={(e) => e.stopPropagation()}>
                     {incoming ? (
                       <>
-                        <QuickButton kind="decline" label={`Decline ${friendLabel(f)}`} disabled={busy} onClick={() => act(() => store.removeFriend(f.id))} />
                         <QuickButton kind="accept" label={`Accept ${friendLabel(f)}`} disabled={busy} onClick={() => act(() => store.acceptFriend(f.id))} />
+                        <QuickButton kind="decline" label={`Decline ${friendLabel(f)}`} disabled={busy} onClick={() => act(() => store.removeFriend(f.id))} />
                       </>
                     ) : (
                       <QuickButton kind="decline" label={`Cancel Request to ${friendLabel(f)}`} disabled={busy} onClick={() => act(() => store.removeFriend(f.id))} />

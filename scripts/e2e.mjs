@@ -1027,19 +1027,21 @@ try {
       check(await list.getByRole("button", { name: "Accept LightSpeed" }).isVisible() && await list.getByRole("button", { name: "Decline LightSpeed" }).isVisible()
         && await list.getByRole("button", { name: "Cancel Request to Hana" }).isVisible()
         && await list.getByRole("button", { name: /^Cancel Request to LightSpeed|^Accept Hana|^Decline Hana/ }).count() === 0,
-        "each request to you has ✕ (decline) and ✓ (accept) beside its arrow, each one you sent has ✕ (cancel)");
+        "each request to you has ✓ (accept) and ✕ (decline) beside its arrow, each one you sent has ✕ (cancel)");
       // Outlined marks in green and red, not filled circles.
       const marks = await list.locator(".request-row", { hasText: "LightSpeed" }).locator(".quick-button").evaluateAll((els) => els.map((el) => {
         const st = getComputedStyle(el); return [el.getAttribute("aria-label"), st.backgroundColor, st.color, el.querySelector("svg")?.getAttribute("fill")];
       }));
-      check(marks.length === 2 && marks[0][0] === "Decline LightSpeed" && marks[1][0] === "Accept LightSpeed"
-        && marks.every((m) => m[1] === "rgba(0, 0, 0, 0)" && m[3] === "none") && marks[0][2] === "rgb(198, 40, 40)" && marks[1][2] === "rgb(21, 128, 61)",
-        `✕ then ✓, outlined in red and green with no fill (${JSON.stringify(marks)})`);
+      check(marks.length === 2 && marks[0][0] === "Accept LightSpeed" && marks[1][0] === "Decline LightSpeed"
+        && marks.every((m) => m[1] === "rgba(0, 0, 0, 0)" && m[3] === "none") && marks[0][2] === "rgb(21, 128, 61)" && marks[1][2] === "rgb(198, 40, 40)",
+        `✓ then ✕, outlined in green and red with no fill (${JSON.stringify(marks)})`);
       await page.waitForTimeout(450);   // the sheet has finished sliding up
-      const [quick, arrow] = [await list.getByRole("button", { name: "Accept LightSpeed" }).boundingBox(),
-        await list.locator(".request-row", { hasText: "LightSpeed" }).locator("svg").last().boundingBox()];
+      const [quick, arrow, cancel] = [await list.getByRole("button", { name: "Decline LightSpeed" }).boundingBox(),
+        await list.locator(".request-row", { hasText: "LightSpeed" }).locator("svg").last().boundingBox(),
+        await list.getByRole("button", { name: "Cancel Request to Hana" }).boundingBox()];
       check(quick.x + quick.width <= arrow.x && arrow.x - (quick.x + quick.width) < 24 && Math.abs((quick.y + quick.height / 2) - (arrow.y + arrow.height / 2)) < 2,
-        `✓ sits just left of the arrow (${JSON.stringify([quick, arrow])})`);
+        `✕ sits just left of the arrow (${JSON.stringify([quick, arrow])})`);
+      check(Math.abs(quick.x - cancel.x) < 1, `an incoming ✕ lines up with a sent ✕ (${quick.x} vs ${cancel.x})`);
       await page.screenshot({ path: "screenshots/friend-requests.png" });
       // ✓ accepts and ✕ cancels straight from the list, which stays open.
       await list.getByRole("button", { name: "Accept Sora" }).click();
