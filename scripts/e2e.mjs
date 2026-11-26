@@ -1016,7 +1016,7 @@ try {
     });
     const box = await page.locator(".flashcard-input").evaluate((el) => { const st = getComputedStyle(el); return [Math.round(el.getBoundingClientRect().height), st.fontSize]; });
     check(box[0] === 44 && box[1] === "17.6px", `a flashcard's answer box is the size of Today's (44px tall, 1.1rem text) (${box})`);
-    check(whites.input === whites.want && whites.hint === whites.want && whites.want === "rgba(255, 255, 255, 0.7)",
+    check(whites.input === whites.want && whites.hint === whites.want && whites.want === "rgba(255, 255, 255, 0.9)",
       `a flashcard's answer box and hint are the field white, like Today's (${JSON.stringify(whites)})`);
     await page.locator(".flashcard-bottom").screenshot({ path: "screenshots/flashcard-hint-white.png" });
     await page.screenshot({ path: "screenshots/flashcard-hint-glossed.png" });

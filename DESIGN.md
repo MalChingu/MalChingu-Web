@@ -38,7 +38,7 @@ update it when the design changes. It's identical in all three repos (`malchingu
 | Teal | `#0F766E` | `--teal` | `colors.teal` | `.teal` | Upper Beginner level **only** |
 | Purple | `#7E22CE` | `--purple` | `colors.purple` | `.purple` | Intermediate level |
 | Glass | white 62% with backdrop blur and 170% saturation (web) / white 50% with no blur (Android, the same look), 75–80% edge | `--glass`, `--glass-border` | `colors.card`, `colors.cardBorder` | `.glassEffect` | Cards. Tinted by the wash, never solid white |
-| Field | white 70% | `--field` | `colors.field` | `Color.field` | Every answer box (Today's quiz, flashcards, Past Form) and every hint (Today's and a flashcard's), text fields, segmented tracks. One white everywhere: never grey, never tinted blue or purple |
+| Field | white 90% | `--field` | `colors.field` | `Color.field` | Every answer box (Today's quiz, flashcards, Past Form) and every hint (Today's and a flashcard's), text fields, segmented tracks. One white everywhere: never grey, never tinted blue or purple |
 | Glass strong | white 82%, 75% edge | `--glass-strong` | `GlassButton` | `.glass` | Neutral buttons, round neutral buttons |
 | Wash | `#5B4FE9` 28% → `#22B8C7` 17% → `#EC4899` 14% (135°) | `--wash` | `colors.wash` | `AppBackground` | Behind every page |
 | Pro gradient | `#5B4FE9` → `#22B8C7` | `--brand-gradient` | `proGradient` | `ProBadge.gradient` | Pro badge and label, initials placeholder |
