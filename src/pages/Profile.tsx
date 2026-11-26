@@ -130,7 +130,7 @@ export function Profile() {
           </div>
         </Card>
 
-        <button type="button" className="button sign-out full large" onClick={() => setConfirming("signOut")}>Sign Out</button>
+        <button type="button" className="button sign-out full" onClick={() => setConfirming("signOut")}>Sign Out</button>
         </>
       ) : (
         <>
@@ -184,7 +184,7 @@ export function Profile() {
             <span className="muted">{store.blocks.length}</span>
             <Icon name="chevron" size={16} className="muted" />
           </button>
-          <button type="button" className="button delete-account full large" onClick={() => setSheet("delete")}>Delete Account</button>
+          <button type="button" className="button delete-account full" onClick={() => setSheet("delete")}>Delete Account</button>
           <p className="small muted">Removes your account and all of your Korimal data from our servers.</p>
         </Card>
         </>

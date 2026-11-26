@@ -960,11 +960,15 @@ try {
     await page.keyboard.press("Escape");
     await edit.waitFor({ state: "detached" });
 
-    // Delete Account, the same height as Sign Out.
+    // Delete Account and Sign Out: the same height as the Claude Connector buttons.
     const signOutHeight = (await page.getByRole("button", { name: "Sign Out" }).boundingBox()).height;
     await page.getByRole("radio", { name: "Settings" }).click();
     const deleteHeight = (await page.getByRole("button", { name: "Delete Account" }).boundingBox()).height;
-    check(Math.abs(signOutHeight - deleteHeight) < 0.5, `Delete Account and Sign Out are the same height (${signOutHeight}, ${deleteHeight})`);
+    const connectorHeight = (await page.getByRole("button", { name: /Connector/ }).first().boundingBox()).height;
+    check(Math.abs(signOutHeight - connectorHeight) < 0.5 && Math.abs(deleteHeight - connectorHeight) < 0.5,
+      `Sign Out and Delete Account are as tall as the Claude Connector buttons (${signOutHeight}, ${deleteHeight}, ${connectorHeight})`);
+    await page.getByRole("button", { name: "Delete Account" }).scrollIntoViewIfNeeded();
+    await page.screenshot({ path: "screenshots/profile-settings-buttons.png" });
     await page.getByRole("button", { name: "Delete Account" }).click();
     const sure = page.getByRole("dialog", { name: "Delete Your Account?" });
     const confirm = sure.getByRole("button", { name: "Delete Account" });
