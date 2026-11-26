@@ -2,7 +2,8 @@
 // Guide lengths open one modal, floating up from the control that was tapped (see components/UpgradeModal). A Pro
 // account's badge shows the same modal, just what Pro adds, while the pointer is over it.
 
-/** The price, once checkout (Stripe) is set up ("$5/month"). Until then the modal says Coming Soon. */
+/** The price, once checkout (Stripe) is set up ("$5/month"). Until then the modal's heading says Coming Soon, with no
+ *  button. */
 export const PRO_PRICE: string | null = null;
 /** What Pro adds: one line each, with a green ✓. */
 export const PRO_BENEFITS = ["Unlimited Study Guides", "Unlimited Guide Timeframes", "Unlimited “My Words”", "Custom Profile Photo"] as const;

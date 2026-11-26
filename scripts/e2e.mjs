@@ -689,17 +689,17 @@ try {
     check(button.x > note.x + note.width - 1 && button.y < note.y + note.height && note.y < button.y + button.height,
       "free, 2 guides: Upgrade to Pro sits to the right of the note, in line with it");
     await page.screenshot({ path: "screenshots/guides-limit-reached.png" });
-    // Upgrade to Pro floats up from the button, inside the sidebar: what Pro adds, a ✓ and the feature per line, and a
-    // Coming Soon button (no price or heading until checkout is set up). A click outside or Esc closes it.
+    // Upgrade to Pro floats up from the button, inside the sidebar: Coming Soon as the heading, then what Pro adds, a ✓
+    // and the feature per line. No button until checkout is set up. A click outside or Esc closes it.
     const fromButton = page.locator(".tabs").getByRole("button", { name: "Upgrade to Pro" });
     await fromButton.click();
     const upgrade = page.getByRole("dialog", { name: "Upgrade to Pro" });
     await upgrade.waitFor();
     await page.waitForTimeout(350);
     const [modalBox, buttonBox] = [await upgrade.boundingBox(), await fromButton.boundingBox()];
-    check(await upgrade.locator(".upgrade-price").count() === 0 && await upgrade.getByText("Coming Soon", { exact: true }).count() === 1
-      && await upgrade.locator(".upgrade-benefits li").count() === 4 && await upgrade.getByRole("button", { name: "Coming Soon" }).isDisabled(),
-      "Upgrade to Pro: four things Pro adds, then a Coming Soon button that's off; no price or Coming Soon heading");
+    check((await upgrade.locator(".upgrade-price").innerText()).trim() === "Coming Soon" && await upgrade.getByText("Coming Soon").count() === 1
+      && await upgrade.locator(".upgrade-benefits li").count() === 4 && await upgrade.getByRole("button").count() === 0,
+      "Upgrade to Pro: Coming Soon as the heading, four things Pro adds, no button");
     check(modalBox.y + modalBox.height <= buttonBox.y + 1, "Upgrade to Pro floats up above the button that opened it");
     const sideBox = await page.locator(".tabs").boundingBox();
     const lines = await upgrade.locator(".upgrade-benefits li").allInnerTexts();
@@ -707,7 +707,7 @@ try {
       && await upgrade.locator(".upgrade-check").count() === 4 && await upgrade.getByText("Free:").count() === 0
       && JSON.stringify(lines) === JSON.stringify(["Unlimited Study Guides", "Unlimited Guide Timeframes", "Unlimited “My Words”", "Custom Profile Photo"])
       && await upgrade.locator(".pro-badge").count() === 0 && await upgrade.getByText("Korimal Pro").count() === 0,
-      `Upgrade to Pro fits inside the sidebar: a ✓ and the feature per line, no badge or title (${lines.join(" | ")})`);
+      `Upgrade to Pro fits inside the sidebar: Coming Soon, then a ✓ and the feature per line, no badge or Korimal Pro title (${lines.join(" | ")})`);
     const unselectable = await page.evaluate(() => ["upgrade-modal", "tabs"].map((c) => getComputedStyle(document.querySelector(`.${c}`)).userSelect));
     check(unselectable.every((v) => v === "none"), `the modal and the sidebar can't be selected (${unselectable})`);
     await page.screenshot({ path: "screenshots/upgrade-modal.png" });

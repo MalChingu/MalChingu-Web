@@ -73,11 +73,13 @@ export function UpgradeModal() {
   const body = (
       <div ref={card} className={`upgrade-modal glass ${hover ? "hovering" : ""}`} role="dialog" aria-modal={hover ? undefined : true}
         aria-label={pro ? "Korimal Pro" : "Upgrade to Pro"} style={place}>
-        {/* Free accounts: the price, once there is one (until then only the button says Coming Soon). A Pro account's
-            badge shows just the list. */}
-        {!pro && PRO_PRICE && (
+        {/* Free accounts: Coming Soon as the heading (the price, once checkout is set up). A Pro account's badge shows
+            just the list. */}
+        {!pro && (
           <div className="upgrade-head">
-            <div className="upgrade-price"><strong>{PRO_PRICE.split("/")[0]}</strong><span className="muted">/month (USD)</span></div>
+            <div className="upgrade-price">{PRO_PRICE
+              ? <><strong>{PRO_PRICE.split("/")[0]}</strong><span className="muted">/month (USD)</span></>
+              : <strong>Coming Soon</strong>}</div>
           </div>
         )}
         <ul className="upgrade-benefits">
@@ -85,10 +87,9 @@ export function UpgradeModal() {
             <li key={b}><Icon name="checkCircle" size={20} className="upgrade-check" /><span>{b}</span></li>
           ))}
         </ul>
-        {/* Checkout comes later (Stripe); until then the button can't be pressed. */}
-        {!pro && (
-          <Button kind="prominent" icon="bolt" full large disabled={!PRO_PRICE} onClick={() => {}}>
-            {PRO_PRICE ? `Upgrade for ${PRO_PRICE}` : "Coming Soon"}</Button>
+        {/* No button until checkout (Stripe) is set up: there's nothing to press yet. */}
+        {!pro && PRO_PRICE && (
+          <Button kind="prominent" icon="bolt" full large onClick={() => {}}>{`Upgrade for ${PRO_PRICE}`}</Button>
         )}
       </div>
   );
