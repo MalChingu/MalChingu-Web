@@ -378,7 +378,7 @@ export function BlockedSheet({ onClose }: { onClose: () => void }) {
             ))}
           </div>
         )}
-        <p className="small muted">People you block can't find you or send you requests, and aren't told. Unblocking doesn't make you friends again.</p>
+        <p className="small muted">People you block can't find you or send you requests, and aren't told.</p>
         {error && <p className="error small" role="alert">{error}</p>}
       </div>
     </Sheet>

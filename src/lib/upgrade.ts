@@ -5,7 +5,7 @@
 /** The price, once checkout (Stripe) is set up ("$5/month"). Until then the modal says Coming Soon. */
 export const PRO_PRICE: string | null = null;
 /** What Pro adds: one line each, with a green ✓. */
-export const PRO_BENEFITS = ["Unlimited study guides", "Guides longer than a week", "Unlimited My Words", "Your own profile photo"] as const;
+export const PRO_BENEFITS = ["Unlimited Study Guides", "Unlimited Guide Timeframes", "Unlimited “My Words”", "Custom Profile Photo"] as const;
 
 /** "upgrade": the price (Coming Soon for now) and what Pro adds. "pro": a Pro account's own badge, just what Pro adds. */
 export type UpgradeMode = "upgrade" | "pro";

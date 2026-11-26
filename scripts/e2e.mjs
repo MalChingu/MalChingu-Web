@@ -701,9 +701,14 @@ try {
       && await upgrade.getByRole("button", { name: "Coming Soon" }).isDisabled(), "Upgrade to Pro says Coming Soon (no price yet, button off) and lists four things Pro adds");
     check(modalBox.y + modalBox.height <= buttonBox.y + 1, "Upgrade to Pro floats up above the button that opened it");
     const sideBox = await page.locator(".tabs").boundingBox();
+    const lines = await upgrade.locator(".upgrade-benefits li").allInnerTexts();
     check(modalBox.x >= sideBox.x && modalBox.x + modalBox.width <= sideBox.x + sideBox.width
-      && await upgrade.locator(".upgrade-check").count() === 4 && await upgrade.getByText("Free:").count() === 0,
-      "Upgrade to Pro fits inside the sidebar, with a green ✓ and the feature on each line");
+      && await upgrade.locator(".upgrade-check").count() === 4 && await upgrade.getByText("Free:").count() === 0
+      && JSON.stringify(lines) === JSON.stringify(["Unlimited Study Guides", "Unlimited Guide Timeframes", "Unlimited “My Words”", "Custom Profile Photo"])
+      && await upgrade.locator(".pro-badge").count() === 0 && await upgrade.getByText("Korimal Pro").count() === 0,
+      `Upgrade to Pro fits inside the sidebar: Coming Soon, then a ✓ and the feature per line, no badge or title (${lines.join(" | ")})`);
+    const unselectable = await page.evaluate(() => ["upgrade-modal", "tabs"].map((c) => getComputedStyle(document.querySelector(`.${c}`)).userSelect));
+    check(unselectable.every((v) => v === "none"), `the modal and the sidebar can't be selected (${unselectable})`);
     await page.screenshot({ path: "screenshots/upgrade-modal.png" });
     await page.keyboard.press("Escape");
     await upgrade.waitFor({ state: "detached" });
@@ -761,7 +766,8 @@ try {
     const [side, card] = [await page.locator(".tabs").boundingBox(), await features.boundingBox()];
     check(await features.locator(".upgrade-benefits li").count() === 4 && await features.locator(".upgrade-check").count() === 4
       && await features.getByText("Coming Soon").count() === 0 && await features.locator(".upgrade-price").count() === 0
-      && await features.getByRole("button").count() === 0 && await features.getByText("Free:").count() === 0,
+      && await features.getByRole("button").count() === 0 && await features.getByText("Free:").count() === 0
+      && await features.locator(".pro-badge").count() === 0 && await features.getByText("Korimal Pro").count() === 0,
       "pro: hovering the badge shows what Pro adds: a ✓ and the feature per line, no price, no buttons, no ✕");
     check(card.x >= side.x && card.x + card.width <= side.x + side.width, "pro: what Pro adds fits inside the sidebar");
     await page.screenshot({ path: "screenshots/pro-features.png" });
@@ -930,6 +936,8 @@ try {
     const edit = page.getByRole("dialog", { name: "Edit Profile" });
     check(await edit.getByRole("radio", { name: "Camera" }).count() === 1 && await edit.getByRole("radio", { name: "Car" }).count() === 0,
       "the pictures include Camera and not Car");
+    const [first, second] = [await edit.getByRole("radio").nth(0).boundingBox(), await edit.getByRole("radio").nth(1).boundingBox()];
+    check(second.x - first.x < 80, `the pictures sit close together on a wide screen (${Math.round(second.x - first.x)}px apart)`);
     await edit.getByRole("textbox", { name: "Your name" }).fill("Big Bitch");
     check(await edit.getByText("Choose a different name.").isVisible() && await edit.getByRole("button", { name: "Save" }).isDisabled(),
       "an offensive name is refused: a message, and Save stays off");

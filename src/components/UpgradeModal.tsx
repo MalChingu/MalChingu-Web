@@ -73,18 +73,17 @@ export function UpgradeModal() {
   const body = (
       <div ref={card} className={`upgrade-modal glass ${hover ? "hovering" : ""}`} role="dialog" aria-modal={hover ? undefined : true}
         aria-label={pro ? "Korimal Pro" : "Upgrade to Pro"} style={place}>
-        <div className="upgrade-head">
-          <span className="pro-badge"><Icon name="seal" size={16} /> Pro</span>
-          <h2>Korimal Pro</h2>
-          {!pro && (
+        {/* Free accounts: the price (Coming Soon for now). A Pro account's badge shows just the list. */}
+        {!pro && (
+          <div className="upgrade-head">
             <div className="upgrade-price">{PRO_PRICE
               ? <><strong>{PRO_PRICE.split("/")[0]}</strong><span className="muted">/month (USD)</span></>
               : <strong>Coming Soon</strong>}</div>
-          )}
-        </div>
+          </div>
+        )}
         <ul className="upgrade-benefits">
           {PRO_BENEFITS.map((b) => (
-            <li key={b}><Icon name="check" size={18} strokeWidth={3} className="upgrade-check" /><span>{b}</span></li>
+            <li key={b}><Icon name="checkCircle" size={20} className="upgrade-check" /><span>{b}</span></li>
           ))}
         </ul>
         {/* Checkout comes later (Stripe); until then the button can't be pressed. */}
