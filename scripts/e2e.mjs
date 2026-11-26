@@ -1006,6 +1006,17 @@ try {
     await page.locator(".hint-button").click();
     await page.locator(".hint").waitFor();
     check(await page.locator(".hint .glossed").count() === 1, "beginner: a flashcard hint shows the English under the words");
+    // The answer box and the hint are the same white as Today's quiz (--field), not tinted.
+    const whites = await page.evaluate(() => {
+      const field = getComputedStyle(document.documentElement).getPropertyValue("--field").trim();
+      const probe = document.createElement("span"); probe.style.background = field; document.body.append(probe);
+      const want = getComputedStyle(probe).backgroundColor; probe.remove();
+      return { want, input: getComputedStyle(document.querySelector(".flashcard-input")).backgroundColor,
+        hint: getComputedStyle(document.querySelector(".hint")).backgroundColor };
+    });
+    check(whites.input === whites.want && whites.hint === whites.want && whites.want === "rgba(255, 255, 255, 0.7)",
+      `a flashcard's answer box and hint are the field white, like Today's (${JSON.stringify(whites)})`);
+    await page.locator(".flashcard-bottom").screenshot({ path: "screenshots/flashcard-hint-white.png" });
     await page.screenshot({ path: "screenshots/flashcard-hint-glossed.png" });
     await context.close();
   }
