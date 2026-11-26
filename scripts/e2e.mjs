@@ -1027,8 +1027,22 @@ try {
       && await p1.getByRole("button", { name: "Sign in with Apple" }).isVisible() && await p1.getByRole("button", { name: "Sign in with Google" }).isVisible(),
       "/delete-account opens signed out: the app, the steps, what's deleted, an email, and sign-in to delete here");
     await p1.screenshot({ path: "screenshots/delete-account-page.png", fullPage: true });
+    // On a wider screen, Sign in with Apple and with Google sit side by side on one line.
+    await p1.setViewportSize({ width: 1280, height: 860 });
+    await p1.waitForTimeout(150);
+    const [apple, google] = [await p1.getByRole("button", { name: "Sign in with Apple" }).boundingBox(), await p1.getByRole("button", { name: "Sign in with Google" }).boundingBox()];
+    check(Math.abs(apple.y - google.y) < 1 && google.x > apple.x + apple.width, "Delete Account: the two sign-in buttons are on one line");
+    await p1.locator(".provider-row").screenshot({ path: "screenshots/delete-account-buttons.png" });
+    await p1.setViewportSize({ width: 390, height: 844 });
+    for (const page of ["privacy", "terms"]) {
+      await p1.goto(`http://localhost:4173/${page}`);
+      const top = p1.locator(".legal-bar").getByRole("link", { name: "Delete Account" });
+      check(await top.isVisible() && await top.getAttribute("href") === "/delete-account" && (await top.boundingBox()).y < 120,
+        `the ${page} page has Delete Account at the top`);
+      await p1.locator(".legal-bar").screenshot({ path: `screenshots/legal-bar-${page}.png` });
+    }
     await p1.goto("http://localhost:4173/privacy");
-    check(await p1.locator('a[href="/delete-account"]').count() >= 1, "the privacy policy links to the Delete Account page");
+    check(await p1.locator('.legal-body a[href="/delete-account"]').count() >= 1, "the privacy policy also links to it where it covers deletion");
     await out.close();
 
     // Signed in: the typed confirmation, then the delete-account function, once.

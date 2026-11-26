@@ -15,6 +15,7 @@ export function legalKind(pathname: string): LegalKind | null {
 }
 
 const TITLE: Record<LegalKind, string> = { privacy: "Privacy Policy", terms: "Terms of Service", "delete-account": "Delete Your Account" };
+const LINK: Record<LegalKind, string> = { privacy: "Privacy Policy", terms: "Terms of Service", "delete-account": "Delete Account" };
 const HEADING: Record<LegalKind, string> = {
   privacy: "Korimal Privacy Policy", terms: "Korimal Terms of Service", "delete-account": "Delete Your Korimal Account",
 };
@@ -321,7 +322,9 @@ function DeleteAccount() {
         ) : (
           <div className="stack delete-account-form">
             <p>Sign in with the account you use in Korimal, then confirm here.</p>
-            <ProviderButtons onApple={() => signIn("apple")} onGoogle={() => signIn("google")} />
+            <div className="provider-row">
+              <ProviderButtons onApple={() => signIn("apple")} onGoogle={() => signIn("google")} />
+            </div>
           </div>
         )}
         {error && <p className="error small" role="alert">{error}</p>}
@@ -344,12 +347,15 @@ function DeleteAccount() {
 /** One of the documents, with Korimal's header and footer. */
 export function Legal({ kind }: { kind: LegalKind }) {
   useEffect(() => { document.title = `Korimal | ${TITLE[kind]}`; }, [kind]);
-  const other: LegalKind = kind === "privacy" ? "terms" : "privacy";
+  // At the top: the other pages, Delete Account always among them (the link Google Play asks for).
+  const others = (["privacy", "terms", "delete-account"] as LegalKind[]).filter((k) => k !== kind);
   return (
     <div className="app-background legal">
       <header className="legal-bar">
         <span className="legal-brand"><img src="/icon-192.png" alt="" width={32} height={32} /> Korimal</span>
-        <a className="legal-switch" href={`/${other}`}>{TITLE[other]}</a>
+        <nav className="legal-links" aria-label="Korimal pages">
+          {others.map((k) => <a key={k} className="legal-switch" href={`/${k}`}>{LINK[k]}</a>)}
+        </nav>
       </header>
       <main className="glass card legal-card">
         <h1>{HEADING[kind]}</h1>

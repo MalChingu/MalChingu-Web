@@ -759,6 +759,13 @@ button.achievement { cursor: pointer; }
 .legal-brand { display: inline-flex; align-items: center; gap: 10px; font-weight: 700; font-size: 1.15rem; color: var(--text); text-decoration: none; }
 .legal-brand img { border-radius: 8px; }
 .legal-switch, .legal-footer a { color: var(--accent); text-decoration: none; font-weight: 600; }
+.legal-bar { flex-wrap: wrap; }
+.legal-links { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px 16px; font-size: 0.95rem; margin-left: auto; }
+@media (max-width: 420px) {
+  .legal-brand { font-size: 1.05rem; gap: 8px; }
+  .legal-brand img { width: 28px; height: 28px; }
+  .legal-links { font-size: 0.82rem; gap: 4px 12px; }
+}
 .legal-card { padding: 32px 24px; gap: 0; }
 .legal-card h1 { font-size: clamp(1.8rem, 6vw, 2.6rem); font-weight: 800; text-align: center; letter-spacing: -0.02em; }
 .legal-updated { text-align: center; color: var(--text-2); font-size: 0.9rem; margin: 10px 0 28px; }
@@ -771,8 +778,10 @@ button.achievement { cursor: pointer; }
 .legal-body a { color: var(--accent); text-decoration: none; font-weight: 600; }
 .legal-steps { margin: 0; padding-left: 1.4em; display: flex; flex-direction: column; gap: 6px; }
 .legal-steps li::marker { color: var(--accent); font-weight: 700; }
-.delete-account-form { max-width: 420px; }
-.delete-account-form .apple-button, .delete-account-form .google-button { width: 100%; }
+.delete-account-form { max-width: 560px; }
+/* Apple and Google side by side, stacking only on a phone too narrow for both. */
+.provider-row { display: flex; flex-wrap: wrap; gap: 12px; }
+.provider-row .apple-button, .provider-row .google-button { flex: 1 1 220px; width: auto; height: 48px; font-size: 1rem; white-space: nowrap; }
 .legal-footer { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 18px; color: var(--text-2); font-size: 0.9rem; }
 /* The © in the copyright quietly links to rezpoint.xyz: same colour, no underline, no pointer, nothing on hover. */
 a.easter-egg, a.easter-egg:hover, .legal-footer a.easter-egg, .legal-footer a.easter-egg:hover {
