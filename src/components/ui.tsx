@@ -222,19 +222,22 @@ export function useSwipe(previous: () => void, next: () => void) {
   };
 }
 
-/** Whether the window is desktop-wide (the sidebar layout, 900 px and up). Follows resizes. */
-export function useWide(): boolean {
-  const query = "(min-width: 900px)";
-  const [wide, setWide] = useState(() => typeof window.matchMedia === "function" && window.matchMedia(query).matches);
+/** Whether a media query matches now. Follows resizes. */
+export function useMediaQuery(query: string): boolean {
+  const [matches, setMatches] = useState(() => typeof window.matchMedia === "function" && window.matchMedia(query).matches);
   useEffect(() => {
     if (typeof window.matchMedia !== "function") return;
     const media = window.matchMedia(query);
-    const onChange = () => setWide(media.matches);
+    const onChange = () => setMatches(media.matches);
+    onChange();
     media.addEventListener("change", onChange);
     return () => media.removeEventListener("change", onChange);
-  }, []);
-  return wide;
+  }, [query]);
+  return matches;
 }
+
+/** Whether the window is desktop-wide (the sidebar layout, 900 px and up). Follows resizes. */
+export const useWide = (): boolean => useMediaQuery("(min-width: 900px)");
 
 /** A small window floating above the bottom-right button, with the same header as a sheet. It doesn't block the
  *  page: you can still scroll, click and select behind it. Escape closes it while you're in it. */

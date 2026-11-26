@@ -445,6 +445,39 @@ try {
     await page.getByRole("radio", { name: "Settings", exact: true }).click();
     await page.getByText("Claude Connector", { exact: true }).waitFor();
     check(await page.getByRole("button", { name: "Create a New Link" }).count() === 0, `${label}: no way to replace an active link`);
+    // Word of the Day: no note under it, and Show Word In is a select on a phone ("Romanization" doesn't fit a third of
+    // the card) and the segmented control on a wide screen.
+    check(await page.getByText("Everyone gets the same built-in word each day.").count() === 0, `${label}: Word of the Day has no note under it`);
+    if (label === "phone") {
+      const showIn = page.getByLabel("Show Word In");
+      check(await showIn.evaluate((el) => el.tagName) === "SELECT" && await page.getByRole("radiogroup", { name: "Show Word In" }).count() === 0,
+        "phone: Show Word In is a select");
+      await showIn.selectOption("romanization");
+      for (let i = 0; i < 30 && db.profiles[0]?.display !== "romanization"; i++) await page.waitForTimeout(100);
+      check(db.profiles[0]?.display === "romanization" && await showIn.inputValue() === "romanization", `phone: choosing Romanization saves it (${db.profiles[0]?.display})`);
+      await showIn.selectOption("both");
+      for (let i = 0; i < 30 && db.profiles[0]?.display !== "both"; i++) await page.waitForTimeout(100);
+      // A 320px phone: the label stays on one line, with the select beside it or, if there isn't room, under it.
+      await page.setViewportSize({ width: 320, height: 640 });
+      await showIn.selectOption("romanization");
+      // The chosen text plus the select's padding (its arrow sits in the right padding) fits in the select's width.
+      const fits = await showIn.evaluate((el) => {
+        const st = getComputedStyle(el);
+        const ctx = document.createElement("canvas").getContext("2d");
+        ctx.font = `${st.fontWeight} ${st.fontSize} ${st.fontFamily}`;
+        const need = ctx.measureText(el.selectedOptions[0].text).width + parseFloat(st.paddingLeft) + parseFloat(st.paddingRight);
+        return el.clientWidth + 0.5 >= need && el.getBoundingClientRect().right <= window.innerWidth
+          && el.previousElementSibling.getBoundingClientRect().height < 30;
+      });
+      check(fits, "phone: on a 320px phone Show Word In stays on one line and the select fits");
+      await page.locator(".show-word-in").screenshot({ path: "screenshots/show-word-in-320.png" });
+      await showIn.selectOption("both");
+      await page.setViewportSize(viewport);
+      await page.locator(".show-word-in").screenshot({ path: "screenshots/show-word-in-390.png" });
+    } else {
+      check(await page.getByRole("radiogroup", { name: "Show Word In" }).getByRole("radio", { name: "Romanization" }).isVisible()
+        && await page.locator("select").count() === 0, "desktop: Show Word In is the segmented control");
+    }
     check(errors.length === 0, `${label}: no page errors${errors.length ? ": " + errors.join("; ") : ""}`);
     await page.waitForLoadState("networkidle");   // let the last saves finish before closing
     await context.close();

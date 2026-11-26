@@ -8,13 +8,15 @@ import { Icon } from "../components/Icon";
 import { BlockedSheet, FriendsCard } from "../components/Friends";
 import { AvatarImage, AvatarPicker } from "../components/Avatar";
 import { PlanCard } from "../components/Plan";
-import { Button, Card, ConfirmDialog, Logo, Page, RoundButton, SectionTitle, Segmented, Sheet, copyText } from "../components/ui";
+import { Button, Card, ConfirmDialog, Logo, Page, RoundButton, SectionTitle, Segmented, Sheet, copyText, useMediaQuery } from "../components/ui";
 import { initials } from "../lib/settings";
 import { NAME_REFUSED, nameAllowed } from "../core/names";
 import { speak, useKoreanVoice } from "../lib/speech";
 import { useStore } from "../lib/store";
 
 /** The policy pages (on this site) and RezPoint's. */
+const DISPLAY_MODES: DisplayMode[] = ["korean", "romanization", "both"];
+
 const LINKS = {
   privacy: "/privacy",
   terms: "/terms",
@@ -32,6 +34,8 @@ export function Profile() {
   // About (you, the app, Sign Out) or Settings (the app's and the account's settings).
   const [part, setPart] = useState<"about" | "settings">("about");
   const voice = useKoreanVoice();
+  // A phone is too narrow for "Romanization" in a third of the card: Show Word In is a select there.
+  const narrow = useMediaQuery("(max-width: 479px)");
 
 
   const run = async (action: () => Promise<void>) => { setWorking(true); setCopied(false); await action(); setWorking(false); };
@@ -136,10 +140,19 @@ export function Profile() {
         <>
         <Card>
           <SectionTitle>Word of the Day</SectionTitle>
-          <div className="small muted">Show Word In</div>
-          <Segmented label="Show Word In" value={settings.display} onChange={(display) => store.updateSettings({ display })}
-            options={(["korean", "romanization", "both"] as DisplayMode[]).map((m) => ({ value: m, label: displayLabel[m] }))} />
-          <p className="small muted">Everyone gets the same built-in word each day.</p>
+          {narrow ? (
+            <label className="form-row show-word-in"><span>Show Word In</span>
+              <select value={settings.display} onChange={(e) => store.updateSettings({ display: e.target.value as DisplayMode })}>
+                {DISPLAY_MODES.map((m) => <option key={m} value={m}>{displayLabel[m]}</option>)}
+              </select>
+            </label>
+          ) : (
+            <>
+              <div className="small muted">Show Word In</div>
+              <Segmented label="Show Word In" value={settings.display} onChange={(display) => store.updateSettings({ display })}
+                options={DISPLAY_MODES.map((m) => ({ value: m, label: displayLabel[m] }))} />
+            </>
+          )}
         </Card>
 
         <Card>

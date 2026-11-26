@@ -351,6 +351,10 @@ progress::-moz-progress-bar { background: var(--accent-fill); }
 .form-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; }
 .form-row input[type="date"] { border: 0; border-radius: 10px; padding: 6px 10px; background: var(--field); color: var(--text); }
 .form-row select { max-width: 60%; }
+/* Profile → Show Word In on a phone: the label stays on one line; on the narrowest phones the select goes under it. */
+.show-word-in { flex-wrap: wrap; row-gap: 6px; }
+.show-word-in select { max-width: 100%; }
+.show-word-in > span { white-space: nowrap; }
 /* Every select in the app, now and later: the arrow sits as far in from the right edge as the text is from the left
    (--select-pad). Don't restyle a select's arrow on its own; change it here (see CLAUDE.md). */
 select {
