@@ -178,12 +178,22 @@ try {
     const page = await context.newPage();
     const errors = [];
     page.on("pageerror", (e) => errors.push(e.message));
+    // Until onboarding shows, the app itself (its tabs, Today) never flashes up first.
+    if (label === "phone") {
+      await page.addInitScript(() => {
+        window.__sawApp = false;
+        new MutationObserver(() => {
+          if (!document.querySelector('[role="dialog"][aria-label="Set Up Your Profile"]') && document.querySelector(".tabs, .today-head, .page-header")) window.__sawApp = true;
+        }).observe(document, { childList: true, subtree: true });
+      });
+    }
     await page.goto("http://localhost:4173/#today");
 
     if (label === "phone") {
       // First sign-in: name, then a username (for good), then a picture; then a tour of the four pages.
       const setup = page.getByRole("dialog", { name: "Set Up Your Profile" });
       await setup.waitFor({ timeout: 15000 });
+      check(await page.evaluate(() => window.__sawApp) === false, "a new account goes straight to setting up, without the app showing first");
       check(await setup.getByLabel("Your name").inputValue() === "Test Learner", "onboarding starts with the name filled in");
       await setup.getByRole("button", { name: "Continue" }).click();
       await setup.getByText("Available").waitFor();
@@ -634,8 +644,9 @@ try {
     }
     slow = true;
     await page.reload();
-    await page.getByRole("heading", { name: "Profile" }).waitFor();
-    check(await page.locator(".loading-dots").isVisible(), "Profile also waits with dots while loading");
+    await page.locator(".loading-dots").waitFor({ timeout: 5000 });
+    check(await page.locator(".loading-dots").isVisible() && await page.locator(".profile-name").count() === 0,
+      "Profile also waits with dots while loading");
     await page.locator(".profile-name").waitFor({ timeout: 10000 });
     await context.close();
   }

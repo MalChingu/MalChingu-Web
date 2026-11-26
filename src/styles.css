@@ -73,6 +73,8 @@ button:disabled { cursor: default; opacity: 0.45; }
 /* The wash stays put while the page scrolls (a fixed layer, since iOS Safari ignores background-attachment: fixed). */
 .app-background::before { content: ""; position: fixed; inset: 0; z-index: -1; background: var(--wash), var(--base); }
 .loading-screen { min-height: calc(100dvh / var(--zoom, 1)); }
+/* Signed in, waiting to know whether the account still needs setting up: just the dots, in the middle. */
+.loading-screen.checking-setup { display: grid; place-items: center; padding: 24px; }
 
 .glass {
   background: var(--glass);

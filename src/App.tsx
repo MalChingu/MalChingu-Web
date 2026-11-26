@@ -3,7 +3,7 @@ import { nextZoom, useCompact, useZoom } from "./lib/zoom";
 import { isNewNoteShortcut, requestNewNote, shortcutBlocked } from "./lib/newNote";
 import type { Word } from "./core/models";
 import { Icon, type IconName } from "./components/Icon";
-import { Logo, RoundButton } from "./components/ui";
+import { LoadingDots, Logo, RoundButton } from "./components/ui";
 import { useStore } from "./lib/store";
 import { Flashcards, Round, type PracticeMode } from "./pages/Flashcards";
 import { Guides } from "./pages/Guides";
@@ -103,6 +103,11 @@ export function App() {
 
   if (!store.ready) return <div className="app-background loading-screen" aria-busy="true" />;
   if (!store.session) return <div className="app-background"><SignIn /></div>;
+  // Signed in, but whether the account still needs setting up isn't known yet (or it does, and its data is still on its
+  // way): wait here instead of showing the app for a moment first. A check that fails (offline) falls back to the app.
+  if ((store.username === undefined && !store.friendsLoaded) || (store.username === null && !store.loaded)) {
+    return <div className="app-background loading-screen checking-setup" aria-busy="true"><LoadingDots /></div>;
+  }
   // First sign-in: name, username and picture before anything else.
   if (store.loaded && store.username === null) {
     return <Onboarding onDone={() => { setTouring(true); go("today"); }} />;
