@@ -615,9 +615,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [loadFriends]);
 
   const requestFriend = useCallback(async (typed: string): Promise<{ error: string } | { result: "sent" | "friends" }> => {
-    const byEmail = looksLikeEmail(typed);
-    const { data: result, error } = await supabase.rpc("request_friend",
-      byEmail ? { p_email: typed.trim().toLowerCase() } : { p_username: normalizeUsername(typed) });
+    // Friends are added by username only.
+    if (looksLikeEmail(typed)) return { error: "Add friends by their username." };
+    const { data: result, error } = await supabase.rpc("request_friend", { p_username: normalizeUsername(typed) });
     await loadFriends();
     return error ? { error: error.message } : { result: result === "friends" ? "friends" : "sent" };
   }, [loadFriends]);

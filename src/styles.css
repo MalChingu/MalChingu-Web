@@ -814,8 +814,11 @@ a.easter-egg, a.easter-egg:hover, .legal-footer a.easter-egg, .legal-footer a.ea
 .friend-count { position: absolute; top: -3px; right: -5px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 999px;
   background: var(--red-fill); color: #fff; font-size: 0.72rem; font-weight: 800; line-height: 16px; text-align: center;
   border: 2px solid var(--base); }
-.request-row { width: 100%; gap: 12px; padding: 8px 0; border: 0; background: none; font: inherit; color: inherit; text-align: left; cursor: pointer; }
-.request-row:hover .strong { color: var(--accent); }
+.request-row { width: 100%; gap: 12px; padding: 8px 0; cursor: pointer; }
+.request-open { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; border: 0; background: none; padding: 0;
+  font: inherit; color: inherit; text-align: left; cursor: pointer; }
+.request-row:hover .request-open .strong { color: var(--accent); }
+.request-quick { display: inline-flex; flex: none; }
 .friend-dot { position: absolute; top: 0; right: 0; width: 13px; height: 13px; border-radius: 50%; background: var(--red-fill); border: 2px solid var(--base); }
 .friend-caption { font-size: 0.75rem; max-width: 60px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-2); }
 .person-picture { border-radius: 50%; object-fit: cover; flex: none; display: inline-flex; align-items: center; justify-content: center; }

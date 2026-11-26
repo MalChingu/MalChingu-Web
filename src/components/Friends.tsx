@@ -11,16 +11,16 @@ import { Icon } from "./Icon";
 import { Button, Card, ConfirmDialog, RoundButton, SectionTitle, Sheet } from "./ui";
 
 // Profile → About → Friends: a row of friends' pictures, then Friend Requests (with a count of requests to you) and +;
-// a page for each friend or request (Accept, Challenge Friend, Remove Friend), adding by username or email, and
-// choosing a username.
+// a page for each friend or request (Accept, Challenge Friend, Remove Friend), adding by username, and choosing a
+// username.
 
-/** A round picture, or initials on the app's gradient; an envelope for a request sent to an email. */
-export function PersonPicture({ avatar, name, size, mail }: { avatar: string | null; name: string; size: number; mail?: boolean }) {
+/** A round picture, or initials on the app's gradient. */
+export function PersonPicture({ avatar, name, size }: { avatar: string | null; name: string; size: number }) {
   if (avatar) return <AvatarImage className="person-picture" avatar={avatar} size={size} />;
   const letters = initials(name.replace(/^@/, ""));
   return (
     <span className="person-picture placeholder" style={{ width: size, height: size, fontSize: size * 0.36 }} aria-hidden="true">
-      {mail ? <Icon name="mail" size={size * 0.42} /> : letters || <Icon name="person" size={size * 0.42} />}
+      {letters || <Icon name="person" size={size * 0.42} />}
     </span>
   );
 }
@@ -82,8 +82,19 @@ export function FriendsCard() {
   );
 }
 
-/** Friend Requests: requests to you, then the ones you sent. Each opens its page (Accept or Decline, Cancel Request). */
+/** Friend Requests: requests to you, then the ones you sent. Each row has ✓ (accept) or ✕ (cancel) beside its arrow;
+ *  the rest of the row opens its page (Accept or Decline, Cancel Request). */
 function RequestsSheet({ requests, onClose, onOpen }: { requests: FriendRow[]; onClose: () => void; onOpen: (id: string) => void }) {
+  const store = useStore();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const act = async (action: () => Promise<string | null>) => {
+    setBusy(true);
+    setError(null);
+    const failed = await action();
+    setBusy(false);
+    if (failed) setError(failed);
+  };
   const groups = [
     { title: "Incoming", rows: requests.filter((f) => f.direction === "incoming") },
     { title: "Sent", rows: requests.filter((f) => f.direction === "outgoing") },
@@ -96,19 +107,33 @@ function RequestsSheet({ requests, onClose, onOpen }: { requests: FriendRow[]; o
         <section key={g.title} className="stack" aria-label={g.title}>
           <SectionTitle>{g.title}</SectionTitle>
           <div className="divided">
-            {g.rows.map((f) => (
-              <button key={f.id} type="button" className="row request-row" onClick={() => onOpen(f.id)}>
-                <PersonPicture avatar={f.avatar} name={f.name || f.username || ""} size={44} mail={!f.user_id} />
-                <span className="grow stack tiny-gap">
-                  <span className="strong">{friendLabel(f)}</span>
-                  {f.name && (f.username || f.email) && <span className="small muted">{f.username ? `@${f.username}` : f.email}</span>}
-                </span>
-                <Icon name="chevron" size={18} className="muted" />
-              </button>
-            ))}
+            {g.rows.map((f) => {
+              const incoming = f.direction === "incoming";
+              return (
+                <div key={f.id} className="row request-row" onClick={() => onOpen(f.id)}>
+                  <button type="button" className="request-open">
+                    <PersonPicture avatar={f.avatar} name={f.name || f.username || ""} size={44} />
+                    <span className="grow stack tiny-gap">
+                      <span className="strong">{friendLabel(f)}</span>
+                      {f.name && f.username && <span className="small muted">@{f.username}</span>}
+                    </span>
+                  </button>
+                  {/* Quick: accept or cancel without opening the page. */}
+                  <span className="request-quick" onClick={(e) => e.stopPropagation()}>
+                    {incoming
+                      ? <RoundButton icon="check" tint="green" size={36} label={`Accept ${friendLabel(f)}`} disabled={busy}
+                          onClick={() => act(() => store.acceptFriend(f.id))} />
+                      : <RoundButton icon="x" tint="red" size={36} label={`Cancel Request to ${friendLabel(f)}`} disabled={busy}
+                          onClick={() => act(() => store.removeFriend(f.id))} />}
+                  </span>
+                  <Icon name="chevron" size={18} className="muted" />
+                </div>
+              );
+            })}
           </div>
         </section>
       ))}
+      {error && <p className="error small" role="alert">{error}</p>}
     </Sheet>
   );
 }
@@ -145,10 +170,9 @@ function FriendSheet({ friend, onClose }: { friend: FriendRow; onClose: () => vo
   return (
     <Sheet title={incoming ? "Incoming Friend Request" : sent ? "Sent Friend Request" : label} onClose={onClose}>
       <div className="center stack friend-page">
-        <PersonPicture avatar={friend.avatar} name={friend.name || friend.username || ""} size={96} mail={!friend.user_id} />
+        <PersonPicture avatar={friend.avatar} name={friend.name || friend.username || ""} size={96} />
         {friend.name && <div className="friend-page-name">{friend.name}</div>}
         {friend.username && <div className="muted">@{friend.username}</div>}
-        {!friend.username && friend.email && <div className="muted">{friend.email}</div>}
         {friend.level && <LevelTag level={friend.level} />}
       </div>
 
@@ -164,11 +188,6 @@ function FriendSheet({ friend, onClose }: { friend: FriendRow; onClose: () => vo
 
       {sent && (
         <div className="stack">
-          <p className="center muted">
-            {friend.user_id
-              ? `Request sent. ${first} can accept it in Profile.`
-              : `Request sent. It reaches them if they sign up for Korimal with this email by ${inviteExpiry(friend.created_at)}.`}
-          </p>
           <Button kind="danger" icon="x" full disabled={busy} onClick={() => run(() => store.removeFriend(friend.id)).then((ok) => ok && onClose())}>
             Cancel Request
           </Button>
@@ -230,10 +249,6 @@ function FriendSheet({ friend, onClose }: { friend: FriendRow; onClose: () => vo
     </Sheet>
   );
 }
-
-/** An invite to an email with no account lasts 7 days: the date it ends, like "Dec 2". */
-const inviteExpiry = (createdAt: string) =>
-  new Date(new Date(createdAt).getTime() + 7 * 86_400_000).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 
 /** "82% (41/50)", or "no answers yet". */
 const weekScore = (correct: number, total: number) => {
@@ -300,7 +315,8 @@ function ChallengeLine({ challenge: c, first, busy, run }: {
   );
 }
 
-/** + : a username or an email. Usernames search as you type (picture, @username and level); an email gets Send Request. */
+/** + : a username, searched as you type (picture, @username and level). Friends are added by username only; an email
+ *  gets a note saying so. */
 function AddFriendSheet({ onClose }: { onClose: () => void }) {
   const store = useStore();
   const [text, setText] = useState("");
@@ -338,10 +354,7 @@ function AddFriendSheet({ onClose }: { onClose: () => void }) {
     if ("error" in outcome) { setMessage({ text: outcome.error, good: false }); return; }
     setMessage(outcome.result === "friends"
       ? { text: `You're now friends with ${shown}.`, good: true }
-      : email
-        ? { text: `Request sent to ${shown}. If they don't use Korimal yet, it reaches them if they sign up with that email within 7 days.`, good: true }
-        : { text: `Request sent to ${shown}.`, good: true });
-    if (email) setText("");
+      : { text: `Request sent to ${shown}.`, good: true });
   };
 
   const relation = (userID: string) => store.friends.find((f) => f.user_id === userID);
@@ -349,23 +362,22 @@ function AddFriendSheet({ onClose }: { onClose: () => void }) {
   return (
     <Sheet title="Add Friend" onClose={onClose}>
       <div className="stack">
-        <input className="text-input sheet-input" value={text} placeholder="Username or email" aria-label="Username or email" autoFocus
-          autoCapitalize="off" autoCorrect="off" spellCheck={false} inputMode="email" enterKeyHint={email ? "send" : "search"}
+        <input className="text-input sheet-input" value={text} placeholder="Username" aria-label="Username" autoFocus
+          autoCapitalize="off" autoCorrect="off" spellCheck={false} enterKeyHint="search"
           onChange={(e) => { setText(e.target.value); setMessage(null); }}
           onKeyDown={(e) => {
             if (e.key !== "Enter") return;
             e.preventDefault();
-            if (email) send(query, query);
-            else if (results?.some((r) => r.username === handle) && !relation(results.find((r) => r.username === handle)!.user_id)) send(handle, `@${handle}`);
+            if (!email && results?.some((r) => r.username === handle) && !relation(results.find((r) => r.username === handle)!.user_id)) send(handle, `@${handle}`);
           }} />
         {email ? (
-          <Button kind="prominent" icon="mail" full disabled={busy} onClick={() => send(query, query)}>Send Request</Button>
+          <p className="small muted">Add friends by their username.</p>
         ) : handle.length < 2 ? (
-          <p className="small muted">Search by username, or enter your friend's email.</p>
+          <p className="small muted">Search by your friend's username.</p>
         ) : searching && !results ? (
           <p className="small muted">Searching…</p>
         ) : results && results.length === 0 ? (
-          <p className="small muted">No one has a username starting with “{handle}”. You can also add them by email.</p>
+          <p className="small muted">No one has a username starting with “{handle}”.</p>
         ) : results && (
           <div className="divided search-results">
             {results.map((r) => {

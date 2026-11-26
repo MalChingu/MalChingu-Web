@@ -22,7 +22,7 @@ const HEADING: Record<LegalKind, string> = {
 /** Signing in from the Delete Account page comes back to it (see main.tsx, if sign-in lands on the home page). */
 export const AFTER_SIGN_IN_KEY = "korimal.afterSignIn";
 const DELETE_PHRASE = "delete my account";
-const UPDATED = "Nov 25, 2026";
+const UPDATED = "Nov 26, 2026";
 const CONTACT = "atinderpaulk@rezpoint.xyz";
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
@@ -57,7 +57,7 @@ function Privacy() {
           <li>Your plan: whether your account is free or Korimal Pro.</li>
           <li>Your study data: the words you add, your progress on each word, quiz and flashcard answers, daily study totals and streaks, the word of the day quiz, study guides and their tasks, your notes and the translations you save.</li>
           <li>Your settings, such as your flashcard setup and notification times.</li>
-          <li>Your friends: the friend requests you send and receive (including an email address you type to invite someone), your friendships, the people you block, and the challenges you play with friends and their results.</li>
+          <li>Your friends: the friend requests you send and receive, your friendships, the people you block, and the challenges you play with friends and their results.</li>
         </ul>
         <p>Korimal does not request your contacts, location or phone number, and does not use advertising trackers.</p>
       </Section>
@@ -66,7 +66,7 @@ function Privacy() {
         <ul>
           <li>Anyone signed in to Korimal can search for your username and see it with your profile picture and level. They cannot see your name or email address this way.</li>
           <li>Your friends, and people you send a friend request to, also see your display name.</li>
-          <li>Nobody is shown your email address. When you add someone by email, Korimal does not say whether that address has an account. If it doesn't yet, the request waits for 7 days and reaches that person only if they sign up with that email in that time; after 7 days the request and the email address are deleted.</li>
+          <li>Nobody is shown your email address. Friends are added by username only.</li>
           <li>In a Flashcard Duel, you and your friend see each other's score once you have both played. In a 7-Day Challenge, you each see how many answers the other got right, and how many they answered, during those 7 days. Friends do not see your words, notes, guides or other study data.</li>
         </ul>
         <ul>
@@ -126,7 +126,7 @@ function Privacy() {
         </p>
       </Section>
       <Section title="Data Retention and Deletion">
-        <p>We keep your data while your account exists. You can delete your words, study guides and notes in the app at any time. Friend requests to an email address with no Korimal account are deleted after 7 days.</p>
+        <p>We keep your data while your account exists. You can delete your words, study guides and notes in the app at any time.</p>
         <p>
           To delete your account and all of its data, open Profile, then Settings, then Delete Account in any Korimal app
           or on the web, or go to <a href="/delete-account">korimal.com/delete-account</a>. This removes your account,

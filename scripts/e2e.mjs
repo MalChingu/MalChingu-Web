@@ -983,18 +983,18 @@ try {
   }
 
   // Friend requests: the row holds friends only; Friend Requests (beside +) counts requests to you and lists them with
-  // the ones you sent; a request's page is "Incoming Friend Request", with no name in the title and no "wants to be
-  // your friend" line.
+  // the ones you sent, each with ✓ (accept) or ✕ (cancel) beside its arrow; the rest of a row opens its page
+  // ("Incoming Friend Request" / "Sent Friend Request", with no name in the title and no extra line). Friends are
+  // added by username only.
   {
+    const person = (n, id, direction, status, username, name, avatar) => ({ id: `99999999-9999-4999-8999-99999999998${n}`, user_id: id,
+      direction, status, username, name, avatar, level: "beginner", email: null, created_at: stamp });
     const requestsFixture = [
-      { id: "99999999-9999-4999-8999-999999999980", user_id: FRIEND, direction: "outgoing", status: "accepted", username: "minji",
-        name: "Minji", avatar: "Rocket", level: "beginner", email: null, created_at: stamp },
-      { id: "99999999-9999-4999-8999-999999999981", user_id: "99999999-9999-4999-8999-999999999992", direction: "incoming", status: "pending",
-        username: "lightspeed", name: "LightSpeed", avatar: "Bolt", level: "beginner", email: null, created_at: stamp },
-      { id: "99999999-9999-4999-8999-999999999982", user_id: "99999999-9999-4999-8999-999999999993", direction: "outgoing", status: "pending",
-        username: "hana", name: "Hana", avatar: "Coffee", level: "intermediate", email: null, created_at: stamp },
-      { id: "99999999-9999-4999-8999-999999999983", user_id: null, direction: "outgoing", status: "pending",
-        username: null, name: null, avatar: null, level: null, email: "pal@example.com", created_at: stamp },
+      person(0, FRIEND, "outgoing", "accepted", "minji", "Minji", "Rocket"),
+      person(1, "99999999-9999-4999-8999-999999999992", "incoming", "pending", "lightspeed", "LightSpeed", "Bolt"),
+      person(2, "99999999-9999-4999-8999-999999999994", "incoming", "pending", "sora", "Sora", "Astro"),
+      person(3, "99999999-9999-4999-8999-999999999993", "outgoing", "pending", "hana", "Hana", "Coffee"),
+      person(4, "99999999-9999-4999-8999-999999999995", "outgoing", "pending", "jun", "Jun", "Game"),
     ];
     for (const viewport of [{ width: 390, height: 844 }, { width: 1280, height: 860 }]) {
       FRIENDS = requestsFixture.map((f) => ({ ...f }));
@@ -1011,41 +1011,70 @@ try {
       const row = await page.locator(".friends-scroll .friend").evaluateAll((els) => els.map((el) => el.getAttribute("aria-label")));
       check(row.length === 1 && row[0] === "Minji", `${size}: the friends row holds friends only (${row.join(", ")})`);
       const [requestsBox, addBox] = [await requestsButton.boundingBox(), await page.getByRole("button", { name: "Add Friend" }).boundingBox()];
-      check(await requestsButton.getAttribute("aria-label") === "Friend Requests, 1 new" && (await requestsButton.innerText()).trim() === "1"
+      check(await requestsButton.getAttribute("aria-label") === "Friend Requests, 2 new" && (await requestsButton.innerText()).trim() === "2"
         && Math.abs(requestsBox.y - addBox.y) < 1 && requestsBox.x < addBox.x && addBox.x - (requestsBox.x + requestsBox.width) < 20,
-        `${size}: Friend Requests sits just left of +, with 1 for the request to you`);
+        `${size}: Friend Requests sits just left of +, with 2 for the requests to you`);
       await page.locator(".friends-row").screenshot({ path: `screenshots/friends-row-${size}.png` });
       if (!phone) { await context.close(); continue; }
       await requestsButton.click();
       const list = page.getByRole("dialog", { name: "Friend Requests" });
       await list.waitFor();
-      const incoming = await list.getByRole("region", { name: "Incoming" }).getByRole("button").allInnerTexts();
-      const sent = await list.getByRole("region", { name: "Sent" }).getByRole("button").allInnerTexts();
-      check(incoming.length === 1 && incoming[0].includes("LightSpeed") && sent.length === 2 && sent[0].includes("Hana")
-        && sent[1].includes("pal@example.com"), `Friend Requests lists the request to you, then the two you sent (${incoming} | ${sent})`);
-      await page.waitForTimeout(450);
+      const names = (group) => list.getByRole("region", { name: group }).locator(".request-open").allInnerTexts();
+      const [incoming, sent] = [await names("Incoming"), await names("Sent")];
+      check(incoming.length === 2 && incoming[0].includes("LightSpeed") && sent.length === 2 && sent[0].includes("Hana"),
+        `Friend Requests lists the requests to you, then the ones you sent (${incoming} | ${sent})`);
+      check(await list.getByRole("button", { name: "Accept LightSpeed" }).isVisible() && await list.getByRole("button", { name: "Cancel Request to Hana" }).isVisible()
+        && await list.getByRole("button", { name: /^Cancel Request to LightSpeed|^Accept Hana/ }).count() === 0,
+        "each request to you has ✓ beside its arrow, each one you sent has ✕");
+      await page.waitForTimeout(450);   // the sheet has finished sliding up
+      const [quick, arrow] = [await list.getByRole("button", { name: "Accept LightSpeed" }).boundingBox(),
+        await list.locator(".request-row", { hasText: "LightSpeed" }).locator("svg").last().boundingBox()];
+      check(quick.x + quick.width <= arrow.x && arrow.x - (quick.x + quick.width) < 24 && Math.abs((quick.y + quick.height / 2) - (arrow.y + arrow.height / 2)) < 2,
+        `✓ sits just left of the arrow (${JSON.stringify([quick, arrow])})`);
       await page.screenshot({ path: "screenshots/friend-requests.png" });
-      await list.getByRole("button", { name: /LightSpeed/ }).click();
+      // ✓ accepts and ✕ cancels straight from the list, which stays open.
+      await list.getByRole("button", { name: "Accept Sora" }).click();
+      await list.locator(".request-open", { hasText: "Sora" }).waitFor({ state: "detached" });
+      check(FRIENDS.find((f) => f.username === "sora")?.status === "accepted" && await list.isVisible()
+        && await page.getByRole("dialog", { name: "Incoming Friend Request" }).count() === 0, "✓ accepts right there, without opening the request");
+      await list.getByRole("button", { name: "Cancel Request to Jun" }).click();
+      await list.locator(".request-open", { hasText: "Jun" }).waitFor({ state: "detached" });
+      check(!FRIENDS.some((f) => f.username === "jun") && await list.isVisible(), "✕ cancels a request you sent right there");
+      // The rest of the row (here its arrow) opens the request.
+      await list.locator(".request-row", { hasText: "LightSpeed" }).locator("svg").last().click();
       const request = page.getByRole("dialog", { name: "Incoming Friend Request" });
       await request.waitFor();
-      check(await list.count() === 0, "opening a request closes the list");
+      check(await list.count() === 0, "tapping the row (its arrow) opens the request and closes the list");
       check(await request.getByText("LightSpeed", { exact: true }).isVisible() && await request.getByText("@lightspeed").isVisible()
         && await request.getByText(/wants to be your friend/).count() === 0
         && await request.getByRole("heading", { name: "LightSpeed" }).count() === 0,
         "the request's page is titled Incoming Friend Request: the name under the picture, no 'wants to be your friend'");
       await page.waitForTimeout(450);
       await page.screenshot({ path: "screenshots/incoming-friend-request.png" });
-      await request.getByRole("button", { name: "Accept" }).click();
+      await request.getByRole("button", { name: "Accept", exact: true }).click();
       await page.getByRole("dialog", { name: "LightSpeed" }).waitFor();
       check(FRIENDS.find((f) => f.username === "lightspeed")?.status === "accepted", "Accept makes them a friend (the page becomes theirs)");
       await page.keyboard.press("Escape");
-      await page.locator(".friends-scroll .friend").nth(1).waitFor();
+      await page.locator(".friends-scroll .friend").nth(2).waitFor();
       check(await requestsButton.getAttribute("aria-label") === "Friend Requests" && await page.locator(".friend-count").count() === 0,
         "with no requests to you, Friend Requests has no count");
       await requestsButton.click();
-      await page.getByRole("dialog", { name: "Friend Requests" }).getByRole("button", { name: /Hana/ }).click();
-      await page.getByRole("dialog", { name: "Sent Friend Request" }).waitFor();
-      check(true, "a request you sent opens as Sent Friend Request");
+      await page.getByRole("dialog", { name: "Friend Requests" }).locator(".request-open", { hasText: "Hana" }).click();
+      const sentCard = page.getByRole("dialog", { name: "Sent Friend Request" });
+      await sentCard.waitFor();
+      check(await sentCard.getByText(/Request sent/).count() === 0 && await sentCard.getByRole("button", { name: "Cancel Request" }).isVisible(),
+        "a request you sent opens as Sent Friend Request: no 'Request sent' line, just Cancel Request");
+      await page.waitForTimeout(450);
+      await page.screenshot({ path: "screenshots/sent-friend-request.png" });
+      await page.keyboard.press("Escape");
+      await sentCard.waitFor({ state: "detached" });
+      // Add Friend: usernames only.
+      await page.getByRole("button", { name: "Add Friend" }).click();
+      const add = page.getByRole("dialog", { name: "Add Friend" });
+      const field = add.getByRole("textbox", { name: "Username" });
+      await field.fill("pal@example.com");
+      check(await field.getAttribute("placeholder") === "Username" && await add.getByText("Add friends by their username.").isVisible()
+        && await add.getByRole("button", { name: /Send Request/ }).count() === 0, "Add Friend takes a username only: an email gets a note, no Send Request");
       await context.close();
     }
   }
@@ -1176,6 +1205,9 @@ try {
     }
     await p1.goto("http://localhost:4173/privacy");
     check(await p1.locator('.legal-body a[href="/delete-account"]').count() >= 1, "the privacy policy also links to it where it covers deletion");
+    const policy = await p1.locator(".legal-body").innerText();
+    check(!/invite|add someone by email|email address with no/i.test(policy) && policy.includes("Friends are added by username only."),
+      "the privacy policy no longer mentions email invites");
     await out.close();
 
     // Signed in: the typed confirmation, then the delete-account function, once.
