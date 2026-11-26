@@ -94,7 +94,7 @@ export function QuizResult({ session }: { session: QuizSession }) {
           {said && (
             <span key={said.n} className={`say-mark ${said.right ? "right" : "wrong"}`} role="status"
               aria-label={said.right ? "You said it right" : "Not quite. Try again"}>
-              <Icon name={said.right ? "check" : "x"} size={16} strokeWidth={3} />
+              <Icon name={said.right ? "checkCircle" : "xCircle"} size={20} />
             </span>
           )}
         </span>

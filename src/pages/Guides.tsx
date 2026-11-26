@@ -11,7 +11,7 @@ import { overviewPoints } from "../core/guideOverview";
 import { useStore } from "../lib/store";
 import { maxGuideDays, planLimit } from "../core/plan";
 import { upgradeToPro } from "../lib/upgrade";
-import { LimitNote } from "../components/Plan";
+import { LimitNote, UpgradeButton } from "../components/Plan";
 import { formatDay, guideDate, guideDayNumber } from "./guideDates";
 import { TaskList } from "./Today";
 import { KoreanText } from "../components/KoreanText";
@@ -78,7 +78,6 @@ export function Guides({ openGuideID, setOpenGuideID, practice }: {
     return (
       <>
         <Notebook startTab={notebook} onBack={() => setNotebook(null)} addNote={addNote} />
-        <NoteFab kind="add" onClick={() => addNote(blank)} />
         {panel(true)}
       </>
     );
@@ -96,7 +95,7 @@ export function Guides({ openGuideID, setOpenGuideID, practice }: {
   }
 
   return (
-    <Page title="Study Guides" actions={guides.length > 0
+    <Page title="Study Guides" leading={store.plan === "free" ? <UpgradeButton full={false} header /> : undefined} actions={guides.length > 0
       ? <RoundButton icon="plus" tint="glass" label="Create Guide" onClick={() => setCreating(true)} size={38} /> : undefined}>
       <button type="button" className="glass card nav-row" onClick={() => goNotebook("notes")}>
         <Icon name="pencil" size={20} className="accent" />
@@ -128,18 +127,17 @@ export function Guides({ openGuideID, setOpenGuideID, practice }: {
         );
       })}</div>}
       {creating && <CreateGuide onClose={() => setCreating(false)} />}
-      <NoteFab onClick={() => openNotes(null, null)} />
       {panel(false)}
     </Page>
   );
 }
 
-/** Free accounts: how many of their 2 guides they have, with Upgrade to Pro, and what to do once both are used.
- *  Pro accounts see nothing. */
+/** Free accounts, once both of their 2 guides are used: that they've maxed out, with Upgrade to Pro. Before that, and
+ *  for Pro accounts, nothing. */
 function GuideLimit() {
   const store = useStore();
   const limit = planLimit(store.plan, store.data.guides.length);
-  if (!limit.limited) return null;
+  if (!limit.limited || limit.canCreate) return null;
   return <LimitNote label={limit.label ?? ""} message={limit.message ?? "Free accounts hold 2 study guides at a time."} full={!limit.canCreate} />;
 }
 

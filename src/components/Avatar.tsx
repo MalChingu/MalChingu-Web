@@ -18,7 +18,8 @@ export function AvatarImage({ avatar, size, className }: { avatar: string | null
 export function AvatarPicker({ value, onChange, canUpload }: { value: string | null; onChange: (avatar: string) => void; canUpload: boolean }) {
   const file = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
-  const photo = isPhotoAvatar(value) ? value : null;
+  // Your own photo is for Pro accounts: a free account's upload tile never shows or keeps one.
+  const photo = canUpload && isPhotoAvatar(value) ? value : null;
   return (
     <div className="stack avatar-picker">
       <div className="avatar-grid" role="radiogroup" aria-label="Profile picture">

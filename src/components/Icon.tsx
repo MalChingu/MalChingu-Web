@@ -32,6 +32,7 @@ const PATHS: Record<string, string> = {
   target: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z",
   circle: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z",
   checkCircle: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM8 12l3 3 5-6",
+  xCircle: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM9 9l6 6M15 9l-6 6",
   more: "M5 12h.01M12 12h.01M19 12h.01",
   minus: "M5 12h14",
   chevronLeft: "M15 6l-6 6 6 6",

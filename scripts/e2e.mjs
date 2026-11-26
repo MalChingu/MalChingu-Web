@@ -293,6 +293,8 @@ try {
       await page.evaluate((w) => { window.__say = w; }, word);
       await mic.click();
       await page.locator(".say-mark.right").waitFor({ timeout: 5000 });
+      const mark = await page.locator(".say-mark.right").evaluate((el) => [getComputedStyle(el).backgroundColor, el.querySelector("svg")?.getAttribute("width"), el.querySelector("svg path")?.getAttribute("d")?.startsWith("M12 21a9")]);
+      check(mark[0] === "rgba(0, 0, 0, 0)" && mark[1] === "20" && mark[2], `the ✓ after a try is an outlined check in a circle, 20px, no disc (${mark})`);
       await page.evaluate(() => { window.__say = "바나나우유"; });
       await mic.click();
       await page.locator(".say-mark.wrong").waitFor({ timeout: 5000 });
@@ -676,9 +678,28 @@ try {
     const page = await context.newPage();
     const limit = page.locator(".guide-limit");
     await page.goto("http://localhost:4173/#guides");
-    await limit.waitFor({ timeout: 15000 });
-    check(await limit.getByText("1 of 2 guides").isVisible() && await limit.getByRole("button", { name: "Upgrade to Pro" }).isVisible(),
-      "free, 1 guide: Guides shows 1 of 2 with Upgrade to Pro");
+    const headerUpgrade = page.locator(".page-header .header-upgrade");
+    await headerUpgrade.waitFor({ timeout: 15000 });
+    check(await limit.count() === 0, "free, 1 guide: no limit note until both guides are used");
+    // Upgrade to Pro at the left of the header (before the title), a little faded until checkout is set up.
+    const [hb, title] = [await headerUpgrade.boundingBox(), await page.locator(".page-header h1").boundingBox()];
+    const fade = await headerUpgrade.evaluate((el) => [getComputedStyle(el).opacity, el.getAttribute("aria-disabled")]);
+    check(hb.x + hb.width <= title.x + 1 && fade[0] === "0.6" && fade[1] === "true",
+      `free: Upgrade to Pro sits at the header's left, faded (${fade})`);
+    // Pointed at: Coming Soon and what Pro adds; it goes when the pointer leaves. A click does nothing yet.
+    const hoverCard = page.getByRole("dialog", { name: "Upgrade to Pro" });
+    await headerUpgrade.hover();
+    await hoverCard.waitFor();
+    await page.waitForTimeout(350);
+    check((await hoverCard.locator(".upgrade-price").innerText()).trim() === "Coming Soon" && await hoverCard.locator(".upgrade-benefits li").count() === 4,
+      "pointing at the header's Upgrade to Pro shows Coming Soon and what Pro adds");
+    await page.screenshot({ path: "screenshots/upgrade-header-hover.png" });
+    await headerUpgrade.click({ force: true });
+    await page.mouse.move(700, 600);
+    await hoverCard.waitFor({ state: "detached" });
+    check(await page.getByRole("dialog").count() === 0, "moving away hides it; clicking (checkout, not set up yet) opens nothing");
+    // No floating Notes button on the Study Guides list.
+    check(await page.locator(".fab").count() === 0, "Study Guides has no floating Notes button");
     const second = { ...db.study_guides[0], id: "55555555-5555-4555-8555-555555555556", title: "Second Guide", created_at: stamp };
     db.study_guides.push(second);
     await page.reload();
@@ -689,10 +710,10 @@ try {
     check(button.x > note.x + note.width - 1 && button.y < note.y + note.height && note.y < button.y + button.height,
       "free, 2 guides: Upgrade to Pro sits to the right of the note, in line with it");
     await page.screenshot({ path: "screenshots/guides-limit-reached.png" });
-    // Upgrade to Pro floats up from the button, inside the sidebar: Coming Soon as the heading, then what Pro adds, a ✓
-    // and the feature per line. No button until checkout is set up. A click outside or Esc closes it.
+    // The sidebar's Upgrade to Pro, pointed at: what Pro adds floats up inside the sidebar (Coming Soon as the heading,
+    // then a ✓ and the feature per line), and goes when the pointer leaves.
     const fromButton = page.locator(".tabs").getByRole("button", { name: "Upgrade to Pro" });
-    await fromButton.click();
+    await fromButton.hover();
     const upgrade = page.getByRole("dialog", { name: "Upgrade to Pro" });
     await upgrade.waitFor();
     await page.waitForTimeout(350);
@@ -711,13 +732,9 @@ try {
     const unselectable = await page.evaluate(() => ["upgrade-modal", "tabs"].map((c) => getComputedStyle(document.querySelector(`.${c}`)).userSelect));
     check(unselectable.every((v) => v === "none"), `the modal and the sidebar can't be selected (${unselectable})`);
     await page.screenshot({ path: "screenshots/upgrade-modal.png" });
-    await page.keyboard.press("Escape");
+    await page.mouse.move(900, 500);
     await upgrade.waitFor({ state: "detached" });
-    await fromButton.click();
-    await upgrade.waitFor();
-    await page.mouse.click(1200, 40);
-    await upgrade.waitFor({ state: "detached" });
-    check(true, "Upgrade to Pro closes with Esc and a click outside");
+    check(true, "the sidebar's Upgrade to Pro hides what Pro adds when the pointer leaves");
     await page.getByRole("button", { name: "Create Guide" }).click();
     const sheet = page.getByRole("dialog", { name: "Create Guide" });
     check(await sheet.getByText(/maxed out/).count() === 0 && await sheet.getByRole("button", { name: "Upgrade to Pro" }).count() === 0,
@@ -752,7 +769,7 @@ try {
     const badge = page.locator(".tabs .pro-badge");
     await badge.waitFor({ timeout: 15000 });
     check((await badge.boundingBox()).y < (await page.locator(".tab.text-size").boundingBox()).y, "pro: the sidebar shows a Pro badge above Text Size");
-    check(await limit.count() === 0 && await page.getByRole("button", { name: "Upgrade to Pro" }).count() === 0, "pro: no limit note or Upgrade button");
+    check(await limit.count() === 0 && await page.getByRole("button", { name: "Upgrade to Pro" }).count() === 0, "pro: no limit note or Upgrade button (header included)");
     await page.screenshot({ path: "screenshots/guides-pro.png" });
     // The Pro badge shines when pointed at and opens what Pro adds, without the price or a button.
     await badge.hover();
@@ -948,8 +965,11 @@ try {
     await page.keyboard.press("Escape");
     await edit.waitFor({ state: "detached" });
 
-    // Delete Account.
+    // Delete Account, the same height as Sign Out.
+    const signOutHeight = (await page.getByRole("button", { name: "Sign Out" }).boundingBox()).height;
     await page.getByRole("radio", { name: "Settings" }).click();
+    const deleteHeight = (await page.getByRole("button", { name: "Delete Account" }).boundingBox()).height;
+    check(Math.abs(signOutHeight - deleteHeight) < 0.5, `Delete Account and Sign Out are the same height (${signOutHeight}, ${deleteHeight})`);
     await page.getByRole("button", { name: "Delete Account" }).click();
     const sure = page.getByRole("dialog", { name: "Delete Your Account?" });
     const confirm = sure.getByRole("button", { name: "Delete Account" });
@@ -985,12 +1005,12 @@ try {
     check(await newNote.locator("select").first().inputValue() === GUIDE, "Alt+N inside a guide starts a note for that guide");
     await page.keyboard.press("Escape");
     await newNote.waitFor({ state: "detached" });
-    await page.getByRole("button", { name: "Back to Study Guides" }).click();
     await page.getByRole("button", { name: "Open Notes" }).click();
     await page.getByRole("dialog", { name: "Notes" }).waitFor();
-    await page.getByRole("button", { name: /My Notes/ }).first().click();
+    await page.getByRole("dialog", { name: "Notes" }).getByRole("button", { name: "All Notes and Translations" }).click();
     await page.getByRole("heading", { name: "My Notes" }).waitFor();
     await page.waitForTimeout(300);
+    check(await page.locator(".fab").count() === 0, "My Notes has no floating Add Note button");
     check(await page.locator('[aria-modal="true"]').count() === 0 && await page.getByRole("dialog").count() === 0,
       "going to My Notes with the notes panel open closes it (no centre modal)");
     const inset = await page.locator(".filters select").first().evaluate((el) => {

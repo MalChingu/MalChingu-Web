@@ -5,7 +5,7 @@ import { Button, Card, ConfirmDialog, Page, RoundButton, Sheet, Steps, WordRow, 
 import type { CustomWordRow } from "../core/models";
 import { useStore } from "../lib/store";
 import { wordLimit } from "../core/plan";
-import { LimitNote } from "../components/Plan";
+import { LimitNote, UpgradeButton } from "../components/Plan";
 
 /** Words and phrases the learner added through Claude. Delete one with its trash button,
  *  or several at once with Select. */
@@ -32,7 +32,8 @@ export function MyWords({ onBack }: { onBack: () => void }) {
 
   return (
     <Page title={selecting ? (chosen.length ? `${chosen.length} Selected` : "Select Words") : "My Words"}
-      back={selecting ? undefined : { label: "Back to Flashcards", onClick: onBack }} actions={selecting ? (
+      back={selecting ? undefined : { label: "Back to Flashcards", onClick: onBack }}
+      leading={store.plan === "free" && !selecting ? <UpgradeButton full={false} header /> : undefined} actions={selecting ? (
         <>
           <button type="button" className="button glass" onClick={() => setSelected(allChosen ? new Set() : new Set(words.map((w) => w.id)))}>
             {allChosen ? "Deselect All" : "Select All"}

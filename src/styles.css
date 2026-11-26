@@ -144,6 +144,10 @@ button:disabled { cursor: default; opacity: 0.45; }
 .button.full { width: 100%; }
 .button.compact { min-height: 36px; padding: 0 16px; font-size: 0.92rem; box-shadow: none; }
 .button.prominent { background: var(--accent-fill); color: var(--on-fill); border-color: transparent; }
+/* Upgrade to Pro before checkout is set up: a little faded, and pressing it does nothing (pointing at it still shows
+   what Pro adds). */
+.button.upgrade-button.soon { opacity: 0.6; cursor: default; }
+.page-header .header-upgrade { flex: none; }
 .button.danger { color: var(--red); }
 .button.sign-out { background: var(--red-fill); color: var(--on-fill); border-color: transparent; margin-top: 8px; }
 .button.destructive { background: var(--red-fill); color: var(--on-fill); border-color: transparent; }
@@ -245,10 +249,10 @@ button:disabled { cursor: default; opacity: 0.45; }
 .quiz-result { display: flex; align-items: center; gap: 8px; font-weight: 650; font-size: 1.05rem; }
 /* After the quiz: the microphone on the right of the result, then ✓ or ✗ for each try at saying the word. */
 .say-practice { display: inline-flex; align-items: center; gap: 6px; flex: none; }
-.say-mark { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; color: var(--on-fill);
-  animation: say-pop 0.28s cubic-bezier(0.2, 0.9, 0.3, 1.4); }
-.say-mark.right { background: var(--green-fill, #16a34a); }
-.say-mark.wrong { background: var(--red-fill); }
+/* After each try: an outlined check or x in a circle, the same size as Correct's check on the left. */
+.say-mark { display: grid; place-items: center; animation: say-pop 0.28s cubic-bezier(0.2, 0.9, 0.3, 1.4); }
+.say-mark.right { color: var(--green); }
+.say-mark.wrong { color: var(--red); }
 @keyframes say-pop { from { transform: scale(0.4); opacity: 0; } to { transform: none; opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .say-mark { animation: none; } }
 .say-problem { margin: 4px 0 0; }

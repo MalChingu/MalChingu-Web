@@ -1,3 +1,4 @@
+import { isPhotoAvatar, pickAvatarPreset } from "../core/avatars";
 import { useState } from "react";
 import { displayLabel, type DisplayMode } from "../core/models";
 import { ACHIEVEMENTS, shownTitle } from "../core/achievements";
@@ -245,7 +246,9 @@ function EditProfileSheet({ onClose }: { onClose: () => void }) {
   const store = useStore();
   const profile = store.settings.profile;
   const [name, setName] = useState(profile.name);
-  const [avatar, setAvatar] = useState(profile.avatar);
+  // A free account can't keep an uploaded photo (say, after Pro ended): it starts from a preset instead.
+  const [avatar, setAvatar] = useState(() =>
+    store.plan === "free" && isPhotoAvatar(profile.avatar) ? pickAvatarPreset() : profile.avatar);
   const changed = name.trim() !== profile.name || avatar !== profile.avatar;
   const allowed = nameAllowed(name);
   const canSave = name.trim().length > 0 && allowed && changed;

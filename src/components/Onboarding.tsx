@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { isAvatarPreset, isPhotoAvatar, pickAvatarPreset } from "../core/avatars";
+import { isAvatarPreset, pickAvatarPreset } from "../core/avatars";
 import { normalizeUsername } from "../core/friends";
 import { NAME_REFUSED, nameAllowed } from "../core/names";
 import { useStore } from "../lib/store";
@@ -26,9 +26,9 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
   const shown = typed.current ? handle : handle || suggestion;
   const check = useUsernameCheck(shown);
   const nameOK = name.trim().length > 0 && nameAllowed(name);
+  // A preset to start: a first sign-in has no photo of its own yet (uploading one is for Pro accounts).
   const [avatar, setAvatar] = useState<string>(() =>
-    isAvatarPreset(store.settings.profile.avatar) || isPhotoAvatar(store.settings.profile.avatar)
-      ? store.settings.profile.avatar : pickAvatarPreset());
+    isAvatarPreset(store.settings.profile.avatar) ? store.settings.profile.avatar : pickAvatarPreset());
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

@@ -291,8 +291,10 @@ export function LoadingDots() {
 }
 
 /** `waiting` replaces the content with loading dots; by default, until the account's data has first loaded. */
-export function Page({ title, children, actions, centered, back, waiting, className = "" }: {
+export function Page({ title, children, actions, leading, centered, back, waiting, className = "" }: {
   title: string; children: ReactNode; actions?: ReactNode; centered?: boolean; back?: { label: string; onClick: () => void };
+  /** Before the title (after Back): Upgrade to Pro, for free accounts. */
+  leading?: ReactNode;
   waiting?: boolean; className?: string;
 }) {
   const store = useStore();
@@ -301,6 +303,7 @@ export function Page({ title, children, actions, centered, back, waiting, classN
     <div className={`page ${className}`}>
       <header className={`page-header ${centered ? "centered" : ""}`}>
         {back && <RoundButton icon="chevronLeft" tint="glass" label={back.label} onClick={back.onClick} size={40} />}
+        {leading}
         <FitTitle text={title} />
         {actions && <div className="page-actions">{actions}</div>}
       </header>

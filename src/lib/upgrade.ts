@@ -27,6 +27,12 @@ export function upgradeToPro(from?: EventTarget | null): void {
   open(from, "upgrade");
 }
 
+/** An Upgrade to Pro button pointed at (`hover`): Coming Soon (the price, once there is one) and what Pro adds, until
+ *  the pointer leaves (see hideProFeatures). Clicking the button itself goes to checkout. */
+export function showUpgrade(from?: EventTarget | null, hover = false): void {
+  open(from, "upgrade", hover);
+}
+
 /** A Pro account's badge: the same modal with what Pro adds, without the price or a button. With `hover`, it shows
  *  only while the pointer is over the badge (see hideProFeatures). */
 export function showProFeatures(from?: EventTarget | null, hover = false): void {

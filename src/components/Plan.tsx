@@ -1,8 +1,7 @@
 import { planLimit } from "../core/plan";
 import { useStore } from "../lib/store";
-import { hideProFeatures, showProFeatures, upgradeToPro } from "../lib/upgrade";
+import { PRO_PRICE, hideProFeatures, showProFeatures, showUpgrade, upgradeToPro } from "../lib/upgrade";
 import { Icon } from "./Icon";
-import { Button } from "./ui";
 
 // Free accounts hold 2 study guides at a time; Pro has no limit. Wide screens show the plan at the bottom of the
 // sidebar, phones in Profile → About, and free accounts also on the Guides page.
@@ -41,9 +40,20 @@ export const ProBadge = () => (
   </button>
 );
 
-/** Upgrade to Pro: opens the Upgrade modal from this button (see components/UpgradeModal). */
-export function UpgradeButton({ full = true }: { full?: boolean }) {
-  return <Button kind="prominent" icon="bolt" full={full} onClick={(e) => upgradeToPro(e.currentTarget)}>Upgrade to Pro</Button>;
+/** Upgrade to Pro (the sidebar, page headers and limit notes). Pointed at or focused, it shows what Pro adds (Coming
+ *  Soon and the list), which goes when the pointer leaves. Clicking goes to checkout; until that's set up the button is
+ *  a little faded and does nothing. On a touch screen a tap shows what Pro adds instead. */
+export function UpgradeButton({ full = true, header = false }: { full?: boolean; header?: boolean }) {
+  const ready = PRO_PRICE !== null;
+  return (
+    <button type="button" className={`button prominent upgrade-button ${full ? "full" : ""} ${header ? "compact header-upgrade" : ""} ${ready ? "" : "soon"}`}
+      aria-disabled={ready ? undefined : true} title={ready ? undefined : "Coming Soon"}
+      onMouseEnter={(e) => showUpgrade(e.currentTarget, true)} onMouseLeave={hideProFeatures}
+      onFocus={(e) => { if (e.currentTarget.matches(":focus-visible")) showUpgrade(e.currentTarget, true); }} onBlur={hideProFeatures}
+      onClick={(e) => { if (!canHover()) upgradeToPro(e.currentTarget); /* else: checkout (Stripe), once it's set up */ }}>
+      <Icon name="bolt" size={18} /><span>Upgrade to Pro</span>
+    </button>
+  );
 }
 
 /** A free account's limit on Guides or My Words: the count and what it means, with Upgrade to Pro beside it on wide
