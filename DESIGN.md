@@ -178,3 +178,15 @@ Heights: default 44px/dp, large 52, compact 36. Icons in buttons are 18px/dp, wi
 - **Plan words:** Upgrade to Pro, Coming Soon, Pro.
 - **Friends:** Incoming Friend Request, Sent Friend Request, Friend Requests (Incoming / Sent), Add Friend
   (usernames only).
+
+## 10. Splash (iPhone, iPad, Mac, Android)
+
+- **When:** each launch, not when coming back to the app. The web has none (its sign-in page has the logo and typing).
+- **Looks:** the wash, the blinking logo (120) popping in, then "Korimal" (42, heavy) and "코리말" (Title 2 / `titleLarge`,
+  bold) typed out under it with an accent caret, like the sign-in page's typing. Each letter appears in its final,
+  centred place (the line never re-centres as it grows).
+- **Timing (the same everywhere):** logo at once; English from 0.35s at 80ms a letter; Korean 0.12s later at 120ms a
+  syllable; done at about 1.8s. It stays until the app has loaded (whether the account needs setting up is known),
+  then fades out over 0.3s. With Reduce Motion / animations off, the names show at once.
+- **Code:** Apple `SplashView` (shown by `KTalkApp`), Android `ui/splash/Splash.kt` (shown by `MainActivity`). Android's
+  system launch screen is the base colour with no icon, so the logo isn't shown twice.
