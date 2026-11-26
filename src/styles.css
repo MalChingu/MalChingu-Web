@@ -769,6 +769,10 @@ button.achievement { cursor: pointer; }
 .legal-section ul { margin: 0; padding-left: 1.3em; display: flex; flex-direction: column; gap: 6px; }
 .legal-section li::marker { color: var(--accent); }
 .legal-body a { color: var(--accent); text-decoration: none; font-weight: 600; }
+.legal-steps { margin: 0; padding-left: 1.4em; display: flex; flex-direction: column; gap: 6px; }
+.legal-steps li::marker { color: var(--accent); font-weight: 700; }
+.delete-account-form { max-width: 420px; }
+.delete-account-form .apple-button, .delete-account-form .google-button { width: 100%; }
 .legal-footer { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 18px; color: var(--text-2); font-size: 0.9rem; }
 /* The © in the copyright quietly links to rezpoint.xyz: same colour, no underline, no pointer, nothing on hover. */
 a.easter-egg, a.easter-egg:hover, .legal-footer a.easter-egg, .legal-footer a.easter-egg:hover {

@@ -1,17 +1,26 @@
-import { useEffect, type ReactNode } from "react";
-import { Copyright } from "../components/ui";
+import { useEffect, useState, type ReactNode } from "react";
+import type { Session } from "@supabase/supabase-js";
+import { Button, Copyright } from "../components/ui";
+import { supabase } from "../lib/supabase";
+import { ProviderButtons } from "./SignIn";
 
-// The Privacy Policy (/privacy) and Terms of Service (/terms), on Korimal's own site and in its design. They open
-// without signing in.
+// The Privacy Policy (/privacy), Terms of Service (/terms) and the Delete Account page (/delete-account, the link
+// Google Play asks for), on Korimal's own site and in its design. They open without signing in.
 
-export type LegalKind = "privacy" | "terms";
+export type LegalKind = "privacy" | "terms" | "delete-account";
 
 export function legalKind(pathname: string): LegalKind | null {
   const path = pathname.replace(/\/+$/, "");
-  return path === "/privacy" ? "privacy" : path === "/terms" ? "terms" : null;
+  return path === "/privacy" ? "privacy" : path === "/terms" ? "terms" : path === "/delete-account" ? "delete-account" : null;
 }
 
-const TITLE: Record<LegalKind, string> = { privacy: "Privacy Policy", terms: "Terms of Service" };
+const TITLE: Record<LegalKind, string> = { privacy: "Privacy Policy", terms: "Terms of Service", "delete-account": "Delete Your Account" };
+const HEADING: Record<LegalKind, string> = {
+  privacy: "Korimal Privacy Policy", terms: "Korimal Terms of Service", "delete-account": "Delete Your Korimal Account",
+};
+/** Signing in from the Delete Account page comes back to it (see main.tsx, if sign-in lands on the home page). */
+export const AFTER_SIGN_IN_KEY = "korimal.afterSignIn";
+const DELETE_PHRASE = "delete my account";
 const UPDATED = "Nov 25, 2026";
 const CONTACT = "atinderpaulk@rezpoint.xyz";
 
@@ -119,7 +128,8 @@ function Privacy() {
         <p>We keep your data while your account exists. You can delete your words, study guides and notes in the app at any time. Friend requests to an email address with no Korimal account are deleted after 7 days.</p>
         <p>
           To delete your account and all of its data, open Profile, then Settings, then Delete Account in any Korimal app
-          or on the web. This removes your account, words, progress, guides, notes, translations and connector link from
+          or on the web, or go to <a href="/delete-account">korimal.com/delete-account</a>. This removes your account,
+          words, progress, guides, notes, translations and connector link from
           our servers straight away, along with your username, friendships, blocks and challenges. If you can't sign in,
           email us at the address below and we will delete your account within 30 days. Signing out removes your study
           data from that device.
@@ -243,7 +253,95 @@ function Terms() {
   );
 }
 
-/** One of the two documents, with Korimal's header and footer. */
+/** Deleting your account without the app (Google Play asks every app with accounts for a page like this): the steps
+ *  in the app, and here on the web, signed in with Apple or Google, the same typed confirmation as in Profile. */
+function DeleteAccount() {
+  const [session, setSession] = useState<Session | null | undefined>(undefined);
+  const [typed, setTyped] = useState("");
+  const [deleting, setDeleting] = useState(false);
+  const [deleted, setDeleted] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => setSession(data.session));
+    const { data } = supabase.auth.onAuthStateChange((_event, next) => setSession(next));
+    return () => data.subscription.unsubscribe();
+  }, []);
+  const signIn = async (provider: "apple" | "google") => {
+    try { localStorage.setItem(AFTER_SIGN_IN_KEY, "/delete-account"); } catch { /* still signs in */ }
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider, options: { redirectTo: `${window.location.origin}/delete-account`, ...(provider === "apple" ? { scopes: "name email" } : {}) },
+    });
+    if (error) setError(`Sign-in failed: ${error.message}`);
+  };
+  const confirmed = typed.trim().toLowerCase() === DELETE_PHRASE;
+  const remove = async () => {
+    if (!confirmed || deleting || !session) return;
+    setDeleting(true);
+    setError(null);
+    const userID = session.user.id;
+    const { data: result, error } = await supabase.functions.invoke("delete-account", { method: "POST" });
+    if (error || !(result as { deleted?: boolean } | null)?.deleted) {
+      let message = "Your account couldn't be deleted. Please try again, or email us.";
+      try { message = (await (error as { context?: Response })?.context?.json())?.error ?? message; } catch { /* keep the default */ }
+      setError(message);
+      setDeleting(false);
+      return;
+    }
+    try { localStorage.removeItem(`malchingu.connectorKey.${userID}`); } catch { /* nothing to clear */ }
+    await supabase.auth.signOut({ scope: "local" });
+    setDeleting(false);
+    setDeleted(true);
+  };
+  return (
+    <>
+      <p>
+        This page is for deleting your account in Korimal (코리말), the Korean study app made by RezPoint Inc., on the web,
+        iPhone, iPad, Mac and Android. Deleting your account removes it and all of its data for good, on every device.
+      </p>
+      <Section title="In the App">
+        <ol className="legal-steps">
+          <li>Open <strong>Profile</strong>, then <strong>Settings</strong>.</li>
+          <li>Under <strong>Account</strong>, tap <strong>Delete Account</strong>.</li>
+          <li>Type <strong>{DELETE_PHRASE}</strong> and tap <strong>Delete Account</strong>.</li>
+        </ol>
+      </Section>
+      <Section title="Here on the Web">
+        {deleted ? (
+          <p className="strong" role="status">Your Korimal account and all of its data have been deleted.</p>
+        ) : session === undefined ? null : session ? (
+          <form className="stack delete-account-form" onSubmit={(e) => { e.preventDefault(); remove(); }}>
+            <p>Signed in{session.user.email ? <> as <strong>{session.user.email}</strong></> : null}. This can't be undone.</p>
+            <label className="stack tiny-gap">
+              <span>Type <strong>{DELETE_PHRASE}</strong> to continue.</span>
+              <input className="text-input" value={typed} placeholder={DELETE_PHRASE} aria-label="Type delete my account"
+                autoCapitalize="off" autoCorrect="off" spellCheck={false} onChange={(e) => setTyped(e.target.value)} />
+            </label>
+            <Button type="submit" kind="destructive" full disabled={!confirmed || deleting}>{deleting ? "Deleting…" : "Delete My Account"}</Button>
+          </form>
+        ) : (
+          <div className="stack delete-account-form">
+            <p>Sign in with the account you use in Korimal, then confirm here.</p>
+            <ProviderButtons onApple={() => signIn("apple")} onGoogle={() => signIn("google")} />
+          </div>
+        )}
+        {error && <p className="error small" role="alert">{error}</p>}
+      </Section>
+      <Section title="Can't Sign In?">
+        <Contact lead="Email us from the address your account uses, and we will delete it within 30 days:" />
+      </Section>
+      <Section title="What's Deleted">
+        <ul>
+          <li>Your account and its Apple or Google sign-in, your name, username and profile picture.</li>
+          <li>Your words, progress, stats, quiz answers, study guides and their tasks, notes and saved translations.</li>
+          <li>Your Claude connector link, friends, friend requests, blocks and challenges.</li>
+        </ul>
+        <p>They are removed from our servers straight away. Nothing linked to your account is kept.</p>
+      </Section>
+    </>
+  );
+}
+
+/** One of the documents, with Korimal's header and footer. */
 export function Legal({ kind }: { kind: LegalKind }) {
   useEffect(() => { document.title = `Korimal | ${TITLE[kind]}`; }, [kind]);
   const other: LegalKind = kind === "privacy" ? "terms" : "privacy";
@@ -254,9 +352,9 @@ export function Legal({ kind }: { kind: LegalKind }) {
         <a className="legal-switch" href={`/${other}`}>{TITLE[other]}</a>
       </header>
       <main className="glass card legal-card">
-        <h1>Korimal {TITLE[kind]}</h1>
+        <h1>{HEADING[kind]}</h1>
         <p className="legal-updated">Last Updated: {UPDATED}</p>
-        <div className="legal-body">{kind === "privacy" ? <Privacy /> : <Terms />}</div>
+        <div className="legal-body">{kind === "privacy" ? <Privacy /> : kind === "terms" ? <Terms /> : <DeleteAccount />}</div>
       </main>
       <footer className="legal-footer">
         <Copyright />

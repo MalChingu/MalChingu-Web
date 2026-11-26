@@ -1005,6 +1005,49 @@ try {
     await context.close();
   }
 
+  // korimal.com: the sitemap, robots.txt and canonical address; and /delete-account, the page Google Play links to.
+  {
+    const sitemap = await (await fetch("http://localhost:4173/sitemap.xml")).text();
+    const robots = await (await fetch("http://localhost:4173/robots.txt")).text();
+    const html = await (await fetch("http://localhost:4173/")).text();
+    check(!sitemap.includes("vercel.app") && sitemap.includes("<loc>https://www.korimal.com/</loc>")
+      && sitemap.includes("<loc>https://www.korimal.com/delete-account</loc>"), "the sitemap uses www.korimal.com and lists /delete-account");
+    check(robots.includes("Sitemap: https://www.korimal.com/sitemap.xml") && !robots.includes("vercel.app"), "robots.txt points to korimal.com's sitemap");
+    check(html.includes('rel="canonical" href="https://www.korimal.com/"') && !html.includes("vercel.app"), "the page's canonical address is www.korimal.com");
+
+    // Signed out: the steps, what's deleted, the email for anyone who can't sign in, and sign-in to delete here.
+    const out = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    await out.route("https://nxlsnpzfbazwlccxtwpt.supabase.co/**", fakeSupabase);
+    const p1 = await out.newPage();
+    await p1.goto("http://localhost:4173/delete-account");
+    await p1.getByRole("heading", { name: "Delete Your Korimal Account" }).waitFor({ timeout: 15000 });
+    check(await p1.getByText("Korimal (코리말), the Korean study app made by RezPoint Inc.", { exact: false }).isVisible()
+      && await p1.getByRole("heading", { name: "In the App" }).isVisible() && await p1.getByRole("heading", { name: "What's Deleted" }).isVisible()
+      && await p1.getByRole("link", { name: /@rezpoint\.xyz/ }).isVisible()
+      && await p1.getByRole("button", { name: "Sign in with Apple" }).isVisible() && await p1.getByRole("button", { name: "Sign in with Google" }).isVisible(),
+      "/delete-account opens signed out: the app, the steps, what's deleted, an email, and sign-in to delete here");
+    await p1.screenshot({ path: "screenshots/delete-account-page.png", fullPage: true });
+    await p1.goto("http://localhost:4173/privacy");
+    check(await p1.locator('a[href="/delete-account"]').count() >= 1, "the privacy policy links to the Delete Account page");
+    await out.close();
+
+    // Signed in: the typed confirmation, then the delete-account function, once.
+    const before = deleteCalls;
+    const inside = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    await inside.route("https://nxlsnpzfbazwlccxtwpt.supabase.co/**", fakeSupabase);
+    await inside.addInitScript((value) => localStorage.setItem("sb-nxlsnpzfbazwlccxtwpt-auth-token", value), JSON.stringify(session));
+    const p2 = await inside.newPage();
+    await p2.goto("http://localhost:4173/delete-account");
+    const go = p2.getByRole("button", { name: "Delete My Account" });
+    await go.waitFor({ timeout: 15000 });
+    check(await go.isDisabled(), "signed in: Delete My Account waits for the phrase");
+    await p2.getByRole("textbox", { name: "Type delete my account" }).fill("delete my account");
+    await go.click();
+    await p2.getByText("Your Korimal account and all of its data have been deleted.").waitFor({ timeout: 10000 });
+    check(deleteCalls === before + 1, "signed in: it deletes the account with the delete-account function, once");
+    await inside.close();
+  }
+
   // Alt+N: a new note from anywhere (inside a guide, for that guide). My Notes never turns the notes panel into a
   // centre modal. Selects: the arrow sits as far in from the right as the text from the left.
   {

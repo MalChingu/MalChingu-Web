@@ -1,6 +1,6 @@
-# Korimal: the public pages are the home page (sign-in) and the privacy and terms pages.
+# Korimal: the public pages are the home page (sign-in), the privacy and terms pages and the Delete Account page.
 User-agent: *
 Allow: /
 Disallow: /mcp
 
-Sitemap: https://mal-chingu-web.vercel.app/sitemap.xml
+Sitemap: https://www.korimal.com/sitemap.xml

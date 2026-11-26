@@ -12,4 +12,4 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
 /** The Claude connector, served from Malchingu's own site (Vercel passes it on to the Supabase function, see
  *  vercel.json), so Claude shows Malchingu's icon for it rather than Supabase's. Links made with the Supabase address
  *  keep working. */
-export const CONNECTOR_BASE_URL = "https://mal-chingu-web.vercel.app/mcp";
+export const CONNECTOR_BASE_URL = "https://www.korimal.com/mcp";
