@@ -152,6 +152,8 @@ Heights: default 44px/dp, large 52, compact 36. Icons in buttons are 18px/dp, wi
   - ? yellow: Didn't Know.
 - A quiz result is two lines: line 1 is the mark and the status (Correct! / Didn't Know / Incorrect) with the
   practice mic on the right; line 2 is the answer. Never "The answer is …".
+- Streak star (Today): 70 (px / dp / pt; 56pt in the Mac's page bar), the day count inside at 19% of the star's size
+  (15% for three digits).
 - Red dot (13px with a 2px card-coloured ring) means something is waiting. A red count capsule shows how many
   (Friend Requests).
 - Web icons: `components/Icon.tsx` (2px strokes, round caps). Android: Material Rounded (filled) and Outlined (marks).

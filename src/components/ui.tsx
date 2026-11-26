@@ -99,7 +99,7 @@ export function WordRow({ word, progress, onClick }: { word: Word; progress?: Wo
 }
 
 /** The daily streak: an outlined star (orange once there's a streak) with the number of days inside. */
-export function StreakStar({ days, size = 58 }: { days: number; size?: number }) {
+export function StreakStar({ days, size = 70 }: { days: number; size?: number }) {
   const label = `${days}-day streak`;
   const heat = streakHeat(days);
   return (
@@ -107,7 +107,7 @@ export function StreakStar({ days, size = 58 }: { days: number; size?: number })
       <Icon name="star" size={size} strokeWidth={1.6} className="streak-star-outline" />
       {/* Pointed at, a light sweeps along the outline and across the number (like the Pro badge). */}
       <span className="streak-shine" aria-hidden="true" />
-      <span className="streak-star-count" style={{ fontSize: size * (days > 99 ? 0.22 : 0.28) }}>{days}</span>
+      <span className="streak-star-count" style={{ fontSize: size * (days > 99 ? 0.15 : 0.19) }}>{days}</span>
       {/* While the streak is alive, little sparkles twinkle around it. */}
       {heat !== "none" && (
         <span className="streak-sparkles" aria-hidden="true">
