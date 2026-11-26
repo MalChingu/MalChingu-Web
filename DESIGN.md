@@ -28,7 +28,7 @@ update it when the design changes. It's identical in all three repos (`malchingu
 | Base | `#F4F3FB` | `--base` | `colors.base` | system background | Page background under the wash |
 | Text | `#15132B` | `--text` | `onSurface` | `.primary` | Body text |
 | Text 2 | `#15132B` 60% | `--text-2` | `onSurfaceVariant` (`#55526B`) | `.secondary` | Secondary text, section labels, placeholders |
-| Accent | `#5B4FE9` (fill), `#4338CA` (text) | `--accent-fill`, `--accent` | `primary` | `.accentColor` / `.tint` | The main action, links, chosen tab, focus |
+| Accent | `#5B4FE9` (fill), `#4338CA` (text) | `--accent-fill`, `--accent` | `primary` | `Color.brand` (the AccentColor asset; `.tint(.brand)` app-wide, never system blue) | The main action, links, chosen tab, focus |
 | Accent soft | `#5B4FE9` 16% | `--accent-soft` | `primary` 16% | `.tint.opacity(0.16)` | Round + / requests buttons, chosen tab background |
 | Green | `#15803D` | `--green`, `--green-fill` | `colors.green`, `colors.greenFill` | `.green` | **Right only** (see rules) |
 | Red | `#C62828` | `--red`, `--red-fill` | `colors.red`, `colors.redFill` | `.red` | Wrong, destructive, cancel or decline marks |
@@ -79,7 +79,7 @@ Levels: Beginner green, Upper Beginner teal, Intermediate purple, Advanced orang
 | Answer / meaning line | 1.45rem / 650 | `headlineSmall` | `.title2.weight(.semibold)` |
 | Body | 16px / 400 | `bodyLarge` | `.body` |
 | Button | 16px / 600 (large 1.05rem) | `GlassButton` 16sp SemiBold (large 17sp) | `.headline` |
-| Small / caption | 0.85rem | `bodySmall` | `.footnote` |
+| Small / caption | 0.85rem | `bodySmall` | `Font.small` (`.footnote`; 13pt on the Mac, whose footnote is 10pt) |
 | Section label | 0.75rem / 600, uppercase, +0.05em, Text 2 | `SectionLabel` (`labelMedium`, uppercase) | `Section` header, `.textCase(nil)` |
 
 ## 4. Buttons
@@ -131,8 +131,9 @@ Heights: default 44px/dp, large 52, compact 36. Icons in buttons are 18px/dp, wi
   Android: `SelectRow`; Apple: menu `Picker`.
 - **Switch rows:** the label wraps rather than running up to the switch (24dp gap on Android).
 - **Text fields:** capsule, the Field colour, no outline until focused (then the accent at 16%; red for a wrong
-  answer), no autocorrect for answers and usernames, and the placeholder in Text 2 (set it: Apple's and Safari's own
-  placeholder grey is much lighter, which makes the white box look faded). Never Material's grey outline or a
+  answer), no autocorrect for answers and usernames, and the placeholder in Text 2 (set it: Safari's own placeholder
+  grey is much lighter, which makes the white box look faded). Apple's placeholder can't be restyled (pale on iPhone,
+  black on the Mac), so answer boxes draw their own (`answerPlaceholder`). Never Material's grey outline or a
   `surface` fill.
 - **Answer boxes** (Today's quiz, a word's quiz, flashcards, Past Form) are one size everywhere: 44px tall with 1.1rem
   text on the web, `titleMedium` on Android, `.title3` at 44pt on Apple. A flashcard's is centred; it isn't bigger.
