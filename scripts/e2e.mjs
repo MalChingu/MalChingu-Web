@@ -318,6 +318,14 @@ try {
       await page.reload();
       await page.locator(".quiz-result.unknown").waitFor({ timeout: 15000 });
       check(true, "quiz result is kept after a reload");
+      // Usage and Tenses opens a sheet of that name, which scrolls without a scrollbar.
+      await page.getByRole("button", { name: "Usage and Tenses" }).click();
+      const usage = page.getByRole("dialog", { name: "Usage and Tenses" });
+      await usage.waitFor();
+      const bar = await usage.evaluate((el) => [el.offsetWidth - el.clientWidth, el.scrollHeight > el.clientHeight, getComputedStyle(el).scrollbarWidth]);
+      check(bar[0] === 0 && bar[2] === "none", `${label}: Usage and Tenses is the sheet's title, and it shows no scrollbar (${bar})`);
+      await usage.getByRole("button", { name: "Close" }).click();
+      await usage.waitFor({ state: "detached" });
 
       // Once the guess is done: a microphone on the right of the result line to practice saying the word, as often
       // as you like, with ✓ or ✗ beside it. (A stand-in recogniser "hears" window.__say.)

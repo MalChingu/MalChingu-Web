@@ -19,7 +19,7 @@ export function WordSheet({ word, startInQuiz, onClose }: { word: Word; startInQ
   };
 
   return (
-    <Sheet title={revealed ? "Word" : "What Does It Mean?"} onClose={onClose}>
+    <Sheet title={revealed ? "Usage and Tenses" : "What Does It Mean?"} onClose={onClose}>
       <Card padding={24}>
         <div className="center stack">
           <PosTag pos={word.pos} />
