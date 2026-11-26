@@ -114,6 +114,8 @@ Heights: default 44px/dp, large 52, compact 36. Icons in buttons are 18px/dp, wi
   1120 / form 820).
 - **Sheets:** one at a time; never open a sheet from a sheet. Anything that lists things to open becomes its own page
   (Friend Requests) so the item opens as the only sheet. A sheet has a header with ✕ on the left and a centered title.
+  Its background is the page's wash over the base (web `.sheet`, Android `Modifier.sheetWash()`, Apple the system
+  sheet's glass), never a flat colour.
 - **Upgrade to Pro popup (web, Mac):**
   - what Pro adds (outlined green ✓ per line) first, then **Coming Soon centered at the bottom** (where the price
     will go);
