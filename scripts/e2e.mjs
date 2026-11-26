@@ -303,10 +303,20 @@ try {
       check(await page.getByText("Hint 3").isVisible(), "tapping a hint opens it");
       await page.screenshot({ path: `screenshots/today-quiz-${label}.png` });
       await page.getByRole("button", { name: "I don't know, show the answer" }).click();
-      await page.getByText(/The answer is/).waitFor();
-      check(true, "X reveals the answer");
+      await page.locator(".quiz-result.unknown").waitFor();
+      // Line 1: an outlined ? and Didn't Know (the stats' yellow); line 2: the answer. Nothing says "The answer is".
+      const result = await page.evaluate(() => {
+        const line = document.querySelector(".quiz-result"); const answer = document.querySelector(".quiz-answer");
+        return { text: line.querySelector(".grow").textContent, color: getComputedStyle(line).color,
+          below: answer.getBoundingClientRect().top >= line.getBoundingClientRect().bottom, answer: answer.textContent,
+          today: document.querySelectorAll(".meaning-line").length };
+      });
+      check(result.text === "Didn't Know" && result.color === "rgb(161, 98, 7)" && result.below && result.answer.length > 0 && result.today === 1
+        && await page.getByText(/The answer is/).count() === 0,
+        `I don't know: "Didn't Know" with the answer on the line below (${JSON.stringify(result)})`);
+      await page.locator(".quiz-result").locator("..").screenshot({ path: `screenshots/quiz-didnt-know-${label}.png` });
       await page.reload();
-      await page.getByText(/The answer is/).waitFor({ timeout: 15000 });
+      await page.locator(".quiz-result.unknown").waitFor({ timeout: 15000 });
       check(true, "quiz result is kept after a reload");
 
       // Once the guess is done: a microphone on the right of the result line to practice saying the word, as often
@@ -775,17 +785,24 @@ try {
     check(button.x > note.x + note.width - 1 && button.y < note.y + note.height && note.y < button.y + button.height,
       "free, 2 guides: Upgrade to Pro sits to the right of the note, in line with it");
     await page.screenshot({ path: "screenshots/guides-limit-reached.png" });
-    // The sidebar's Upgrade to Pro, pointed at: what Pro adds floats up inside the sidebar (Coming Soon as the heading,
-    // then a ✓ and the feature per line), and goes when the pointer leaves.
+    // The sidebar's Upgrade to Pro, pointed at: what Pro adds floats up inside the sidebar (a ✓ and the feature per
+    // line, then Coming Soon centred at the bottom, where the price will go), with no button, and goes when the pointer
+    // leaves.
     const fromButton = page.locator(".tabs").getByRole("button", { name: "Upgrade to Pro" });
     await fromButton.hover();
     const upgrade = page.getByRole("dialog", { name: "Upgrade to Pro" });
     await upgrade.waitFor();
     await page.waitForTimeout(350);
     const [modalBox, buttonBox] = [await upgrade.boundingBox(), await fromButton.boundingBox()];
+    const order = await upgrade.evaluate((el) => {
+      const list = el.querySelector(".upgrade-benefits").getBoundingClientRect(); const price = el.querySelector(".upgrade-price");
+      const box = price.getBoundingClientRect(); const card = el.getBoundingClientRect();
+      return { below: box.top >= list.bottom, centred: Math.abs((box.left + box.right) / 2 - (card.left + card.right) / 2) < 2, last: el.lastElementChild === price };
+    });
     check((await upgrade.locator(".upgrade-price").innerText()).trim() === "Coming Soon" && await upgrade.getByText("Coming Soon").count() === 1
-      && await upgrade.locator(".upgrade-benefits li").count() === 4 && await upgrade.getByRole("button").count() === 0,
-      "Upgrade to Pro: Coming Soon as the heading, four things Pro adds, no button");
+      && await upgrade.locator(".upgrade-benefits li").count() === 4 && await upgrade.getByRole("button").count() === 0
+      && order.below && order.centred && order.last,
+      `Upgrade to Pro on hover: four things Pro adds, then Coming Soon centred at the bottom, no button (${JSON.stringify(order)})`);
     check(modalBox.y + modalBox.height <= buttonBox.y + 1, "Upgrade to Pro floats up above the button that opened it");
     const sideBox = await page.locator(".tabs").boundingBox();
     const lines = await upgrade.locator(".upgrade-benefits li").allInnerTexts();
@@ -793,7 +810,7 @@ try {
       && await upgrade.locator(".upgrade-check").count() === 4 && await upgrade.getByText("Free:").count() === 0
       && JSON.stringify(lines) === JSON.stringify(["Unlimited Study Guides", "Unlimited Guide Timeframes", "Unlimited “My Words”", "Custom Profile Photo"])
       && await upgrade.locator(".pro-badge").count() === 0 && await upgrade.getByText("Korimal Pro").count() === 0,
-      `Upgrade to Pro fits inside the sidebar: Coming Soon, then a ✓ and the feature per line, no badge or Korimal Pro title (${lines.join(" | ")})`);
+      `Upgrade to Pro fits inside the sidebar: a ✓ and the feature per line, then Coming Soon, no badge or Korimal Pro title (${lines.join(" | ")})`);
     const unselectable = await page.evaluate(() => ["upgrade-modal", "tabs"].map((c) => getComputedStyle(document.querySelector(`.${c}`)).userSelect));
     check(unselectable.every((v) => v === "none"), `the modal and the sidebar can't be selected (${unselectable})`);
     await page.screenshot({ path: "screenshots/upgrade-modal.png" });
@@ -810,6 +827,17 @@ try {
     await modal.waitFor();
     check(await sheet.getByRole("radio", { name: "1 week" }).getAttribute("aria-checked") === "true",
       "free: 2 weeks opens Upgrade to Pro and keeps 1 week");
+    // Opened with a click: the same list and Coming Soon, then the small Upgrade to Pro (faded until checkout exists).
+    const cta = modal.getByRole("button", { name: "Upgrade to Pro" });
+    await page.waitForTimeout(350);   // it has finished growing in
+    const ctaLook = await cta.evaluate((b) => {
+      const st = getComputedStyle(b); const card = b.closest(".upgrade-modal").getBoundingClientRect(); const r = b.getBoundingClientRect();
+      const price = b.closest(".upgrade-modal").querySelector(".upgrade-price").getBoundingClientRect();
+      return { opacity: st.opacity, disabled: b.getAttribute("aria-disabled"), height: Math.round(r.height), below: r.top >= price.bottom,
+        centred: Math.abs((r.left + r.right) / 2 - (card.left + card.right) / 2) < 2, narrow: r.width < card.width * 0.8 };
+    });
+    check(ctaLook.opacity === "0.6" && ctaLook.disabled === "true" && ctaLook.height === 36 && ctaLook.below && ctaLook.centred && ctaLook.narrow,
+      `clicked open: the small faded Upgrade to Pro, centred under Coming Soon (${JSON.stringify(ctaLook)})`);
     await page.screenshot({ path: "screenshots/upgrade-from-length.png" });
     // No ✕: a click outside closes it.
     check(await modal.getByRole("button", { name: "Close" }).count() === 0, "Upgrade to Pro has no ✕ (a click outside or Esc closes it)");
@@ -1306,7 +1334,7 @@ try {
     await context.addInitScript((value) => localStorage.setItem("sb-nxlsnpzfbazwlccxtwpt-auth-token", value), JSON.stringify(session));
     const [a, b] = await Promise.all([context.newPage(), context.newPage()]);
     await Promise.all([a.goto("http://localhost:4173/#today"), b.goto("http://localhost:4173/#today")]);
-    await Promise.all([a.getByText(/The answer is/).waitFor(), b.getByText(/The answer is/).waitFor()]);
+    await Promise.all([a.locator(".quiz-result").waitFor(), b.locator(".quiz-result").waitFor()]);
     await a.waitForTimeout(1500);
     check(db.study_days[0].quiz_answers === before + 1 && quiz.recorded === true,
       `two open tabs count the finished quiz once (${before} → ${db.study_days[0].quiz_answers})`);

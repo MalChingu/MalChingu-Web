@@ -3,7 +3,6 @@ import { createPortal } from "react-dom";
 import { PRO_BENEFITS, PRO_PRICE, setUpgradeOpener, type UpgradeMode } from "../lib/upgrade";
 import { pageZoom } from "../lib/zoom";
 import { Icon } from "./Icon";
-import { Button } from "./ui";
 
 /** The sidebar's width less its inset (--side-width, 300px), wherever it opens. */
 const WIDTH = 284;
@@ -73,23 +72,26 @@ export function UpgradeModal() {
   const body = (
       <div ref={card} className={`upgrade-modal glass ${hover ? "hovering" : ""}`} role="dialog" aria-modal={hover ? undefined : true}
         aria-label={pro ? "Korimal Pro" : "Upgrade to Pro"} style={place}>
-        {/* Free accounts: Coming Soon as the heading (the price, once checkout is set up). A Pro account's badge shows
-            just the list. */}
-        {!pro && (
-          <div className="upgrade-head">
-            <div className="upgrade-price">{PRO_PRICE
-              ? <><strong>{PRO_PRICE.split("/")[0]}</strong><span className="muted">/month (USD)</span></>
-              : <strong>Coming Soon</strong>}</div>
-          </div>
-        )}
+        {/* What Pro adds first, then (free accounts) Coming Soon at the bottom, where the price will go once checkout is
+            set up. A Pro account's badge shows just the list. */}
         <ul className="upgrade-benefits">
           {PRO_BENEFITS.map((b) => (
             <li key={b}><Icon name="checkCircle" size={20} className="upgrade-check" /><span>{b}</span></li>
           ))}
         </ul>
-        {/* No button until checkout (Stripe) is set up: there's nothing to press yet. */}
-        {!pro && PRO_PRICE && (
-          <Button kind="prominent" icon="bolt" full large onClick={() => {}}>{`Upgrade for ${PRO_PRICE}`}</Button>
+        {!pro && (
+          <div className="upgrade-price">{PRO_PRICE
+            ? <><strong>{PRO_PRICE.split("/")[0]}</strong><span className="muted">/month (USD)</span></>
+            : <strong>Coming Soon</strong>}</div>
+        )}
+        {/* Opened with a click (a locked guide length, the Pro photo tile): the small Upgrade to Pro, faded and inert until
+            checkout is set up. Not when it shows on hover: it goes as the pointer leaves, so there'd be nothing to press. */}
+        {!pro && !hover && (
+          <button type="button" className={`button prominent compact upgrade-button upgrade-cta ${PRO_PRICE ? "" : "soon"}`}
+            aria-disabled={PRO_PRICE ? undefined : true} title={PRO_PRICE ? undefined : "Coming Soon"}
+            onClick={() => { /* Checkout (Stripe) goes here, once it's set up. */ }}>
+            <Icon name="bolt" size={16} /><span>Upgrade to Pro</span>
+          </button>
         )}
       </div>
   );

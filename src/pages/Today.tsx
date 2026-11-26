@@ -41,7 +41,6 @@ export function Today({ openGuide }: { openGuide: (id: string) => void }) {
               {isFinished(quiz) ? (
                 <div className="stack">
                   <QuizResult session={quiz} />
-                  {quiz.state === "solved" && <div className="meaning-line left">{quiz.word.meanings[0]}</div>}
                   <Button icon="textBook" full large onClick={() => store.openWord(quiz.word)}>Usage and Tenses</Button>
                 </div>
               ) : (

@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { HINT_SLOTS, MAX_MISTAKES, hintAt, isHintRevealed, triesLeft, type Outcome, type QuizSession } from "../core/quiz";
+import { HINT_SLOTS, MAX_MISTAKES, gaveUp, hintAt, isHintRevealed, triesLeft, type Outcome, type QuizSession } from "../core/quiz";
 import { hintHasEnglish, hintWords } from "../core/hints";
 import { saidRight } from "../core/koreanWords";
 import type { Heard } from "../lib/listen";
@@ -71,9 +71,11 @@ export function QuizPanel({ session, onSubmit, onGiveUp, onRevealHint }: {
   );
 }
 
-/** The result line once a quiz is over, with a microphone on the right to practice saying the word. */
+/** Once a quiz is over: the result (an outlined mark and Correct! / Didn't Know / Incorrect) with a microphone on the
+ *  right to practice saying the word, and the answer on the line below. */
 export function QuizResult({ session }: { session: QuizSession }) {
   const solved = session.state === "solved";
+  const unknown = !solved && gaveUp(session);
   const [said, setSaid] = useState<{ right: boolean; n: number } | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
   // Say it as many times as you like: each try shows ✓ or ✗ beside the microphone.
@@ -84,11 +86,11 @@ export function QuizResult({ session }: { session: QuizSession }) {
   };
   return (
     <>
-      <div className={`quiz-result ${solved ? "good" : "warn"}`}>
-        <Icon name={solved ? "checkCircle" : "bulb"} size={20} />
+      <div className={`quiz-result ${solved ? "right" : unknown ? "unknown" : "wrong"}`}>
+        <Icon name={solved ? "checkCircle" : unknown ? "question" : "xCircle"} size={20} />
         <span className="grow">{solved
           ? session.mistakes === 0 ? "Correct!" : `Correct after ${session.mistakes} miss${session.mistakes === 1 ? "" : "es"}.`
-          : `The answer is “${session.word.meanings[0]}”.`}</span>
+          : unknown ? "Didn't Know" : "Incorrect"}</span>
         <span className="say-practice">
           <MicButton lang="ko-KR" label={`Practice Saying ${session.word.hangul}`} size={20} onHeard={onHeard} />
           {said && (
@@ -99,6 +101,7 @@ export function QuizResult({ session }: { session: QuizSession }) {
           )}
         </span>
       </div>
+      <div className="meaning-line left quiz-answer">{session.word.meanings[0]}</div>
       {problem && <p className="small muted say-problem" role="status">{problem}</p>}
     </>
   );
