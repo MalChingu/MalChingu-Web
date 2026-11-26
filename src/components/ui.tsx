@@ -282,10 +282,11 @@ export function Stepper({ onMinus, onPlus, minusLabel, plusLabel, minusDisabled,
 
 /** A screen. `back` puts a round back button on the title line; long titles get a smaller size. */
 /** Three dots that light up one at a time, shown while content loads from the server. */
-export function LoadingDots() {
+/** Something on its way (the account's data, today's word): a circular spinner in the accent colour, centred. */
+export function LoadingSpinner() {
   return (
-    <div className="glass card loading-dots" role="status" aria-label="Loading">
-      <span /><span /><span />
+    <div className="loading-spinner" role="status" aria-label="Loading">
+      <span />
     </div>
   );
 }
@@ -304,7 +305,7 @@ export function Page({ title, children, actions, centered, back, waiting, classN
         <FitTitle text={title} />
         {actions && <div className="page-actions">{actions}</div>}
       </header>
-      <div className="page-content">{showDots ? <LoadingDots /> : children}</div>
+      <div className="page-content">{showDots ? <LoadingSpinner /> : children}</div>
     </div>
   );
 }

@@ -194,7 +194,11 @@ try {
       const setup = page.getByRole("dialog", { name: "Set Up Your Profile" });
       await setup.waitFor({ timeout: 15000 });
       check(await page.evaluate(() => window.__sawApp) === false, "a new account goes straight to setting up, without the app showing first");
-      check(await setup.getByLabel("Your name").inputValue() === "Test Learner", "onboarding starts with the name filled in");
+      check(await setup.getByLabel("Your name").inputValue() === "" && await setup.getByRole("button", { name: "Continue" }).isDisabled(),
+        "onboarding starts with the name empty, for you to type");
+      const look = await setup.locator(".onboarding-card").evaluate((el) => [getComputedStyle(el).backgroundColor, el.classList.contains("glass")]);
+      check(look[0] === "rgba(0, 0, 0, 0)" && !look[1], `onboarding sits on the page, with no card (${look})`);
+      await setup.getByLabel("Your name").fill("Test Learner");
       await setup.getByRole("button", { name: "Continue" }).click();
       await setup.getByText("Available").waitFor();
       const suggested = await setup.getByLabel("Username").inputValue();
@@ -220,6 +224,14 @@ try {
       check(await setup.getByRole("radio", { name: "Rocket" }).getAttribute("aria-checked") === "true", "going back keeps the chosen picture");
       check(await setup.locator(".onboarding-avatar img").evaluate((img) => img.complete && img.naturalWidth === 128), "the picture loads");
       await page.screenshot({ path: "screenshots/onboarding-picture.png" });
+      // A small phone (320px): the pictures shrink together and stay whole circles (none squeezed at a row's end).
+      await page.setViewportSize({ width: 320, height: 640 });
+      await page.waitForTimeout(150);
+      const boxes = await setup.locator(".avatar-choice").evaluateAll((els) => els.map((el) => { const r = el.getBoundingClientRect(); return [Math.round(r.width * 10) / 10, Math.round(r.height * 10) / 10]; }));
+      check(boxes.length === 8 && boxes.every(([w, h]) => Math.abs(w - h) < 0.5) && new Set(boxes.map(([w]) => w)).size === 1,
+        `on a 320px phone every picture is a whole circle, all the same size (${boxes.map(([w, h]) => `${w}×${h}`).join(" ")})`);
+      await page.screenshot({ path: "screenshots/onboarding-picture-320.png" });
+      await page.setViewportSize(viewport);
       await setup.getByRole("button", { name: "Start Learning" }).click();
       await setup.waitFor({ state: "detached" });
       check(db.public_profiles[0]?.username === "testlearner", "the username is saved");
@@ -619,7 +631,7 @@ try {
   }
 
 
-  // Loading: while the data is on its way, pages show the three dots instead of half-loaded content.
+  // Loading: while the data is on its way, pages show a spinner instead of half-loaded content.
   {
     const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
     let slow = true;
@@ -630,23 +642,23 @@ try {
     await context.addInitScript((value) => localStorage.setItem("sb-nxlsnpzfbazwlccxtwpt-auth-token", value), JSON.stringify(session));
     const page = await context.newPage();
     await page.goto("http://localhost:4173/#today");
-    await page.locator(".loading-dots").waitFor({ timeout: 5000 });
+    await page.locator(".loading-spinner").waitFor({ timeout: 5000 });
     check(await page.getByRole("status", { name: "Loading" }).isVisible() && await page.getByText("Word of the Day").count() === 0,
-      "Today shows loading dots, not the word, until the data arrives");
-    const lit = await page.locator(".loading-dots span").evaluateAll((dots) => dots.map((d) => getComputedStyle(d).animationDelay));
-    check(lit.join() === "0s,0.35s,0.7s", `the dots light up one after another (${lit})`);
+      "Today shows a spinner, not the word, until the data arrives");
+    const spin = await page.locator(".loading-spinner span").evaluate((el) => [getComputedStyle(el).animationName, getComputedStyle(el).borderRadius]);
+    check(spin[0] === "spin" && spin[1] === "50%", `loading is a turning circular spinner (${spin})`);
     await page.getByText("Word of the Day").waitFor({ timeout: 10000 });
-    check(await page.locator(".loading-dots").count() === 0, "the dots go once the word of the day has loaded");
+    check(await page.locator(".loading-spinner").count() === 0, "the spinner goes once the word of the day has loaded");
     slow = false;
     for (const name of ["Flashcards", "Guides", "Stats", "Profile"]) {
       await page.getByRole("button", { name, exact: true }).click();
-      check(await page.locator(".loading-dots").count() === 0, `${name}: no dots once loaded`);
+      check(await page.locator(".loading-spinner").count() === 0, `${name}: no spinner once loaded`);
     }
     slow = true;
     await page.reload();
-    await page.locator(".loading-dots").waitFor({ timeout: 5000 });
-    check(await page.locator(".loading-dots").isVisible() && await page.locator(".profile-name").count() === 0,
-      "Profile also waits with dots while loading");
+    await page.locator(".loading-spinner").waitFor({ timeout: 5000 });
+    check(await page.locator(".loading-spinner").isVisible() && await page.locator(".profile-name").count() === 0,
+      "Profile also waits with a spinner while loading");
     await page.locator(".profile-name").waitFor({ timeout: 10000 });
     await context.close();
   }

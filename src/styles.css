@@ -684,15 +684,12 @@ button.achievement { cursor: pointer; }
 @media (min-width: 900px) { .selection-bar { bottom: 24px; } }
 
 /* Loading: three dots light up one after another until the content arrives. */
-.loading-dots { display: flex !important; flex-direction: row !important; justify-content: center; align-items: center; gap: 10px; padding: 36px !important; }
-.loading-dots span { width: 10px; height: 10px; border-radius: 50%; background: var(--text-3); animation: loading-dot 1.05s infinite; }
-.loading-dots span:nth-child(2) { animation-delay: 0.35s; }
-.loading-dots span:nth-child(3) { animation-delay: 0.7s; }
-@keyframes loading-dot {
-  0%, 33% { background: var(--accent); transform: scale(1.25); }
-  34%, 100% { background: var(--text-3); transform: scale(1); }
-}
-@media (prefers-reduced-motion: reduce) { .loading-dots span { animation-duration: 2.1s; transform: none !important; } }
+/* Loading: a circular spinner in the accent colour, centred (no card). */
+.loading-spinner { display: flex; justify-content: center; align-items: center; padding: 36px; }
+.loading-spinner span { width: 32px; height: 32px; border-radius: 50%; border: 3.5px solid color-mix(in srgb, var(--accent) 18%, transparent);
+  border-top-color: var(--accent); animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .loading-spinner span { animation-duration: 2s; } }
 
 /* Goals: plain lines under a small label. */
 .goals-block { display: flex; flex-direction: column; gap: 6px; }
@@ -911,14 +908,16 @@ a.easter-egg, a.easter-egg:hover, .legal-footer a.easter-egg, .legal-footer a.ea
 /* Profile pictures: seven presets and an upload tile, in a grid (first sign-in and Edit Profile). */
 .avatar-image { border-radius: 50%; object-fit: cover; display: block; flex: none; }
 /* Fixed columns, centred: the gap stays the same however wide the sheet is (a wide or zoomed window spread them out). */
-.avatar-grid { display: grid; grid-template-columns: repeat(4, 62px); justify-content: center; gap: 12px 16px; width: 100%; }
-.avatar-choice { border: 0; padding: 3px; border-radius: 50%; background: none; cursor: pointer; line-height: 0;
+/* Four to a row, 62px at most (so a wide sheet doesn't spread them apart), shrinking together on a narrow phone: each
+   tile is a square, so every picture stays a whole circle. */
+.avatar-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 62px)); justify-content: center; gap: 12px clamp(6px, 3vw, 16px); width: 100%; }
+.avatar-choice { border: 0; padding: 3px; border-radius: 50%; background: none; cursor: pointer; line-height: 0; width: 100%; aspect-ratio: 1;
   box-shadow: 0 0 0 2px transparent; transition: box-shadow 0.15s, transform 0.15s; }
-.avatar-choice img { width: 56px; height: 56px; border-radius: 50%; display: block; }
+.avatar-choice img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block; }
 .avatar-choice:hover { transform: scale(1.05); }
 .avatar-choice.on { box-shadow: 0 0 0 3px var(--accent); }
 .avatar-upload { position: relative; }
-.avatar-upload-art { width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; color: var(--accent);
+.avatar-upload-art { width: 100%; height: 100%; border-radius: 50%; display: grid; place-items: center; color: var(--accent);
   background: var(--accent-soft); border: 2px dashed color-mix(in srgb, var(--accent) 45%, transparent); }
 .avatar-upload-pro { position: absolute; right: -4px; bottom: -2px; padding: 1px 7px; border-radius: 999px; font-size: 0.68rem;
   font-weight: 700; line-height: 1.5; color: var(--on-fill); background: var(--brand-gradient); border: 2px solid var(--base); }

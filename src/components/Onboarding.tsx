@@ -8,18 +8,13 @@ import { useUsernameCheck, useUsernameSuggestion, UsernameStatus } from "./Frien
 import { Icon } from "./Icon";
 import { Button, Logo, RoundButton } from "./ui";
 
-/** The account's name from Apple or Google, when they gave one. */
-function nameFromAccount(meta: Record<string, unknown> | undefined): string {
-  const full = meta?.full_name ?? meta?.name;
-  return typeof full === "string" ? full.trim() : "";
-}
-
 /** First sign-in: your name, a username (for good) and one of the preset pictures (one is picked for you).
  *  Shown until the account has a username. */
 export function Onboarding({ onDone }: { onDone: () => void }) {
   const store = useStore();
   const [step, setStep] = useState(0);
-  const [name, setName] = useState(() => store.settings.profile.name || nameFromAccount(store.session?.user.user_metadata));
+  // Empty to start: you type your name in.
+  const [name, setName] = useState("");
   const [handle, setHandle] = useState("");
   const typed = useRef(false);
   const suggestion = useUsernameSuggestion(name, typed.current || step !== 1);
@@ -44,8 +39,9 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
 
   return (
     <div className="onboarding app-background" role="dialog" aria-modal="true" aria-label="Set Up Your Profile">
-      <div className="onboarding-card glass">
-        {/* Back: an arrow at the card's top left, from the second step on. */}
+      {/* On the page itself, no card. */}
+      <div className="onboarding-card">
+        {/* Back: an arrow at the top left, from the second step on. */}
         {step > 0 && (
           <span className="onboarding-back">
             <RoundButton icon="chevronLeft" tint="glass" label="Back" size={38} onClick={() => { setError(null); setStep(step - 1); }} />
