@@ -1016,6 +1016,9 @@ try {
     });
     const box = await page.locator(".flashcard-input").evaluate((el) => { const st = getComputedStyle(el); return [Math.round(el.getBoundingClientRect().height), st.fontSize]; });
     check(box[0] === 44 && box[1] === "17.6px", `a flashcard's answer box is the size of Today's (44px tall, 1.1rem text) (${box})`);
+    // Its placeholder is Text 2, the apps' grey, not the browser's own (Safari's is much lighter).
+    const hintText = await page.locator(".flashcard-input").evaluate((el) => getComputedStyle(el, "::placeholder").color);
+    check(hintText === "rgba(21, 19, 43, 0.6)", `a flashcard's placeholder is Text 2, like the apps' (${hintText})`);
     check(whites.input === whites.want && whites.hint === whites.want && whites.want === "rgba(255, 255, 255, 0.9)",
       `a flashcard's answer box and hint are the field white, like Today's (${JSON.stringify(whites)})`);
     await page.locator(".flashcard-bottom").screenshot({ path: "screenshots/flashcard-hint-white.png" });
