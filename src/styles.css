@@ -687,7 +687,8 @@ button.achievement { cursor: pointer; }
 .achievement-text { display: flex; flex-direction: column; flex: 1; }
 
 /* The Profile tab shows the learner's picture when there is one. */
-.tab-avatar { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; flex: none; }
+/* The icons' 22px, so the picture isn't bigger and the label lines up with the other tabs'. */
+.tab-avatar { width: 22px; height: 22px; border-radius: 50%; object-fit: cover; flex: none; }
 .tab.on .tab-avatar { box-shadow: 0 0 0 2px currentColor; }
 
 /* My Words: selecting several words to delete. */

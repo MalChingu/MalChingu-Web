@@ -655,6 +655,10 @@ try {
     await page.reload();
     await page.locator("img.tab-avatar").first().waitFor({ timeout: 10000 });
     check(await page.locator("img.tab-avatar").first().evaluate((img) => img.complete && img.naturalWidth > 0), `${scheme}: profile tab shows the picture`);
+    // The picture is the other tabs' icon size, so it isn't bigger and its label lines up with theirs.
+    const tabSizes = await page.evaluate(() => [document.querySelector("img.tab-avatar").getBoundingClientRect().height,
+      document.querySelector(".tabs .tab:not(.profile-tab) .tab-icon svg").getBoundingClientRect().height]);
+    check(tabSizes[0] === tabSizes[1], `${scheme}: the profile tab's picture is the icons' size (${tabSizes})`);
     db.profiles[0].avatar = "default:3";
     await page.reload();
     await page.locator("img.tab-avatar").first().waitFor({ timeout: 10000 });

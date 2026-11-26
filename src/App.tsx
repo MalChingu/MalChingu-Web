@@ -134,7 +134,7 @@ export function App() {
             onClick={() => go(t.id)}>
             <span className="tab-icon">
               {t.id === "profile" && store.settings.profile.avatar
-                ? <AvatarImage className="tab-avatar" avatar={store.settings.profile.avatar} size={24} />
+                ? <AvatarImage className="tab-avatar" avatar={store.settings.profile.avatar} size={22} />
                 : <Icon name={t.icon} size={22} />}
               {/* A friend request or a challenge is waiting. */}
               {t.id === "profile" && store.friendsWaiting > 0 && <span className="tab-dot" aria-label="Something from a friend is waiting" />}
