@@ -147,7 +147,6 @@ button:disabled { cursor: default; opacity: 0.45; }
 /* Upgrade to Pro before checkout is set up: a little faded, and pressing it does nothing (pointing at it still shows
    what Pro adds). */
 .button.upgrade-button.soon { opacity: 0.6; cursor: default; }
-.page-header .header-upgrade { flex: none; }
 .button.danger { color: var(--red); }
 .button.sign-out { background: var(--red-fill); color: var(--on-fill); border-color: transparent; margin-top: 8px; }
 .button.destructive { background: var(--red-fill); color: var(--on-fill); border-color: transparent; }

@@ -40,13 +40,13 @@ export const ProBadge = () => (
   </button>
 );
 
-/** Upgrade to Pro (the sidebar, page headers and limit notes). Pointed at or focused, it shows what Pro adds (Coming
+/** Upgrade to Pro (the sidebar and the limit notes; no page headers on the web). Pointed at or focused, it shows what Pro adds (Coming
  *  Soon and the list), which goes when the pointer leaves. Clicking goes to checkout; until that's set up the button is
  *  a little faded and does nothing. On a touch screen a tap shows what Pro adds instead. */
-export function UpgradeButton({ full = true, header = false }: { full?: boolean; header?: boolean }) {
+export function UpgradeButton({ full = true }: { full?: boolean }) {
   const ready = PRO_PRICE !== null;
   return (
-    <button type="button" className={`button prominent upgrade-button ${full ? "full" : ""} ${header ? "compact header-upgrade" : ""} ${ready ? "" : "soon"}`}
+    <button type="button" className={`button prominent upgrade-button ${full ? "full" : ""} ${ready ? "" : "soon"}`}
       aria-disabled={ready ? undefined : true} title={ready ? undefined : "Coming Soon"}
       onMouseEnter={(e) => showUpgrade(e.currentTarget, true)} onMouseLeave={hideProFeatures}
       onFocus={(e) => { if (e.currentTarget.matches(":focus-visible")) showUpgrade(e.currentTarget, true); }} onBlur={hideProFeatures}

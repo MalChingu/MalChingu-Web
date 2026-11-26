@@ -5,7 +5,6 @@ import { noteTags, type NoteDraft } from "../components/NoteMenu";
 import { Card, ConfirmDialog, Page, Segmented, SpeakButton, copyText, useSwipe } from "../components/ui";
 import { romanize } from "../core/romanizer";
 import { useStore } from "../lib/store";
-import { UpgradeButton } from "../components/Plan";
 
 type Tab = "notes" | "translations";
 type When = "all" | "week" | "today";
@@ -48,8 +47,7 @@ export function Notebook({ startTab = "notes", onBack, addNote }: {
 
   const swipe = useSwipe(() => setTab("notes"), () => setTab("translations"));
   return (
-    <Page title="My Notes" back={{ label: "Back to Study Guides", onClick: onBack }}
-      leading={store.plan === "free" ? <UpgradeButton full={false} header /> : undefined}>
+    <Page title="My Notes" back={{ label: "Back to Study Guides", onClick: onBack }}>
       <Segmented label="Show" value={tab} onChange={setTab}
         options={[{ value: "notes", label: "Notes" }, { value: "translations", label: "Translations" }]} />
       {/* On a phone, a sideways swipe switches between Notes and Translations. */}

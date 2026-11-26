@@ -11,7 +11,7 @@ import { overviewPoints } from "../core/guideOverview";
 import { useStore } from "../lib/store";
 import { maxGuideDays, planLimit } from "../core/plan";
 import { upgradeToPro } from "../lib/upgrade";
-import { LimitNote, UpgradeButton } from "../components/Plan";
+import { LimitNote } from "../components/Plan";
 import { formatDay, guideDate, guideDayNumber } from "./guideDates";
 import { TaskList } from "./Today";
 import { KoreanText } from "../components/KoreanText";
@@ -95,7 +95,7 @@ export function Guides({ openGuideID, setOpenGuideID, practice }: {
   }
 
   return (
-    <Page title="Study Guides" leading={store.plan === "free" ? <UpgradeButton full={false} header /> : undefined} actions={guides.length > 0
+    <Page title="Study Guides" actions={guides.length > 0
       ? <RoundButton icon="plus" tint="glass" label="Create Guide" onClick={() => setCreating(true)} size={38} /> : undefined}>
       <button type="button" className="glass card nav-row" onClick={() => goNotebook("notes")}>
         <Icon name="pencil" size={20} className="accent" />

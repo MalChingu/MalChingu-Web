@@ -678,26 +678,21 @@ try {
     const page = await context.newPage();
     const limit = page.locator(".guide-limit");
     await page.goto("http://localhost:4173/#guides");
-    const headerUpgrade = page.locator(".page-header .header-upgrade");
-    await headerUpgrade.waitFor({ timeout: 15000 });
+    await page.locator(".tabs").getByRole("button", { name: "Upgrade to Pro" }).waitFor({ timeout: 15000 });
+    await page.getByRole("heading", { name: "Study Guides" }).waitFor();
     check(await limit.count() === 0, "free, 1 guide: no limit note until both guides are used");
-    // Upgrade to Pro at the left of the header (before the title), a little faded until checkout is set up.
-    const [hb, title] = [await headerUpgrade.boundingBox(), await page.locator(".page-header h1").boundingBox()];
-    const fade = await headerUpgrade.evaluate((el) => [getComputedStyle(el).opacity, el.getAttribute("aria-disabled")]);
-    check(hb.x + hb.width <= title.x + 1 && fade[0] === "0.6" && fade[1] === "true",
-      `free: Upgrade to Pro sits at the header's left, faded (${fade})`);
-    // Pointed at: Coming Soon and what Pro adds; it goes when the pointer leaves. A click does nothing yet.
-    const hoverCard = page.getByRole("dialog", { name: "Upgrade to Pro" });
-    await headerUpgrade.hover();
-    await hoverCard.waitFor();
-    await page.waitForTimeout(350);
-    check((await hoverCard.locator(".upgrade-price").innerText()).trim() === "Coming Soon" && await hoverCard.locator(".upgrade-benefits li").count() === 4,
-      "pointing at the header's Upgrade to Pro shows Coming Soon and what Pro adds");
-    await page.screenshot({ path: "screenshots/upgrade-header-hover.png" });
-    await headerUpgrade.click({ force: true });
+    check(await page.locator(".page-header").getByRole("button", { name: "Upgrade to Pro" }).count() === 0,
+      "free: no Upgrade to Pro in the page header on the web (the sidebar has it)");
+    // The sidebar's Upgrade to Pro: a little faded until checkout is set up; a click does nothing yet.
+    const sideUpgrade = page.locator(".tabs").getByRole("button", { name: "Upgrade to Pro" });
+    const fade = await sideUpgrade.evaluate((el) => [getComputedStyle(el).opacity, el.getAttribute("aria-disabled")]);
+    check(fade[0] === "0.6" && fade[1] === "true", `free: the sidebar's Upgrade to Pro is faded until checkout is set up (${fade})`);
+    await sideUpgrade.hover();
+    await page.getByRole("dialog", { name: "Upgrade to Pro" }).waitFor();
+    await sideUpgrade.click({ force: true });
     await page.mouse.move(700, 600);
-    await hoverCard.waitFor({ state: "detached" });
-    check(await page.getByRole("dialog").count() === 0, "moving away hides it; clicking (checkout, not set up yet) opens nothing");
+    await page.getByRole("dialog", { name: "Upgrade to Pro" }).waitFor({ state: "detached" });
+    check(await page.getByRole("dialog").count() === 0, "moving away hides what Pro adds; clicking (checkout, not set up yet) opens nothing");
     // No floating Notes button on the Study Guides list.
     check(await page.locator(".fab").count() === 0, "Study Guides has no floating Notes button");
     const second = { ...db.study_guides[0], id: "55555555-5555-4555-8555-555555555556", title: "Second Guide", created_at: stamp };
