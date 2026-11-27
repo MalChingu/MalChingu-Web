@@ -2,13 +2,11 @@
 // Guide lengths open one modal, floating up from the control that was tapped (see components/UpgradeModal). A Pro
 // account's badge shows the same modal, just what Pro adds, while the pointer is over it.
 
-/** The price, once checkout (Stripe) is set up ("$5/month"). Until then the modal's heading says Coming Soon, with no
- *  button. */
-export const PRO_PRICE: string | null = null;
 /** What Pro adds: one line each, with a green ✓. */
 export const PRO_BENEFITS = ["Unlimited Study Guides", "Unlimited Guide Timeframes", "Unlimited “My Words”", "Custom Profile Photo"] as const;
 
-/** "upgrade": the price (Coming Soon for now) and what Pro adds. "pro": a Pro account's own badge, just what Pro adds. */
+/** "upgrade": what Pro adds and the price (and, clicked open, checkout). "pro": a Pro account's own badge, just what Pro
+ *  adds. */
 export type UpgradeMode = "upgrade" | "pro";
 /** The control's rect, the sidebar's when the control is in it (the modal then fits inside the sidebar), and whether
  *  it only shows while the pointer is over the control (`hover`). */
@@ -27,8 +25,8 @@ export function upgradeToPro(from?: EventTarget | null): void {
   open(from, "upgrade");
 }
 
-/** An Upgrade to Pro button pointed at (`hover`): Coming Soon (the price, once there is one) and what Pro adds, until
- *  the pointer leaves (see hideProFeatures). Clicking the button itself goes to checkout. */
+/** An Upgrade to Pro button pointed at (`hover`): what Pro adds and the price, until the pointer leaves (see
+ *  hideProFeatures). Clicking the button opens it to stay, with checkout. */
 export function showUpgrade(from?: EventTarget | null, hover = false): void {
   open(from, "upgrade", hover);
 }

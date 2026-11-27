@@ -25,6 +25,10 @@ let BLOCKS = [];
 let deleteCalls = 0;
 /** The account's plan, as my_plan() returns it: free (2 guides at a time) or pro. */
 let PLAN = "free";
+/** The subscription part of my_plan() (none, until a test sets one), and the billing function's calls and answer. */
+let SUBSCRIPTION = {};
+let billingCalls = [];
+let CHECKOUT_ERROR = null;
 
 /** The stand-in database. */
 const db = {
@@ -59,6 +63,9 @@ const db = {
 /** The words before the My Words delete test, to put back afterwards. */
 let savedWords = [];
 const KEYS = { public_profiles: ["user_id"], profiles: ["user_id"], word_progress: ["user_id", "word_id"], study_days: ["user_id", "day"], daily_quiz: ["user_id", "day"] };
+
+/** Stand-ins for Stripe's checkout and portal pages (the billing function sends the browser there). */
+const stripePages = (route) => route.fulfill({ contentType: "text/html", body: "<!doctype html><title>Stripe</title><h1>Stripe</h1>" });
 
 /** Just enough of PostgREST for this app: eq filters, upserts, updates, deletes and one RPC. */
 async function fakeSupabase(route) {
@@ -102,7 +109,15 @@ async function fakeSupabase(route) {
   if (url.pathname === "/functions/v1/delete-account") { deleteCalls++; return json({ deleted: true }); }
   if (url.pathname === "/rest/v1/rpc/username_available") return json(true);
   if (url.pathname === "/rest/v1/rpc/my_plan") {
-    return json({ plan: PLAN, guide_limit: PLAN === "pro" ? null : 2, guides: db.study_guides.length });
+    return json({ plan: PLAN, guide_limit: PLAN === "pro" ? null : 2, guides: db.study_guides.length, source: null, status: null,
+      interval: null, renews_at: null, trial_end: null, cancel_at_period_end: false, trial_available: true, ...SUBSCRIPTION });
+  }
+  // Korimal Pro: the billing function answers with Stripe's page (a stand-in, see stripePages), or an error.
+  if (url.pathname === "/functions/v1/billing/checkout" || url.pathname === "/functions/v1/billing/portal") {
+    const route = url.pathname.split("/").pop();
+    billingCalls.push({ route, body: request.postDataJSON() ?? {} });
+    if (route === "checkout" && CHECKOUT_ERROR) return json({ error: CHECKOUT_ERROR }, 409);
+    return json({ url: route === "checkout" ? "https://checkout.stripe.com/c/pay/cs_test_e2e" : "https://billing.stripe.com/p/session/test_e2e" });
   }
   if (url.pathname === "/rest/v1/rpc/record_daily_quiz") {
     // Like the real function: claim today's quiz and save the count together, or do nothing.
@@ -775,16 +790,21 @@ try {
     check(await limit.count() === 0, "free, 1 guide: no limit note until both guides are used");
     check(await page.locator(".page-header").getByRole("button", { name: "Upgrade to Pro" }).count() === 0,
       "free: no Upgrade to Pro in the page header on the web (the sidebar has it)");
-    // The sidebar's Upgrade to Pro: a little faded until checkout is set up; a click does nothing yet.
+    // The sidebar's Upgrade to Pro: pointed at, what Pro adds shows; a click opens it to stay, with checkout.
     const sideUpgrade = page.locator(".tabs").getByRole("button", { name: "Upgrade to Pro" });
-    const fade = await sideUpgrade.evaluate((el) => [getComputedStyle(el).opacity, el.getAttribute("aria-disabled")]);
-    check(fade[0] === "0.6" && fade[1] === "true", `free: the sidebar's Upgrade to Pro is faded until checkout is set up (${fade})`);
+    const look = await sideUpgrade.evaluate((el) => [getComputedStyle(el).opacity, el.getAttribute("aria-disabled")]);
+    check(look[0] === "1" && look[1] === null, `free: the sidebar's Upgrade to Pro is a normal button now that checkout is set up (${look})`);
     await sideUpgrade.hover();
     await page.getByRole("dialog", { name: "Upgrade to Pro" }).waitFor();
-    await sideUpgrade.click({ force: true });
+    await sideUpgrade.click();
     await page.mouse.move(700, 600);
-    await page.getByRole("dialog", { name: "Upgrade to Pro" }).waitFor({ state: "detached" });
-    check(await page.getByRole("dialog").count() === 0, "moving away hides what Pro adds; clicking (checkout, not set up yet) opens nothing");
+    await page.waitForTimeout(300);
+    const kept = page.getByRole("dialog", { name: "Upgrade to Pro" });
+    check(await kept.count() === 1 && await kept.getByRole("radiogroup", { name: "Billing" }).count() === 1
+      && await kept.getByRole("button", { name: "Start Free Trial" }).count() === 1,
+      "clicking the sidebar's Upgrade to Pro keeps it open, with Monthly/Yearly and Start Free Trial");
+    await page.keyboard.press("Escape");
+    await kept.waitFor({ state: "detached" });
     // No floating Notes button on the Study Guides list.
     check(await page.locator(".fab").count() === 0, "Study Guides has no floating Notes button");
     const second = { ...db.study_guides[0], id: "55555555-5555-4555-8555-555555555556", title: "Second Guide", created_at: stamp };
@@ -798,8 +818,7 @@ try {
       "free, 2 guides: Upgrade to Pro sits to the right of the note, in line with it");
     await page.screenshot({ path: "screenshots/guides-limit-reached.png" });
     // The sidebar's Upgrade to Pro, pointed at: what Pro adds floats up inside the sidebar (a ✓ and the feature per
-    // line, then Coming Soon centred at the bottom, where the price will go), with no button, and goes when the pointer
-    // leaves.
+    // line, then both prices and the free trial centred at the bottom), with no button, and goes when the pointer leaves.
     const fromButton = page.locator(".tabs").getByRole("button", { name: "Upgrade to Pro" });
     await fromButton.hover();
     const upgrade = page.getByRole("dialog", { name: "Upgrade to Pro" });
@@ -807,14 +826,16 @@ try {
     await page.waitForTimeout(350);
     const [modalBox, buttonBox] = [await upgrade.boundingBox(), await fromButton.boundingBox()];
     const order = await upgrade.evaluate((el) => {
-      const list = el.querySelector(".upgrade-benefits").getBoundingClientRect(); const price = el.querySelector(".upgrade-price");
+      const list = el.querySelector(".upgrade-benefits").getBoundingClientRect(); const price = el.querySelector(".upgrade-price-block");
       const box = price.getBoundingClientRect(); const card = el.getBoundingClientRect();
       return { below: box.top >= list.bottom, centred: Math.abs((box.left + box.right) / 2 - (card.left + card.right) / 2) < 2, last: el.lastElementChild === price };
     });
-    check((await upgrade.locator(".upgrade-price").innerText()).trim() === "Coming Soon" && await upgrade.getByText("Coming Soon").count() === 1
+    const priceText = (await upgrade.locator(".upgrade-price").innerText()).replace(/\s+/g, " ").replace(/ \//g, "/").trim();
+    check(priceText === "$4.99/mo or $39.99/yr" && (await upgrade.locator(".upgrade-trial").innerText()).trim() === "7-day free trial"
+      && await upgrade.getByText("Coming Soon").count() === 0
       && await upgrade.locator(".upgrade-benefits li").count() === 4 && await upgrade.getByRole("button").count() === 0
       && order.below && order.centred && order.last,
-      `Upgrade to Pro on hover: four things Pro adds, then Coming Soon centred at the bottom, no button (${JSON.stringify(order)})`);
+      `Upgrade to Pro on hover: four things Pro adds, then both prices and the trial centred at the bottom, no button (${priceText}, ${JSON.stringify(order)})`);
     check(modalBox.y + modalBox.height <= buttonBox.y + 1, "Upgrade to Pro floats up above the button that opened it");
     const sideBox = await page.locator(".tabs").boundingBox();
     const lines = await upgrade.locator(".upgrade-benefits li").allInnerTexts();
@@ -822,7 +843,7 @@ try {
       && await upgrade.locator(".upgrade-check").count() === 4 && await upgrade.getByText("Free:").count() === 0
       && JSON.stringify(lines) === JSON.stringify(["Unlimited Study Guides", "Unlimited Guide Timeframes", "Unlimited “My Words”", "Custom Profile Photo"])
       && await upgrade.locator(".pro-badge").count() === 0 && await upgrade.getByText("Korimal Pro").count() === 0,
-      `Upgrade to Pro fits inside the sidebar: a ✓ and the feature per line, then Coming Soon, no badge or Korimal Pro title (${lines.join(" | ")})`);
+      `Upgrade to Pro fits inside the sidebar: a ✓ and the feature per line, then the price, no badge or Korimal Pro title (${lines.join(" | ")})`);
     const unselectable = await page.evaluate(() => ["upgrade-modal", "tabs"].map((c) => getComputedStyle(document.querySelector(`.${c}`)).userSelect));
     check(unselectable.every((v) => v === "none"), `the modal and the sidebar can't be selected (${unselectable})`);
     await page.screenshot({ path: "screenshots/upgrade-modal.png" });
@@ -839,17 +860,27 @@ try {
     await modal.waitFor();
     check(await sheet.getByRole("radio", { name: "1 week" }).getAttribute("aria-checked") === "true",
       "free: 2 weeks opens Upgrade to Pro and keeps 1 week");
-    // Opened with a click: the same list and Coming Soon, then the small Upgrade to Pro (faded until checkout exists).
-    const cta = modal.getByRole("button", { name: "Upgrade to Pro" });
+    // Opened with a click: the same list, then Monthly/Yearly, the price, the small Start Free Trial and what it means.
+    const cta = modal.getByRole("button", { name: "Start Free Trial" });
     await page.waitForTimeout(350);   // it has finished growing in
     const ctaLook = await cta.evaluate((b) => {
       const st = getComputedStyle(b); const card = b.closest(".upgrade-modal").getBoundingClientRect(); const r = b.getBoundingClientRect();
       const price = b.closest(".upgrade-modal").querySelector(".upgrade-price").getBoundingClientRect();
-      return { opacity: st.opacity, disabled: b.getAttribute("aria-disabled"), height: Math.round(r.height), below: r.top >= price.bottom,
+      return { opacity: st.opacity, disabled: b.disabled, height: Math.round(r.height), below: r.top >= price.bottom,
         centred: Math.abs((r.left + r.right) / 2 - (card.left + card.right) / 2) < 2, narrow: r.width < card.width * 0.8 };
     });
-    check(ctaLook.opacity === "0.6" && ctaLook.disabled === "true" && ctaLook.height === 36 && ctaLook.below && ctaLook.centred && ctaLook.narrow,
-      `clicked open: the small faded Upgrade to Pro, centred under Coming Soon (${JSON.stringify(ctaLook)})`);
+    check(ctaLook.opacity === "1" && !ctaLook.disabled && ctaLook.height === 36 && ctaLook.below && ctaLook.centred && ctaLook.narrow,
+      `clicked open: the small Start Free Trial, centred under the price (${JSON.stringify(ctaLook)})`);
+    const billing = modal.getByRole("radiogroup", { name: "Billing" });
+    const priceNow = async () => (await modal.locator(".upgrade-price").innerText()).replace(/\s+/g, " ").replace(/ \//g, "/").trim();
+    const terms = () => modal.locator(".upgrade-terms").innerText();
+    check(await billing.getByRole("radio", { name: "Monthly" }).getAttribute("aria-checked") === "true" && await priceNow() === "$4.99/month"
+      && await terms() === "Free for 7 days, then $4.99/month. Cancel anytime.",
+      `clicked open: Monthly first, $4.99/month and the trial's terms (${await priceNow()})`);
+    await billing.getByRole("radio", { name: "Yearly" }).click();
+    check(await priceNow() === "$39.99/year Save 33%" && await terms() === "Free for 7 days, then $39.99/year. Cancel anytime.",
+      `Yearly: $39.99/year with Save 33%, and the terms follow (${await priceNow()})`);
+    await billing.getByRole("radio", { name: "Monthly" }).click();
     await page.screenshot({ path: "screenshots/upgrade-from-length.png" });
     // No ✕: a click outside closes it.
     check(await modal.getByRole("button", { name: "Close" }).count() === 0, "Upgrade to Pro has no ✕ (a click outside or Esc closes it)");
@@ -888,7 +919,7 @@ try {
     await page.waitForTimeout(350);
     const [side, card] = [await page.locator(".tabs").boundingBox(), await features.boundingBox()];
     check(await features.locator(".upgrade-benefits li").count() === 4 && await features.locator(".upgrade-check").count() === 4
-      && await features.getByText("Coming Soon").count() === 0 && await features.locator(".upgrade-price").count() === 0
+      && await features.locator(".upgrade-price-block, .upgrade-checkout, .upgrade-price").count() === 0
       && await features.getByRole("button").count() === 0 && await features.getByText("Free:").count() === 0
       && await features.locator(".pro-badge").count() === 0 && await features.getByText("Korimal Pro").count() === 0,
       "pro: hovering the badge shows what Pro adds: a ✓ and the feature per line, no price, no buttons, no ✕");
@@ -925,6 +956,92 @@ try {
     db.profiles[0].avatar = before;
     PLAN = "free";
     db.study_guides = db.study_guides.filter((g) => g.id !== second.id);
+    await context.close();
+  }
+
+  // Korimal Pro through Stripe: Start Free Trial goes to Stripe's checkout (monthly or yearly); the way back shows Welcome
+  // to Korimal Pro once the plan says Pro; Profile shows the subscription with Manage Subscription (Stripe's portal).
+  {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 860 } });
+    await context.route("https://nxlsnpzfbazwlccxtwpt.supabase.co/**", fakeSupabase);
+    await context.route(/^https:\/\/(checkout|billing)\.stripe\.com\//, stripePages);
+    await context.addInitScript((value) => localStorage.setItem("sb-nxlsnpzfbazwlccxtwpt-auth-token", value), JSON.stringify(session));
+    const page = await context.newPage();
+    billingCalls = [];
+    await page.goto("http://localhost:4173/#today");
+    const sideUpgrade = page.locator(".tabs").getByRole("button", { name: "Upgrade to Pro" });
+    await sideUpgrade.waitFor({ timeout: 15000 });
+    await sideUpgrade.click();
+    const modal = page.getByRole("dialog", { name: "Upgrade to Pro" });
+    await modal.getByRole("radio", { name: "Yearly" }).click();
+    // Refused (already Pro, say): the reason shows under the button, which works again.
+    CHECKOUT_ERROR = "You already have Pro. Manage it in Profile.";
+    await modal.getByRole("button", { name: "Start Free Trial" }).click();
+    await modal.getByRole("alert").waitFor();
+    check(await modal.getByRole("alert").innerText() === CHECKOUT_ERROR && await modal.getByRole("button", { name: "Start Free Trial" }).isEnabled()
+      && page.url().startsWith("http://localhost:4173"), "checkout refused: the reason shows in the popup and Start Free Trial works again");
+    await page.screenshot({ path: "screenshots/upgrade-checkout-error.png" });
+    CHECKOUT_ERROR = null;
+    await Promise.all([page.waitForURL(/checkout\.stripe\.com/), modal.getByRole("button", { name: "Start Free Trial" }).click()]);
+    check(billingCalls.length === 2 && billingCalls.every((c) => c.route === "checkout" && c.body.interval === "year"),
+      `Start Free Trial asks the billing function for a yearly checkout and goes to Stripe's page (${JSON.stringify(billingCalls)})`);
+
+    // Back from Stripe before its webhook has made the account Pro: Setting up Pro…, then the welcome once it has.
+    PLAN = "free";
+    await page.goto("http://localhost:4173/?checkout=success#profile");
+    const welcome = page.getByRole("dialog", { name: "Welcome to Korimal Pro" });
+    await welcome.getByText("Setting up Pro…").waitFor({ timeout: 15000 });
+    check(!page.url().includes("checkout=") && page.url().endsWith("#profile"), `the way back takes ?checkout= out of the address (${page.url()})`);
+    await page.screenshot({ path: "screenshots/checkout-waiting.png" });
+    PLAN = "pro";
+    SUBSCRIPTION = { source: "stripe", status: "trialing", interval: "year", renews_at: "2026-12-04T12:00:00Z", trial_end: "2026-12-04T12:00:00Z",
+      trial_available: false };
+    await welcome.getByText("Your 7-day free trial has started. It ends Dec 4, then $39.99/year.").waitFor({ timeout: 8000 });
+    check(await welcome.locator(".upgrade-benefits li").count() === 4 && await welcome.getByText("Setting up Pro…").count() === 0,
+      "once the plan says Pro: the welcome gives the trial's end and the price, then what Pro adds");
+    await page.screenshot({ path: "screenshots/checkout-welcome.png" });
+    await welcome.getByRole("button", { name: "Done" }).click();
+    await welcome.waitFor({ state: "detached" });
+
+    // Profile on a wide screen: the subscription and Manage Subscription (the sidebar keeps the Pro badge).
+    const card = page.locator(".plan-profile");
+    const line = card.locator(".plan-card-text .small").first();
+    const manage = card.getByRole("button", { name: "Manage Subscription" });
+    check(await card.isVisible() && await line.innerText() === "Free trial until Dec 4, then $39.99/year." && await page.locator(".tabs .pro-badge").isVisible(),
+      `pro through Stripe, wide screen: Profile shows the trial's end and the price (${await line.innerText()})`);
+    const [textBox, manageBox, cardBox] = [await card.locator(".plan-card-text").boundingBox(), await manage.boundingBox(), await card.boundingBox()];
+    check(manageBox.x >= textBox.x + textBox.width - 1 && manageBox.x + manageBox.width <= cardBox.x + cardBox.width,
+      "Manage Subscription sits to the right of the line, inside the card");
+    await card.scrollIntoViewIfNeeded();
+    await page.screenshot({ path: "screenshots/profile-subscription.png" });
+    await Promise.all([page.waitForURL(/billing\.stripe\.com/), manage.click()]);
+    check(billingCalls.length === 3 && billingCalls[2].route === "portal", "Manage Subscription opens Stripe's portal through the billing function");
+
+    // A cancelled checkout shows nothing. Pro given by hand has no Manage Subscription (wide screens leave it to the sidebar).
+    await page.goto("http://localhost:4173/?checkout=cancel#profile");
+    await page.locator(".tabs .pro-badge").waitFor({ timeout: 15000 });
+    await page.waitForTimeout(300);
+    check(await page.getByRole("dialog").count() === 0 && !page.url().includes("checkout="), "a cancelled checkout: no popup, and the address is tidied up");
+    SUBSCRIPTION = {};
+    await page.reload();
+    await page.locator(".tabs .pro-badge").waitFor({ timeout: 15000 });
+    check(!(await card.isVisible()) && await page.getByRole("button", { name: "Manage Subscription" }).count() === 0,
+      "Pro given by hand: no Manage Subscription, and Profile leaves the plan to the sidebar");
+
+    // A phone: the card in Profile, with the renewal date once the trial is over.
+    SUBSCRIPTION = { source: "stripe", status: "active", interval: "month", renews_at: "2026-12-27T12:00:00Z", trial_available: false };
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.reload();
+    await manage.waitFor({ timeout: 15000 });
+    const [phoneText, phoneButton, phoneCard] = [await card.locator(".plan-card-text").boundingBox(), await manage.boundingBox(), await card.boundingBox()];
+    check(await line.innerText() === "$4.99/month, renews Dec 27." && phoneButton.x + phoneButton.width <= phoneCard.x + phoneCard.width
+      && phoneButton.x >= phoneText.x + phoneText.width - 1,
+      `phone, pro through Stripe: the renewal line, with Manage Subscription to its right (${await line.innerText()})`);
+    await card.scrollIntoViewIfNeeded();
+    await page.screenshot({ path: "screenshots/profile-subscription-phone.png" });
+    PLAN = "free";
+    SUBSCRIPTION = {};
+    billingCalls = [];
     await context.close();
   }
 

@@ -54,7 +54,7 @@ function Privacy() {
         <ul>
           <li>Your account: you sign in with Apple or Google. We receive an account identifier and the email address the provider shares, which may be a private relay address, and your name if you choose to share it.</li>
           <li>Your profile: the display name, title and username you choose, and your profile picture: one of Korimal's pictures or, on Korimal Pro, a photo you upload (kept as a small 128-pixel image).</li>
-          <li>Your plan: whether your account is free or Korimal Pro.</li>
+          <li>Your plan: whether your account is free or Korimal Pro, and for a subscription its status, whether it is monthly or yearly, and when it renews or its trial ends. Stripe holds your payment details; we never see or store your card number.</li>
           <li>Your study data: the words you add, your progress on each word, quiz and flashcard answers, daily study totals and streaks, the word of the day quiz, study guides and their tasks, your notes and the translations you save.</li>
           <li>Your settings, such as your flashcard setup and notification times.</li>
           <li>Your friends: the friend requests you send and receive, your friendships, the people you block, and the challenges you play with friends and their results.</li>
@@ -110,6 +110,7 @@ function Privacy() {
       <Section title="Third-Party Services">
         <ul>
           <li>Supabase stores your account and study data and runs the Claude connector.</li>
+          <li>Stripe processes Korimal Pro payments and subscriptions under <External href="https://stripe.com/privacy">Stripe's Privacy Policy</External>. It receives your email address and payment details; we keep only your Stripe customer ID and your plan.</li>
           <li>Apple and Google provide sign-in, and on their devices the voice, translation and speech features described above. Apple Push Notification service and Google's Firebase Cloud Messaging deliver notifications to your device; they receive the device token and the notification's text.</li>
           <li>Anthropic provides Claude, only if you connect it.</li>
           <li>Vercel hosts this website and the web app and counts anonymous page views with Vercel Web Analytics, which uses no cookies and does not identify you.</li>
@@ -217,9 +218,18 @@ function Terms() {
       <Section title="Availability and Changes">
         <p>
           We work to keep Korimal available, but it may sometimes be unavailable, and we may change, add or remove
-          features. Korimal is free to use. Korimal Pro is coming soon and isn't for sale yet; before you can buy it, we
-          will show its price and terms, and you will never be charged without agreeing to them.
+          features. Korimal is free to use; Korimal Pro adds more for a subscription.
         </p>
+      </Section>
+      <Section title="Korimal Pro">
+        <ul>
+          <li>Korimal Pro costs $4.99 a month or $39.99 a year (US dollars). You buy it on korimal.com, where Stripe handles the payment; it then works in every Korimal app you sign in to.</li>
+          <li>Each account can have one 7-day free trial. You give a payment method when it starts, and you are charged when it ends unless you cancel before then.</li>
+          <li>Pro renews automatically every month or year until you cancel. Cancel anytime in Profile, then Manage Subscription; you keep Pro until the end of the period you have paid for.</li>
+          <li>If the price changes, we will tell you before your next renewal, and you can cancel before it applies.</li>
+          <li>Payments aren't refundable except where the law requires, but if you think something went wrong, email us and we will look into it.</li>
+          <li>Deleting your account cancels Pro straight away.</li>
+        </ul>
       </Section>
       <Section title="Ending Your Use and Deleting Your Account">
         <p>

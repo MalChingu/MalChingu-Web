@@ -151,9 +151,6 @@ button:disabled { cursor: default; opacity: 0.45; }
 .button.full { width: 100%; }
 .button.compact { min-height: 36px; padding: 0 16px; font-size: 0.92rem; box-shadow: none; }
 .button.prominent { background: var(--accent-fill); color: var(--on-fill); border-color: transparent; }
-/* Upgrade to Pro before checkout is set up: a little faded, and pressing it does nothing (pointing at it still shows
-   what Pro adds). */
-.button.upgrade-button.soon { opacity: 0.6; cursor: default; }
 .button.danger { color: var(--red); }
 .button.sign-out { background: var(--red-fill); color: var(--on-fill); border-color: transparent; margin-top: 8px; }
 .button.destructive { background: var(--red-fill); color: var(--on-fill); border-color: transparent; }
@@ -994,7 +991,8 @@ button.pro-badge:focus-visible { outline: 2px solid var(--accent); outline-offse
   .tabs-plan { display: flex; flex-direction: column; margin-top: auto; padding: 8px 2px 4px; }
   .tabs-plan .pro-badge { align-self: stretch; justify-content: center; }
   .tabs-plan + .tab.text-size { margin-top: 0; }
-  .plan-profile { display: none; }
+  /* Wide screens: the sidebar has the plan, so Profile shows it only for a Stripe subscription (Manage Subscription). */
+  .plan-profile:not(.subscribed) { display: none; }
 }
 /* Guides, free accounts: how many of the 2 guides are used, with Upgrade to Pro. */
 .guide-limit { flex-direction: row; align-items: center; gap: 12px; padding: 18px; }
@@ -1014,7 +1012,21 @@ button.pro-badge:focus-visible { outline: 2px solid var(--accent); outline-offse
 @media (prefers-reduced-motion: reduce) { .upgrade-modal { animation: fade 0.18s ease-out; } }
 /* Showing while the pointer is over the Pro badge: it mustn't catch the pointer, or it would close itself. */
 .upgrade-modal.hovering { pointer-events: none; z-index: 950; }
-.upgrade-price { display: flex; align-items: baseline; justify-content: center; gap: 4px; text-align: center; }
+.upgrade-price { display: flex; align-items: baseline; justify-content: center; gap: 4px; text-align: center; flex-wrap: wrap; }
+/* Pointed at: both prices, then the trial, centred at the bottom. */
+.upgrade-price-block { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.upgrade-price .upgrade-or { margin: 0 6px; }
+.upgrade-price-block .upgrade-price strong { font-size: 1.25rem; }
+/* Clicked open: monthly or yearly, the price, Start Free Trial and what it means. */
+.upgrade-checkout { display: flex; flex-direction: column; align-items: stretch; gap: 10px; }
+.upgrade-checkout .segmented button { padding: 7px 6px; }
+.upgrade-saving { margin-left: 6px; padding: 2px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent);
+  font-size: 0.75rem; font-weight: 700; align-self: center; }
+.upgrade-terms, .upgrade-error { margin: 0; text-align: center; }
+/* Back from checkout. */
+.checkout-welcome { display: flex; flex-direction: column; gap: 14px; }
+.checkout-welcome-lead { font-weight: 600; margin: 0; }
+.checkout-waiting { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 12px 0; }
 .upgrade-cta { align-self: center; }
 .upgrade-price strong { font-size: 1.5rem; font-weight: 800; font-family: var(--font-display); }
 /* What Pro adds: a green ✓ and the feature, one per line. */

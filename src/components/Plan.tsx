@@ -1,18 +1,41 @@
+import { useState } from "react";
 import { planLimit } from "../core/plan";
 import { useStore } from "../lib/store";
-import { PRO_PRICE, hideProFeatures, showProFeatures, showUpgrade, upgradeToPro } from "../lib/upgrade";
+import { subscriptionLine } from "../lib/subscription";
+import { hideProFeatures, showProFeatures, showUpgrade, upgradeToPro } from "../lib/upgrade";
 import { Icon } from "./Icon";
+import { Button } from "./ui";
 
 // Free accounts hold 2 study guides at a time; Pro has no limit. Wide screens show the plan at the bottom of the
 // sidebar, phones in Profile → About, and free accounts also on the Guides page.
 
-/** Pro shows a badge; a free account shows its guide count and Upgrade to Pro (payments come later, so the button
- *  doesn't do anything yet). Nothing until the plan has loaded. */
+/** Pro shows a badge, where the subscription stands (trial, renewal or end date) and Manage Subscription (Stripe's
+ *  portal); a free account shows its guide count and Upgrade to Pro. Nothing until the plan has loaded. */
 export function PlanCard({ className = "" }: { className?: string }) {
   const store = useStore();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   if (!store.plan) return null;
   if (store.plan === "pro") {
-    return <div className={`glass card plan-card pro ${className}`}><ProBadge /><span className="small muted">No limit on study guides.</span></div>;
+    const sub = store.subscription;
+    const manage = async () => {
+      setBusy(true);
+      setError(null);
+      const message = await store.manageSubscription();
+      if (message) { setError(message); setBusy(false); }
+    };
+    return (
+      <div className={`glass card plan-card pro ${className} ${sub?.source === "stripe" ? "subscribed" : ""}`}>
+        <div className="plan-card-text">
+          <ProBadge />
+          <span className="small muted">{(sub && subscriptionLine(sub)) ?? "No limit on study guides."}</span>
+          {error && <span className="small error" role="alert">{error}</span>}
+        </div>
+        {sub?.source === "stripe" && (
+          <Button compact disabled={busy} onClick={manage}>{busy ? "Opening…" : "Manage Subscription"}</Button>
+        )}
+      </div>
+    );
   }
   const limit = planLimit(store.plan, store.data.guides.length);
   return (
@@ -40,17 +63,15 @@ export const ProBadge = () => (
   </button>
 );
 
-/** Upgrade to Pro (the sidebar and the limit notes; no page headers on the web). Pointed at or focused, it shows what Pro adds (Coming
- *  Soon and the list), which goes when the pointer leaves. Clicking goes to checkout; until that's set up the button is
- *  a little faded and does nothing. On a touch screen a tap shows what Pro adds instead. */
+/** Upgrade to Pro (the sidebar and the limit notes; no page headers on the web). Pointed at or focused, it shows what
+ *  Pro adds and the price, which goes when the pointer leaves. Clicking (or tapping) opens it to stay, with monthly or
+ *  yearly and Start Free Trial (Stripe's checkout). */
 export function UpgradeButton({ full = true }: { full?: boolean }) {
-  const ready = PRO_PRICE !== null;
   return (
-    <button type="button" className={`button prominent upgrade-button ${full ? "full" : ""} ${ready ? "" : "soon"}`}
-      aria-disabled={ready ? undefined : true} title={ready ? undefined : "Coming Soon"}
+    <button type="button" className={`button prominent upgrade-button ${full ? "full" : ""}`}
       onMouseEnter={(e) => showUpgrade(e.currentTarget, true)} onMouseLeave={hideProFeatures}
       onFocus={(e) => { if (e.currentTarget.matches(":focus-visible")) showUpgrade(e.currentTarget, true); }} onBlur={hideProFeatures}
-      onClick={(e) => { if (!canHover()) upgradeToPro(e.currentTarget); /* else: checkout (Stripe), once it's set up */ }}>
+      onClick={(e) => upgradeToPro(e.currentTarget)}>
       <Icon name="bolt" size={18} /><span>Upgrade to Pro</span>
     </button>
   );

@@ -10,6 +10,7 @@ import { challengeNeedsMe, friendLabel, isValidUsername, looksLikeEmail, normali
   type BlockRow, type ChallengeRow, type FriendRow, type UserSearchRow } from "../core/friends";
 import { dayString, wordOfDay } from "../core/wordOfDay";
 import { readPlan, type Plan } from "../core/plan";
+import { readSubscription, type Interval, type Subscription } from "./subscription";
 import { readSettings, settingsPatch, type ProfileRow, type Settings } from "./settings";
 import { CONNECTOR_BASE_URL, supabase } from "./supabase";
 
@@ -133,6 +134,14 @@ interface Store {
   username: string | null | undefined;
   /** Free (2 study guides at a time) or Pro; null until loaded. */
   plan: Plan | null;
+  /** Korimal Pro's subscription (status, renewal, whether the trial is left); null until loaded. */
+  subscription: Subscription | null;
+  /** Reloads the plan (after checkout, while Stripe's webhook catches up). */
+  refreshPlan: () => Promise<Plan | null>;
+  /** Opens Stripe's checkout for Pro, monthly or yearly. Resolves to an error message (it leaves the page otherwise). */
+  startCheckout: (interval: Interval) => Promise<string | null>;
+  /** Opens Stripe's customer portal (Manage Subscription). Resolves to an error message (it leaves the page otherwise). */
+  manageSubscription: () => Promise<string | null>;
   /** Requests to you and challenges waiting on you. */
   friendsWaiting: number;
   setUsername: (typed: string) => Promise<string | null>;
@@ -184,6 +193,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [dataOK, setDataOK] = useState(false);
   const [duel, setDuel] = useState<Duel | null>(null);
   const [plan, setPlan] = useState<Plan | null>(null);
+  const [subscription, setSubscription] = useState<Subscription | null>(null);
   const userID = session?.user.id ?? null;
   /** When each part of the data was last changed on this page, so a load already in flight can't undo it. */
   const editedAt = useRef<Partial<Record<keyof Data, number>>>({});
@@ -210,7 +220,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       supabase.rpc("my_blocks"),
     ]);
     if (ticket !== friendsLoad.current) return;
-    if (!p.error) setPlan(readPlan((p.data as { plan?: unknown } | null)?.plan));
+    if (!p.error) {
+      setPlan(readPlan((p.data as { plan?: unknown } | null)?.plan));
+      setSubscription(readSubscription(p.data));
+    }
     const error = f.error ?? c.error ?? me.error;
     if (error) {
       setFriendsState((s) => ({ ...s, loaded: true, error: `Couldn't load your friends: ${error.message}` }));
@@ -272,6 +285,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setFriendsState(NO_FRIENDS);
     setCard(undefined);
     setPlan(null);
+    setSubscription(null);
     setDataOK(false);
     setDuel(null);
     if (!userID) { setData(EMPTY); return; }
@@ -672,6 +686,35 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return null;
   }, [userID]);
 
+  // Korimal Pro: the plan on its own (after checkout), and Stripe's checkout and portal through the billing function.
+  const refreshPlan = useCallback(async () => {
+    if (!userID) return null;
+    const { data: p, error } = await supabase.rpc("my_plan");
+    if (error) return null;
+    const next = readPlan((p as { plan?: unknown } | null)?.plan);
+    setPlan(next);
+    setSubscription(readSubscription(p));
+    return next;
+  }, [userID]);
+
+  /** Calls billing/<route> and goes to the page it returns (Stripe's), or resolves to an error message. */
+  const openBilling = useCallback(async (route: "checkout" | "portal", body: object, fallback: string) => {
+    if (!userID) return "Sign in first.";
+    const { data: result, error } = await supabase.functions.invoke(`billing/${route}`, { body });
+    const url = (result as { url?: string } | null)?.url;
+    if (error || !url) {
+      let message = fallback;
+      try { message = (await (error as { context?: Response })?.context?.json())?.error ?? message; } catch { /* keep the default */ }
+      return message;
+    }
+    window.location.assign(url);
+    return null;
+  }, [userID]);
+  const startCheckout = useCallback((interval: Interval) =>
+    openBilling("checkout", { interval }, "Checkout couldn't open. Please try again."), [openBilling]);
+  const manageSubscription = useCallback(() =>
+    openBilling("portal", {}, "Your subscription couldn't open. Please try again."), [openBilling]);
+
   // The shared key if there is one; otherwise the copy this browser kept when it made the link.
   const connectorShown = data.hasConnectorToken ? (data.connectorToken ?? connectorKey) : null;
 
@@ -688,6 +731,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     friends: friendsState.rows, challenges: friendsState.challenges, blocks: friendsState.blocks, blockUser, unblockUser,
     friendsLoaded: friendsState.loaded,
     friendsError: friendsState.error, username: card === undefined ? undefined : card?.username ?? null, plan, friendsWaiting,
+    subscription, refreshPlan, startCheckout, manageSubscription,
     setUsername, usernameAvailable, searchUsers, requestFriend, acceptFriend, removeFriend, challengeFriend, acceptChallenge,
     removeChallenge, submitDuel, playDuel, duel, endDuel: () => setDuel(null),
   };

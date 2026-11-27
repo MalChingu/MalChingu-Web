@@ -1,8 +1,11 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
-import { PRO_BENEFITS, PRO_PRICE, setUpgradeOpener, type UpgradeMode } from "../lib/upgrade";
+import { useStore } from "../lib/store";
+import { PRICES, TRIAL_DAYS, YEARLY_SAVING, checkoutLabel, checkoutTerms, type Interval } from "../lib/subscription";
+import { PRO_BENEFITS, setUpgradeOpener, type UpgradeMode } from "../lib/upgrade";
 import { pageZoom } from "../lib/zoom";
 import { Icon } from "./Icon";
+import { Segmented } from "./ui";
 
 /** The sidebar's width less its inset (--side-width, 300px), wherever it opens. */
 const WIDTH = 284;
@@ -10,11 +13,14 @@ const GAP = 10;
 /** Inside the sidebar: this far in from its edges. */
 const INSET = 8;
 
-/** Upgrade to Pro: the price and what Pro adds, floating up from the control that opened it (above it when there's
- *  room, otherwise below), inside the sidebar when opened from it. Closes with a click outside or Esc. Payments
- *  aren't set up yet, so the button doesn't charge anything. A Pro account's badge shows just what Pro adds while the
- *  pointer is over it (or, on a touch screen, after a tap). Mounted once in App. */
+/** Upgrade to Pro: what Pro adds and the price, floating up from the control that opened it (above it when there's
+ *  room, otherwise below), inside the sidebar when opened from it. Closes with a click outside or Esc.
+ *  - Pointed at (an Upgrade button): what Pro adds, the two prices and the free trial, nothing to press.
+ *  - Clicked open: the same, then monthly or yearly and Start Free Trial, which goes to Stripe's checkout.
+ *  - A Pro account's badge: just what Pro adds.
+ *  Mounted once in App. */
 export function UpgradeModal() {
+  const store = useStore();
   const [anchor, setAnchor] = useState<DOMRect | null | undefined>(undefined);
   const [mode, setMode] = useState<UpgradeMode>("upgrade");
   const [sidebar, setSidebar] = useState<DOMRect | null>(null);
@@ -23,6 +29,9 @@ export function UpgradeModal() {
   const hoverRef = useRef(false);
   const card = useRef<HTMLDivElement>(null);
   const [place, setPlace] = useState<CSSProperties>({ visibility: "hidden" });
+  const [billing, setBilling] = useState<Interval>("month");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setUpgradeOpener(
@@ -64,34 +73,58 @@ export function UpgradeModal() {
     const above = r.top - GAP - height >= 16;
     const top = above ? r.top - GAP - height : Math.min(r.bottom + GAP, vh - height - 16);
     setPlace({ width: w, left, top, transformOrigin: `${centre - left}px ${above ? "100%" : "0%"}` });
-  }, [open, anchor, mode, sidebar]);
+  }, [open, anchor, mode, sidebar, hover, error]);
+
+  // Each opening starts fresh.
+  useEffect(() => { if (open) { setError(null); setBusy(false); } }, [open]);
 
   if (!open) return null;
   const close = () => setAnchor(undefined);
   const pro = mode === "pro";
+  const sub = store.subscription;
+  const trial = sub?.trialAvailable !== false;
+  const checkout = async () => {
+    setBusy(true);
+    setError(null);
+    const message = await store.startCheckout(billing);
+    // On success the browser is already on its way to Stripe.
+    if (message) { setError(message); setBusy(false); }
+  };
   const body = (
       <div ref={card} className={`upgrade-modal glass ${hover ? "hovering" : ""}`} role="dialog" aria-modal={hover ? undefined : true}
         aria-label={pro ? "Korimal Pro" : "Upgrade to Pro"} style={place}>
-        {/* What Pro adds first, then (free accounts) Coming Soon at the bottom, where the price will go once checkout is
-            set up. A Pro account's badge shows just the list. */}
+        {/* What Pro adds first, then (free accounts) the price at the bottom. A Pro account's badge shows just the list. */}
         <ul className="upgrade-benefits">
           {PRO_BENEFITS.map((b) => (
             <li key={b}><Icon name="checkCircle" size={20} className="upgrade-check" /><span>{b}</span></li>
           ))}
         </ul>
-        {!pro && (
-          <div className="upgrade-price">{PRO_PRICE
-            ? <><strong>{PRO_PRICE.split("/")[0]}</strong><span className="muted">/month (USD)</span></>
-            : <strong>Coming Soon</strong>}</div>
+        {!pro && hover && (
+          // Pointed at: both prices and the trial, nothing to press (it goes as the pointer leaves).
+          <div className="upgrade-price-block">
+            <div className="upgrade-price">
+              <strong>{PRICES.month.amount}</strong><span className="muted">/{PRICES.month.short}</span>
+              <span className="muted upgrade-or">or</span>
+              <strong>{PRICES.year.amount}</strong><span className="muted">/{PRICES.year.short}</span>
+            </div>
+            {trial && <div className="small muted upgrade-trial">{TRIAL_DAYS}-day free trial</div>}
+          </div>
         )}
-        {/* Opened with a click (a locked guide length, the Pro photo tile): the small Upgrade to Pro, faded and inert until
-            checkout is set up. Not when it shows on hover: it goes as the pointer leaves, so there'd be nothing to press. */}
         {!pro && !hover && (
-          <button type="button" className={`button prominent compact upgrade-button upgrade-cta ${PRO_PRICE ? "" : "soon"}`}
-            aria-disabled={PRO_PRICE ? undefined : true} title={PRO_PRICE ? undefined : "Coming Soon"}
-            onClick={() => { /* Checkout (Stripe) goes here, once it's set up. */ }}>
-            <Icon name="bolt" size={16} /><span>Upgrade to Pro</span>
-          </button>
+          // Clicked open: monthly or yearly, the price, and the button to Stripe's checkout.
+          <div className="upgrade-checkout">
+            <Segmented label="Billing" value={billing} onChange={(v) => setBilling(v)}
+              options={[{ value: "month", label: "Monthly" }, { value: "year", label: "Yearly" }]} />
+            <div className="upgrade-price">
+              <strong>{PRICES[billing].amount}</strong><span className="muted">/{PRICES[billing].per}</span>
+              {billing === "year" && <span className="upgrade-saving">{YEARLY_SAVING}</span>}
+            </div>
+            <button type="button" className="button prominent compact upgrade-button upgrade-cta" disabled={busy} onClick={checkout}>
+              <Icon name="bolt" size={16} /><span>{busy ? "Opening Checkout…" : checkoutLabel(sub)}</span>
+            </button>
+            <p className="small muted upgrade-terms">{checkoutTerms(billing, sub)}</p>
+            {error && <p className="small error upgrade-error" role="alert">{error}</p>}
+          </div>
         )}
       </div>
   );

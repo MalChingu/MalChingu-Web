@@ -10,6 +10,7 @@ import { Guides } from "./pages/Guides";
 import { Profile } from "./pages/Profile";
 import { ProBadge, UpgradeButton } from "./components/Plan";
 import { UpgradeModal } from "./components/UpgradeModal";
+import { CheckoutReturn } from "./components/CheckoutReturn";
 import { AvatarImage } from "./components/Avatar";
 import { SignIn } from "./pages/SignIn";
 import { Stats } from "./pages/Stats";
@@ -162,6 +163,8 @@ export function App() {
       </main>
       {touring && <Tour go={go} onDone={endTour} />}
       <UpgradeModal />
+      {/* Back from Stripe's checkout: Welcome to Korimal Pro. */}
+      <CheckoutReturn />
       {store.openedWord && (
         <WordSheet key={store.openedWord.word.id} word={store.openedWord.word} startInQuiz={store.openedWord.quiz} onClose={store.closeWord} />
       )}
