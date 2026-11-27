@@ -22,7 +22,7 @@ const HEADING: Record<LegalKind, string> = {
 /** Signing in from the Delete Account page comes back to it (see main.tsx, if sign-in lands on the home page). */
 export const AFTER_SIGN_IN_KEY = "korimal.afterSignIn";
 const DELETE_PHRASE = "delete my account";
-const UPDATED = "Nov 26, 2026";
+const UPDATED = "Nov 27, 2026";
 const CONTACT = "atinderpaulk@rezpoint.xyz";
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
@@ -58,6 +58,7 @@ function Privacy() {
           <li>Your study data: the words you add, your progress on each word, quiz and flashcard answers, daily study totals and streaks, the word of the day quiz, study guides and their tasks, your notes and the translations you save.</li>
           <li>Your settings, such as your flashcard setup and notification times.</li>
           <li>Your friends: the friend requests you send and receive, your friendships, the people you block, and the challenges you play with friends and their results.</li>
+          <li>Notification tokens: if you allow notifications in the iPhone, iPad, Mac or Android app, a token for that device, so we can tell you about friend requests, challenges and duel results.</li>
         </ul>
         <p>Korimal does not request your contacts, location or phone number, and does not use advertising trackers.</p>
       </Section>
@@ -101,6 +102,7 @@ function Privacy() {
           <li>To save your study data and keep it in sync across your devices</li>
           <li>To show your progress, streaks, level and achievements, and to pick the words you need to practise</li>
           <li>To send the reminders you turn on, which are scheduled on your device</li>
+          <li>To send notifications about friend requests, challenges and duel results, if you allow them</li>
           <li>To run the Claude connector when you use it</li>
           <li>To keep the service working and secure</li>
         </ul>
@@ -108,7 +110,7 @@ function Privacy() {
       <Section title="Third-Party Services">
         <ul>
           <li>Supabase stores your account and study data and runs the Claude connector.</li>
-          <li>Apple and Google provide sign-in, and on their devices the voice, translation and speech features described above.</li>
+          <li>Apple and Google provide sign-in, and on their devices the voice, translation and speech features described above. Apple Push Notification service and Google's Firebase Cloud Messaging deliver notifications to your device; they receive the device token and the notification's text.</li>
           <li>Anthropic provides Claude, only if you connect it.</li>
           <li>Vercel hosts this website and the web app and counts anonymous page views with Vercel Web Analytics, which uses no cookies and does not identify you.</li>
           <li>Google Fonts provides the website's font, so your browser contacts Google when the web app loads, which shares your IP address with Google.</li>
@@ -131,9 +133,9 @@ function Privacy() {
           To delete your account and all of its data, open Profile, then Settings, then Delete Account in any Korimal app
           or on the web, or go to <a href="/delete-account">korimal.com/delete-account</a>. This removes your account,
           words, progress, guides, notes, translations and connector link from
-          our servers straight away, along with your username, friendships, blocks and challenges. If you can't sign in,
+          our servers straight away, along with your username, friendships, blocks, challenges and notification tokens. If you can't sign in,
           email us at the address below and we will delete your account within 30 days. Signing out removes your study
-          data from that device.
+          data from that device and stops its notifications.
         </p>
       </Section>
       <Section title="Your Choices">

@@ -192,3 +192,21 @@ Heights: default 44px/dp, large 52, compact 36. Icons in buttons are 18px/dp, wi
   English shows at 0.3s and the Korean at 0.8s.
 - **Code:** Apple `SplashView` (shown by `KTalkApp`), Android `ui/splash/Splash.kt` (shown by `MainActivity`). Android's
   system launch screen is the base colour with no icon, so the logo isn't shown twice.
+
+## 11. Notifications (iPhone, iPad, Mac, Android)
+
+- **Push (from the server):** friend requests, challenges and duel results, sent by `send-push` when the database
+  changes. The apps' own reminders (Word of the Day, practice) are still scheduled on the device. The web has none:
+  it shows the red dot and count.
+
+| Event | Title | Body |
+|---|---|---|
+| A friend request to you | Friend Request | LightSpeed (@lightspeed) wants to be friends. |
+| A duel from a friend | Flashcard Duel | LightSpeed challenged you to a Flashcard Duel. |
+| A 7-Day Challenge from a friend | 7-Day Challenge | LightSpeed challenged you to a 7-Day Challenge. |
+| Your friend finishes your duel (only to the one who finished first) | Duel Results | LightSpeed finished your duel: you 8, LightSpeed 6. You win! / LightSpeed wins. / It's a tie. |
+
+- **Taps:** a friend request opens Friend Requests; a challenge or results open Profile. One arriving while the app is
+  open shows as a banner and refreshes friends (the badge).
+- **Permission:** asked once, when the main app first shows after sign-in. Android has two channels, Friend Requests
+  and Challenges, so each can be turned off.
