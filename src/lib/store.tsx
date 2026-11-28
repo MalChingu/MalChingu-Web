@@ -142,6 +142,11 @@ interface Store {
   startCheckout: (interval: Interval) => Promise<string | null>;
   /** Opens Stripe's customer portal (Manage Subscription). Resolves to an error message (it leaves the page otherwise). */
   manageSubscription: () => Promise<string | null>;
+  /** Cancel Subscription (Settings): a website subscription ends with the period that's paid for. Resolves to an error
+   *  message, or null once the plan has reloaded. */
+  cancelSubscription: () => Promise<string | null>;
+  /** Undoes Cancel Subscription before the period ends. */
+  resumeSubscription: () => Promise<string | null>;
   /** Requests to you and challenges waiting on you. */
   friendsWaiting: number;
   setUsername: (typed: string) => Promise<string | null>;
@@ -715,6 +720,23 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const manageSubscription = useCallback(() =>
     openBilling("portal", {}, "Your subscription couldn't open. Please try again."), [openBilling]);
 
+  /** billing/cancel or billing/resume, then the plan again. */
+  const changeSubscription = useCallback(async (route: "cancel" | "resume", fallback: string) => {
+    if (!userID) return "Sign in first.";
+    const { error } = await supabase.functions.invoke(`billing/${route}`, { body: {} });
+    if (error) {
+      let message = fallback;
+      try { message = (await (error as { context?: Response })?.context?.json())?.error ?? message; } catch { /* keep the default */ }
+      return message;
+    }
+    await refreshPlan();
+    return null;
+  }, [userID, refreshPlan]);
+  const cancelSubscription = useCallback(() =>
+    changeSubscription("cancel", "Your subscription couldn't be cancelled. Please try again."), [changeSubscription]);
+  const resumeSubscription = useCallback(() =>
+    changeSubscription("resume", "Your subscription couldn't be resumed. Please try again."), [changeSubscription]);
+
   // The shared key if there is one; otherwise the copy this browser kept when it made the link.
   const connectorShown = data.hasConnectorToken ? (data.connectorToken ?? connectorKey) : null;
 
@@ -731,7 +753,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     friends: friendsState.rows, challenges: friendsState.challenges, blocks: friendsState.blocks, blockUser, unblockUser,
     friendsLoaded: friendsState.loaded,
     friendsError: friendsState.error, username: card === undefined ? undefined : card?.username ?? null, plan, friendsWaiting,
-    subscription, refreshPlan, startCheckout, manageSubscription,
+    subscription, refreshPlan, startCheckout, manageSubscription, cancelSubscription, resumeSubscription,
     setUsername, usernameAvailable, searchUsers, requestFriend, acceptFriend, removeFriend, challengeFriend, acceptChallenge,
     removeChallenge, submitDuel, playDuel, duel, endDuel: () => setDuel(null),
   };

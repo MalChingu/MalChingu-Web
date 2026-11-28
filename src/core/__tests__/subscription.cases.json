@@ -47,5 +47,37 @@
     { "monthly": 4.99, "yearly": 59.88, "expect": null },
     { "monthly": 4.99, "yearly": 69.99, "expect": null },
     { "monthly": 0, "yearly": 10, "expect": null }
+  ],
+  "cancel": [
+    { "sub": { "source": "stripe", "status": "trialing", "interval": "month", "trialEnd": "2026-12-04T12:00:00Z", "renewsAt": "2026-12-04T12:00:00Z" },
+      "expect": "Your free trial ends Dec 4 and you won't be charged." },
+    { "sub": { "source": "stripe", "status": "active", "interval": "month", "renewsAt": "2026-12-27T12:00:00Z" },
+      "expect": "You keep Pro until Dec 27, then your account goes back to free. You won't be charged again." },
+    { "sub": { "source": "stripe", "status": "active" },
+      "expect": "Your subscription ends and you won't be charged again." }
+  ],
+  "delete": [
+    { "sub": { "source": "stripe", "status": "active", "renewsAt": "2026-12-27T12:00:00Z" },
+      "expect": "Your Korimal Pro subscription is cancelled straight away, and you won't be charged again." },
+    { "sub": { "source": "stripe", "status": "trialing", "trialEnd": "2026-12-04T12:00:00Z", "cancelAtPeriodEnd": true },
+      "expect": "Your Korimal Pro subscription is cancelled straight away, and you won't be charged again." },
+    { "sub": { "source": "apple", "status": "active", "renewsAt": "2026-12-27T12:00:00Z" },
+      "expect": "Deleting your account doesn't cancel your App Store subscription or free trial. Apple keeps billing until you cancel it." },
+    { "sub": { "source": "apple", "status": "trialing", "trialEnd": "2026-12-04T12:00:00Z" },
+      "expect": "Deleting your account doesn't cancel your App Store subscription or free trial. Apple keeps billing until you cancel it." },
+    { "sub": { "source": "apple", "status": "active", "renewsAt": "2026-12-27T12:00:00Z", "cancelAtPeriodEnd": true }, "expect": null },
+    { "sub": { "source": "apple", "status": "past_due", "renewsAt": "2026-12-27T12:00:00Z" },
+      "expect": "Deleting your account doesn't cancel your App Store subscription or free trial. Apple keeps billing until you cancel it." },
+    { "sub": { "source": "stripe", "status": "canceled" }, "expect": null },
+    { "sub": { "source": "manual", "status": null }, "expect": null },
+    { "sub": { "source": null, "status": null }, "expect": null }
+  ],
+  "shown": [
+    { "sub": { "source": "stripe", "status": "active" }, "expect": true },
+    { "sub": { "source": "apple", "status": "trialing" }, "expect": true },
+    { "sub": { "source": "stripe", "status": "past_due" }, "expect": true },
+    { "sub": { "source": "stripe", "status": "canceled" }, "expect": false },
+    { "sub": { "source": "manual", "status": null }, "expect": false },
+    { "sub": { "source": null, "status": null }, "expect": false }
   ]
 }

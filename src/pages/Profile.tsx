@@ -7,7 +7,7 @@ import { BUILT_IN } from "../core/wordBank";
 import { Icon } from "../components/Icon";
 import { BlockedSheet, FriendsCard } from "../components/Friends";
 import { AvatarImage, AvatarPicker } from "../components/Avatar";
-import { PlanCard } from "../components/Plan";
+import { DeleteSubscriptionNotice, PlanCard, SubscriptionSettings } from "../components/Plan";
 import { Button, Card, ConfirmDialog, Logo, Page, RoundButton, SectionTitle, Segmented, Sheet, copyText, useMediaQuery } from "../components/ui";
 import { initials } from "../lib/settings";
 import { NAME_REFUSED, nameAllowed } from "../core/names";
@@ -198,6 +198,7 @@ export function Profile() {
             <span className="muted">{store.blocks.length}</span>
             <Icon name="chevron" size={16} className="muted" />
           </button>
+          <SubscriptionSettings />
           <button type="button" className="button delete-account full" onClick={() => setSheet("delete")}>Delete Account</button>
           <p className="small muted">Removes your account and all of your Korimal data from our servers.</p>
         </Card>
@@ -241,6 +242,7 @@ function DeleteAccountSheet({ onClose }: { onClose: () => void }) {
       <form className="stack" onSubmit={(e) => { e.preventDefault(); remove(); }}>
         <p className="error strong">This can't be undone</p>
         <p className="muted">This deletes your account and everything in it: your words, progress, study guides, notes, saved translations, connector link, username, friends and challenges, on every device.</p>
+        <DeleteSubscriptionNotice sub={store.subscription} />
         <label className="stack tiny-gap">
           <span>Type <strong>{DELETE_PHRASE}</strong> to continue.</span>
           <input className="text-input sheet-input" value={typed} placeholder={DELETE_PHRASE} aria-label="Type delete my account"

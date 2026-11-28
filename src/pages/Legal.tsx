@@ -1,4 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
+import { DeleteSubscriptionNotice } from "../components/Plan";
+import { readSubscription, type Subscription } from "../lib/subscription";
 import type { Session } from "@supabase/supabase-js";
 import { Button, Copyright } from "../components/ui";
 import { supabase } from "../lib/supabase";
@@ -226,7 +228,7 @@ function Terms() {
         <ul>
           <li>Korimal Pro costs $4.99 a month or $49.99 a year (US dollars) on korimal.com, where Stripe handles the payment. In the iPhone, iPad and Mac app you can buy it through the App Store instead, at the price the App Store shows for your country. Either way, it works in every Korimal app you sign in to.</li>
           <li>Each account can have one 7-day free trial on korimal.com, and the App Store gives each Apple Account one free trial. You give a payment method when it starts, and you are charged when it ends unless you cancel before then.</li>
-          <li>Pro renews automatically every month or year until you cancel. Bought on korimal.com: cancel anytime in Profile, then Manage Subscription. Bought in the App Store: cancel in your Apple Account's subscription settings (Manage Subscription in the app's Profile opens them). Either way, you keep Pro until the end of the period you have paid for.</li>
+          <li>Pro renews automatically every month or year until you cancel. Cancel anytime in Profile → Settings → Cancel Subscription. Bought in the App Store, it's cancelled in your Apple Account's subscription settings, which Cancel Subscription in the iPhone, iPad or Mac app opens. Either way, you keep Pro until the end of the period you have paid for, and a free trial ends without a charge.</li>
           <li>If the price changes, we will tell you before your next renewal, and you can cancel before it applies.</li>
           <li>Payments on korimal.com aren't refundable except where the law requires, but if you think something went wrong, email us and we will look into it. Refunds for App Store purchases are handled by Apple, under Apple's terms.</li>
           <li>Deleting your account cancels a korimal.com subscription straight away. It can't cancel an App Store subscription: cancel that in your Apple Account's settings first.</li>
@@ -275,6 +277,14 @@ function DeleteAccount() {
   const [deleting, setDeleting] = useState(false);
   const [deleted, setDeleted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** The account's subscription, so the page can say what deleting does to it. */
+  const [subscription, setSubscription] = useState<Subscription | null>(null);
+  useEffect(() => {
+    if (!session) { setSubscription(null); return; }
+    let current = true;
+    supabase.rpc("my_plan").then(({ data, error: failed }) => { if (current && !failed) setSubscription(readSubscription(data)); });
+    return () => { current = false; };
+  }, [session]);
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session));
     const { data } = supabase.auth.onAuthStateChange((_event, next) => setSession(next));
@@ -325,6 +335,7 @@ function DeleteAccount() {
         ) : session === undefined ? null : session ? (
           <form className="stack delete-account-form" onSubmit={(e) => { e.preventDefault(); remove(); }}>
             <p>Signed in{session.user.email ? <> as <strong>{session.user.email}</strong></> : null}. This can't be undone.</p>
+            <DeleteSubscriptionNotice sub={subscription} />
             <label className="stack tiny-gap">
               <span>Type <strong>{DELETE_PHRASE}</strong> to continue.</span>
               <input className="text-input" value={typed} placeholder={DELETE_PHRASE} aria-label="Type delete my account"

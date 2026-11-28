@@ -81,3 +81,29 @@ export function yearlySaving(monthly: number, yearly: number): string | null {
   const months = Math.round(12 - yearly / monthly);
   return months >= 1 ? `${months} ${months === 1 ? "month" : "months"} free` : null;
 }
+
+/** A subscription to show in Settings: bought on the website or in the App Store, and not ended. */
+export const hasSubscription = (sub: Subscription | null): sub is Subscription =>
+  !!sub && (sub.source === "stripe" || sub.source === "apple") && sub.status !== "canceled";
+
+/** Cancel Subscription's confirmation: when Pro ends, and that nothing more is charged. */
+export function cancelMessage(sub: Subscription): string {
+  if (sub.status === "trialing" && sub.trialEnd) return `Your free trial ends ${shortDate(sub.trialEnd)} and you won't be charged.`;
+  if (sub.renewsAt) {
+    return `You keep Pro until ${shortDate(sub.renewsAt)}, then your account goes back to free. You won't be charged again.`;
+  }
+  return "Your subscription ends and you won't be charged again.";
+}
+
+/** Delete Account: what happens to the subscription. A website subscription is cancelled with the account; an App Store
+ *  one isn't (only the person can cancel it, in Apple's settings), so it says so while it's still set to renew. */
+export function deleteNotice(sub: Subscription | null): string | null {
+  if (!hasSubscription(sub)) return null;
+  if (sub.source === "stripe") return "Your Korimal Pro subscription is cancelled straight away, and you won't be charged again.";
+  return sub.cancelAtPeriodEnd
+    ? null
+    : "Deleting your account doesn't cancel your App Store subscription or free trial. Apple keeps billing until you cancel it.";
+}
+
+/** Where to cancel an App Store subscription, for screens that can't open Apple's settings (the website, Android). */
+export const APPLE_CANCEL_STEPS = "Cancel it on your iPhone or iPad in Settings → your name → Subscriptions, or on a Mac in the App Store → your name → Account Settings → Subscriptions.";

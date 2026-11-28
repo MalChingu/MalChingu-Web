@@ -317,8 +317,8 @@ describe("streak star colour (shared cases)", () => {
   it.each(streakCases.cases)("$days days → $heat", ({ days, heat }) => { expect(streakHeat(days)).toBe(heat); });
 });
 
-import { NO_SUBSCRIPTION, checkoutLabel, checkoutTerms, readSubscription, subscriptionLine, yearlySaving,
-  type Subscription } from "../subscription";
+import { NO_SUBSCRIPTION, cancelMessage, checkoutLabel, checkoutTerms, deleteNotice, hasSubscription, readSubscription,
+  subscriptionLine, yearlySaving, type Subscription } from "../subscription";
 import subscriptionCases from "./subscription.cases.json";
 
 describe("subscription (shared cases)", () => {
@@ -335,4 +335,8 @@ describe("subscription (shared cases)", () => {
   it.each(subscriptionCases.terms)("terms for $price", (c) => { expect(checkoutTerms(c.price, c.trial)).toBe(c.expect); });
   it.each(subscriptionCases.labels)("label with trial $trial", (c) => { expect(checkoutLabel(c.trial)).toBe(c.expect); });
   it.each(subscriptionCases.saving)("saving $monthly / $yearly", (c) => { expect(yearlySaving(c.monthly, c.yearly)).toBe(c.expect); });
+  const sub = (c: { sub: unknown }): Subscription => ({ ...NO_SUBSCRIPTION, ...(c.sub as Partial<Subscription>) });
+  it.each(subscriptionCases.cancel)("cancel message for $sub.status", (c) => { expect(cancelMessage(sub(c))).toBe(c.expect); });
+  it.each(subscriptionCases.delete)("delete notice for $sub.source $sub.status", (c) => { expect(deleteNotice(sub(c))).toBe(c.expect); });
+  it.each(subscriptionCases.shown)("shown for $sub.source $sub.status", (c) => { expect(hasSubscription(sub(c))).toBe(c.expect); });
 });

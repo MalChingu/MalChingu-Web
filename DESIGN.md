@@ -130,21 +130,32 @@ Heights: default 44px/dp, large 52, compact 36. Icons in buttons are 18px/dp, wi
   - the Pro badge on hover: just what Pro adds.
 - **Upgrade sheet (iPhone, iPad):** the same as the clicked popup, in a sheet: features, then checkout.
 - **Upgrade sheet (Android):** features, Coming Soon, then the faded button.
-- **Pro card (Profile):** the Pro badge, then a small muted line on the subscription ("Free trial until Dec 4, then
-  $49.99/year.", "$4.99/month, renews Dec 27.", "Ends Dec 27. It won't renew."; a failed payment says where to update
-  the card). Where it was bought decides the rest:
-  - **Stripe (the website):** the web has a compact glass Manage Subscription (Stripe's portal) on the right; the
-    apps say "Subscribed on korimal.com. Manage it there." with no link (App Review doesn't allow one);
-  - **App Store:** the apps have a glass Manage Subscription (Apple's subscription settings); the web says
-    "Subscribed through the App Store. Manage it on your iPhone, iPad or Mac." with no button, and its line has no
-    price (the App Store charges each country its own);
-  - **given by hand:** "No limit on study guides.", nothing to manage.
-  The web shows the card on wide screens too when there's a subscription; the apps show it in Profile for every Pro
-  account (iPhone and iPad also keep the badge beside the level).
+- **Pro card (Profile → About):** the Pro badge, then a small muted line on the subscription ("Free trial until Dec 4,
+  then $49.99/year.", "$4.99/month, renews Dec 27.", "Ends Dec 27. It won't renew."; a failed payment says where to
+  update the card), and where it was bought ("Subscribed through the App Store. Manage it on your iPhone, iPad or
+  Mac." on the web; "Subscribed through the App Store." / "Subscribed on korimal.com." in the Apple apps). No buttons:
+  the controls are in Settings. Pro given by hand: "No limit on study guides." The web shows the card on wide screens
+  too when there's a subscription; the Apple apps show it for every Pro account (iPhone and iPad also keep the badge
+  beside the level). App Store lines have no price on the web (the App Store charges each country its own).
+- **Subscription (Profile → Settings → Account):** between Blocked and Delete Account, only while there's a
+  subscription that hasn't ended. A "Subscription" row (seal icon), the same status line, then by where it was bought:
+  - **Stripe (the website):** web: compact glass Manage Subscription (Stripe's portal: card, invoices, monthly or
+    yearly) and Cancel Subscription, or Resume Subscription once it's set to end. Apple apps and Android: Cancel
+    Subscription only (no Resume or portal there: App Review and Play don't allow taking up an outside payment);
+  - **App Store:** Apple apps: Cancel Subscription opens Apple's subscription settings (the system sheet on iPhone and
+    iPad, the App Store's Subscriptions page on the Mac). Web and Android: the steps, in small muted text ("Cancel it
+    on your iPhone or iPad in Settings → your name → Subscriptions, or on a Mac in the App Store → your name → Account
+    Settings → Subscriptions.");
+  - **Cancel Subscription asks first:** "Cancel Korimal Pro?", when Pro ends ("You keep Pro until Dec 27, then your
+    account goes back to free. You won't be charged again." / "Your free trial ends Dec 4 and you won't be charged."),
+    then Keep Pro and a red Cancel Subscription. A website subscription ends with the paid period; a trial ends without
+    a charge. No pause.
 - **After buying:** a "Welcome to Korimal Pro" sheet: the trial's end date and price, what Pro adds, and a large Done.
   On the web it first says "Setting up Pro…" with a spinner until the plan says Pro.
-- **Delete Account (apps):** with an App Store subscription, the sheet also says that deleting the account doesn't
-  cancel it, and to cancel it first with Manage Subscription.
+- **Delete Account (every platform, and korimal.com/delete-account):** above "Type delete my account", in semibold,
+  what happens to the subscription: a website one "is cancelled straight away, and you won't be charged again"; an App
+  Store one still set to renew "doesn't cancel… Apple keeps billing until you cancel it", with Cancel Subscription
+  (Apple apps) or the steps (web, Android). Deletion is never blocked.
 
 ## 6. Controls
 
@@ -196,8 +207,8 @@ Heights: default 44px/dp, large 52, compact 36. Icons in buttons are 18px/dp, wi
 ## 9. Words
 
 - **Statuses:** Correct!, Correct after N misses., Incorrect, Didn't Know.
-- **Plan words:** Upgrade to Pro, Start Free Trial, Monthly, Yearly, 2 months free, Manage Subscription, Restore
-  Purchases, Welcome to Korimal Pro, Coming Soon (Android), Pro.
+- **Plan words:** Upgrade to Pro, Start Free Trial, Monthly, Yearly, 2 months free, Manage Subscription, Cancel
+  Subscription, Resume Subscription, Keep Pro, Restore Purchases, Welcome to Korimal Pro, Coming Soon (Android), Pro.
 - **Friends:** Incoming Friend Request, Sent Friend Request, Friend Requests (Incoming / Sent), Add Friend
   (usernames only).
 

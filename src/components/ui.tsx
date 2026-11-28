@@ -337,8 +337,9 @@ function FitTitle({ text }: { text: string }) {
 }
 
 /** A small centred question with Cancel and a confirm button, used before anything is deleted or replaced. */
-export function ConfirmDialog({ title, message, confirmLabel, destructive = true, onConfirm, onCancel }: {
-  title: string; message: string; confirmLabel: string; destructive?: boolean; onConfirm: () => void; onCancel: () => void;
+export function ConfirmDialog({ title, message, confirmLabel, cancelLabel = "Cancel", destructive = true, onConfirm, onCancel }: {
+  title: string; message: string; confirmLabel: string; cancelLabel?: string; destructive?: boolean; onConfirm: () => void;
+  onCancel: () => void;
 }) {
   const cancel = useRef<HTMLButtonElement>(null);
   const close = useRef(onCancel);
@@ -355,7 +356,7 @@ export function ConfirmDialog({ title, message, confirmLabel, destructive = true
         <h2 id="confirm-title">{title}</h2>
         <p id="confirm-message" className="muted">{message}</p>
         <div className="confirm-buttons">
-          <button ref={cancel} type="button" className="button full" onClick={onCancel}>Cancel</button>
+          <button ref={cancel} type="button" className="button full" onClick={onCancel}>{cancelLabel}</button>
           <button type="button" className={`button full ${destructive ? "destructive" : "prominent"}`} onClick={onConfirm}>{confirmLabel}</button>
         </div>
       </div>

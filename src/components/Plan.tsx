@@ -1,32 +1,24 @@
 import { useState } from "react";
 import { planLimit } from "../core/plan";
 import { useStore } from "../lib/store";
-import { priceText, subscriptionLine } from "../lib/subscription";
+import { APPLE_CANCEL_STEPS, cancelMessage, deleteNotice, hasSubscription, priceText, subscriptionLine, type Subscription } from "../lib/subscription";
 import { hideProFeatures, showProFeatures, showUpgrade, upgradeToPro } from "../lib/upgrade";
 import { Icon } from "./Icon";
-import { Button } from "./ui";
+import { Button, ConfirmDialog } from "./ui";
 
 // Free accounts hold 2 study guides at a time; Pro has no limit. Wide screens show the plan at the bottom of the
 // sidebar, phones in Profile → About, and free accounts also on the Guides page.
 
-/** Pro shows a badge and where the subscription stands (trial, renewal or end date). A Stripe subscription has Manage
- *  Subscription (Stripe's portal); one bought in the iPhone/iPad/Mac app is managed there, in Apple's settings. A free
- *  account shows its guide count and Upgrade to Pro. Nothing until the plan has loaded. */
+/** Pro shows a badge and where the subscription stands (trial, renewal or end date); a subscription bought in the
+ *  iPhone/iPad/Mac app adds where it's managed. Its controls are in Settings (SubscriptionSettings). A free account
+ *  shows its guide count and Upgrade to Pro. Nothing until the plan has loaded. */
 export function PlanCard({ className = "" }: { className?: string }) {
   const store = useStore();
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   if (!store.plan) return null;
   if (store.plan === "pro") {
     const sub = store.subscription;
-    const manage = async () => {
-      setBusy(true);
-      setError(null);
-      const message = await store.manageSubscription();
-      if (message) { setError(message); setBusy(false); }
-    };
     return (
-      <div className={`glass card plan-card pro ${className} ${sub?.source === "stripe" || sub?.source === "apple" ? "subscribed" : ""}`}>
+      <div className={`glass card plan-card pro ${className} ${hasSubscription(sub) ? "subscribed" : ""}`}>
         <div className="plan-card-text">
           <ProBadge />
           {/* The price is Stripe's; the App Store charges in each country's own currency, so its line goes without. */}
@@ -37,11 +29,7 @@ export function PlanCard({ className = "" }: { className?: string }) {
           {sub?.source === "apple" && (
             <span className="small muted">Subscribed through the App Store. Manage it on your iPhone, iPad or Mac.</span>
           )}
-          {error && <span className="small error" role="alert">{error}</span>}
         </div>
-        {sub?.source === "stripe" && (
-          <Button compact disabled={busy} onClick={manage}>{busy ? "Opening…" : "Manage Subscription"}</Button>
-        )}
       </div>
     );
   }
@@ -95,6 +83,76 @@ export function LimitNote({ label, message, full }: { label: string; message: st
         <span className="small muted">{message}</span>
       </div>
       <UpgradeButton full={false} />
+    </div>
+  );
+}
+
+/** Settings → Account, between Blocked and Delete Account: the subscription, where it stands, and its controls. A
+ *  website subscription has Manage Subscription (Stripe's portal: card, invoices, monthly or yearly) and Cancel
+ *  Subscription (it ends with the paid period), or Resume once it's set to end. An App Store one is cancelled in
+ *  Apple's settings, so it says where. Nothing without a subscription. */
+export function SubscriptionSettings() {
+  const store = useStore();
+  const [busy, setBusy] = useState<"manage" | "cancel" | "resume" | null>(null);
+  const [confirming, setConfirming] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const sub = store.subscription;
+  if (store.plan !== "pro" || !hasSubscription(sub)) return null;
+  const run = async (what: "manage" | "cancel" | "resume", action: () => Promise<string | null>) => {
+    setBusy(what);
+    setError(null);
+    const message = await action();
+    if (message) setError(message);
+    // Manage Subscription leaves the page on success.
+    if (message || what !== "manage") setBusy(null);
+  };
+  const stripe = sub.source === "stripe";
+  return (
+    <div className="subscription-settings" aria-label="Subscription">
+      <div className="plain-row static">
+        <Icon name="seal" size={20} className="accent" />
+        <span className="grow">Subscription</span>
+      </div>
+      <p className="small muted subscription-line">
+        {subscriptionLine(sub, stripe && sub.interval ? priceText(sub.interval) : null)}
+      </p>
+      {stripe ? (
+        <div className="subscription-buttons">
+          <Button compact disabled={busy !== null} onClick={() => run("manage", store.manageSubscription)}>
+            {busy === "manage" ? "Opening…" : "Manage Subscription"}
+          </Button>
+          {sub.cancelAtPeriodEnd ? (
+            <Button compact disabled={busy !== null} onClick={() => run("resume", store.resumeSubscription)}>
+              {busy === "resume" ? "Resuming…" : "Resume Subscription"}
+            </Button>
+          ) : (
+            <Button compact disabled={busy !== null} onClick={() => setConfirming(true)}>
+              {busy === "cancel" ? "Cancelling…" : "Cancel Subscription"}
+            </Button>
+          )}
+        </div>
+      ) : !sub.cancelAtPeriodEnd ? (
+        <p className="small muted">{APPLE_CANCEL_STEPS}</p>
+      ) : null}
+      {error && <p className="small error" role="alert">{error}</p>}
+      {confirming && (
+        <ConfirmDialog title="Cancel Korimal Pro?" message={cancelMessage(sub)} confirmLabel="Cancel Subscription" cancelLabel="Keep Pro"
+          onCancel={() => setConfirming(false)}
+          onConfirm={() => { setConfirming(false); run("cancel", store.cancelSubscription); }} />
+      )}
+    </div>
+  );
+}
+
+/** Delete Account: what happens to the subscription. A website one is cancelled with the account; an App Store one
+ *  keeps billing until it's cancelled in Apple's settings, so that says where. Nothing to say: nothing shown. */
+export function DeleteSubscriptionNotice({ sub }: { sub: Subscription | null }) {
+  const notice = deleteNotice(sub);
+  if (!notice) return null;
+  return (
+    <div className="delete-subscription-notice" role="note">
+      <p className="strong">{notice}</p>
+      {sub?.source === "apple" && <p className="small muted">{APPLE_CANCEL_STEPS}</p>}
     </div>
   );
 }

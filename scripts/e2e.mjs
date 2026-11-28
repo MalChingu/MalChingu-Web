@@ -113,6 +113,12 @@ async function fakeSupabase(route) {
       interval: null, renews_at: null, trial_end: null, cancel_at_period_end: false, trial_available: true, ...SUBSCRIPTION });
   }
   // Korimal Pro: the billing function answers with Stripe's page (a stand-in, see stripePages), or an error.
+  if (url.pathname === "/functions/v1/billing/cancel" || url.pathname === "/functions/v1/billing/resume") {
+    const route = url.pathname.split("/").pop();
+    billingCalls.push({ route, body: request.postDataJSON() ?? {} });
+    SUBSCRIPTION = { ...SUBSCRIPTION, cancel_at_period_end: route === "cancel" };
+    return json({ status: SUBSCRIPTION.status ?? "active", cancel_at_period_end: route === "cancel" });
+  }
   if (url.pathname === "/functions/v1/billing/checkout" || url.pathname === "/functions/v1/billing/portal") {
     const route = url.pathname.split("/").pop();
     billingCalls.push({ route, body: request.postDataJSON() ?? {} });
@@ -1003,21 +1009,63 @@ try {
     await welcome.getByRole("button", { name: "Done" }).click();
     await welcome.waitFor({ state: "detached" });
 
-    // Profile on a wide screen: the subscription and Manage Subscription (the sidebar keeps the Pro badge).
+    // Profile on a wide screen: the Pro card says where the subscription stands (the sidebar keeps the Pro badge). Its
+    // controls are in Settings.
     const card = page.locator(".plan-profile");
     const line = card.locator(".plan-card-text .small").first();
-    const manage = card.getByRole("button", { name: "Manage Subscription" });
-    check(await card.isVisible() && await line.innerText() === "Free trial until Dec 4, then $49.99/year." && await page.locator(".tabs .pro-badge").isVisible(),
-      `pro through Stripe, wide screen: Profile shows the trial's end and the price (${await line.innerText()})`);
-    const [textBox, manageBox, cardBox] = [await card.locator(".plan-card-text").boundingBox(), await manage.boundingBox(), await card.boundingBox()];
-    check(manageBox.x >= textBox.x + textBox.width - 1 && manageBox.x + manageBox.width <= cardBox.x + cardBox.width,
-      "Manage Subscription sits to the right of the line, inside the card");
+    check(await card.isVisible() && await line.innerText() === "Free trial until Dec 4, then $49.99/year." && await page.locator(".tabs .pro-badge").isVisible()
+      && await card.getByRole("button", { name: /Subscription/ }).count() === 0,
+      `pro through Stripe, wide screen: Profile shows the trial's end and the price, and no subscription buttons (${await line.innerText()})`);
     await card.scrollIntoViewIfNeeded();
     await page.screenshot({ path: "screenshots/profile-subscription.png" });
-    await Promise.all([page.waitForURL(/billing\.stripe\.com/), manage.click()]);
-    check(billingCalls.length === 3 && billingCalls[2].route === "portal", "Manage Subscription opens Stripe's portal through the billing function");
 
-    // A cancelled checkout shows nothing. Pro given by hand has no Manage Subscription (wide screens leave it to the sidebar).
+    // Settings → Account: Blocked, then the subscription (Manage and Cancel Subscription), then Delete Account.
+    await page.getByRole("radio", { name: "Settings", exact: true }).click();
+    const settings = page.locator(".subscription-settings");
+    await settings.waitFor();
+    const subLine = settings.locator(".subscription-line");
+    const [blockedBox, subBox, deleteBox] = [await page.getByRole("button", { name: /Blocked/ }).boundingBox(), await settings.boundingBox(),
+      await page.getByRole("button", { name: "Delete Account" }).boundingBox()];
+    check(blockedBox.y < subBox.y && subBox.y + subBox.height <= deleteBox.y && await subLine.innerText() === "Free trial until Dec 4, then $49.99/year.",
+      `Settings → Account: the subscription sits between Blocked and Delete Account, with where it stands (${await subLine.innerText()})`);
+    await settings.scrollIntoViewIfNeeded();
+    await page.screenshot({ path: "screenshots/settings-subscription.png" });
+    // Cancel Subscription asks first: Keep Pro changes nothing.
+    await settings.getByRole("button", { name: "Cancel Subscription" }).click();
+    const confirm = page.getByRole("alertdialog", { name: "Cancel Korimal Pro?" });
+    await confirm.waitFor();
+    check(await confirm.getByText("Your free trial ends Dec 4 and you won't be charged.").isVisible()
+      && await confirm.getByRole("button", { name: "Keep Pro" }).isVisible(),
+      "Cancel Subscription asks first: the trial ends without a charge, with Keep Pro");
+    await page.waitForTimeout(250);   // it has finished rising in
+    const oneLine = await confirm.evaluate((el) => [...el.querySelectorAll(".confirm-buttons .button")].every((b) => b.getBoundingClientRect().height <= 48));
+    check(oneLine, "the dialog's Keep Pro and Cancel Subscription each fit on one line");
+    await page.screenshot({ path: "screenshots/cancel-subscription.png" });
+    await confirm.getByRole("button", { name: "Keep Pro" }).click();
+    await confirm.waitFor({ state: "detached" });
+    check(!billingCalls.some((c) => c.route === "cancel"), "Keep Pro cancels nothing");
+    await settings.getByRole("button", { name: "Cancel Subscription" }).click();
+    await confirm.getByRole("button", { name: "Cancel Subscription" }).click();
+    await settings.getByRole("button", { name: "Resume Subscription" }).waitFor({ timeout: 8000 });
+    check(billingCalls.at(-1).route === "cancel" && await subLine.innerText() === "Free trial, ends Dec 4. It won't renew.",
+      `cancelled: billing/cancel, then the line says it won't renew and Resume Subscription shows (${await subLine.innerText()})`);
+    await settings.getByRole("button", { name: "Resume Subscription" }).click();
+    await settings.getByRole("button", { name: "Cancel Subscription" }).waitFor({ timeout: 8000 });
+    check(billingCalls.at(-1).route === "resume" && await subLine.innerText() === "Free trial until Dec 4, then $49.99/year.",
+      "Resume Subscription: billing/resume, and it renews again");
+    // Delete Account says a website subscription goes with the account.
+    await page.getByRole("button", { name: "Delete Account" }).click();
+    const deleting = page.getByRole("dialog", { name: "Delete Your Account?" });
+    await deleting.waitFor();
+    check(await deleting.getByText("Your Korimal Pro subscription is cancelled straight away, and you won't be charged again.").isVisible(),
+      "Delete Account: a website subscription is cancelled straight away, and it says so");
+    await page.keyboard.press("Escape");
+    await deleting.waitFor({ state: "detached" });
+    // Manage Subscription (card, invoices, monthly or yearly) is Stripe's portal.
+    await Promise.all([page.waitForURL(/billing\.stripe\.com/), settings.getByRole("button", { name: "Manage Subscription" }).click()]);
+    check(billingCalls.at(-1).route === "portal", "Manage Subscription opens Stripe's portal through the billing function");
+
+    // A cancelled checkout shows nothing. Pro given by hand has no subscription to show (wide screens leave it to the sidebar).
     await page.goto("http://localhost:4173/?checkout=cancel#profile");
     await page.locator(".tabs .pro-badge").waitFor({ timeout: 15000 });
     await page.waitForTimeout(300);
@@ -1025,32 +1073,53 @@ try {
     SUBSCRIPTION = {};
     await page.reload();
     await page.locator(".tabs .pro-badge").waitFor({ timeout: 15000 });
-    check(!(await card.isVisible()) && await page.getByRole("button", { name: "Manage Subscription" }).count() === 0,
-      "Pro given by hand: no Manage Subscription, and Profile leaves the plan to the sidebar");
+    await page.getByRole("radio", { name: "Settings", exact: true }).click();
+    await page.getByRole("button", { name: "Delete Account" }).waitFor();
+    check(!(await card.isVisible()) && await page.locator(".subscription-settings").count() === 0,
+      "Pro given by hand: no Subscription in Settings, and Profile leaves the plan to the sidebar");
 
     // Bought in the iPhone/iPad/Mac app (the App Store): the card shows on wide screens too, with the renewal (no price:
-    // the App Store charges each country its own) and where to manage it, and no Manage Subscription (that's Apple's).
+    // the App Store charges each country its own) and where to manage it. Settings says where to cancel it (only Apple
+    // can), and Delete Account warns that it keeps billing.
+    const appleSteps = "Cancel it on your iPhone or iPad in Settings → your name → Subscriptions, or on a Mac in the App Store → your name → Account Settings → Subscriptions.";
     SUBSCRIPTION = { source: "apple", status: "active", interval: "year", renews_at: "2027-11-28T12:00:00Z", trial_available: false };
     await page.reload();
     await card.waitFor({ timeout: 15000 });
     check(await line.innerText() === "Renews Nov 28."
       && await card.getByText("Subscribed through the App Store. Manage it on your iPhone, iPad or Mac.").isVisible()
-      && await card.getByRole("button", { name: "Manage Subscription" }).count() === 0,
-      `pro through the App Store: the renewal and where to manage it, no Manage Subscription (${await line.innerText()})`);
+      && await card.getByRole("button", { name: /Subscription/ }).count() === 0,
+      `pro through the App Store: the renewal and where to manage it (${await line.innerText()})`);
     await card.scrollIntoViewIfNeeded();
     await page.screenshot({ path: "screenshots/profile-subscription-apple.png" });
+    await page.getByRole("radio", { name: "Settings", exact: true }).click();
+    await settings.waitFor();
+    check(await settings.getByText(appleSteps).isVisible() && await settings.getByRole("button").count() === 0,
+      "Settings, App Store subscription: where to cancel it in Apple's settings, and no buttons");
+    await page.getByRole("button", { name: "Delete Account" }).click();
+    await deleting.waitFor();
+    check(await deleting.getByText("Deleting your account doesn't cancel your App Store subscription or free trial. Apple keeps billing until you cancel it.").isVisible()
+      && await deleting.getByText(appleSteps).isVisible() && await deleting.getByRole("button", { name: "Delete Account" }).isDisabled(),
+      "Delete Account, App Store subscription: it warns that Apple keeps billing and says where to cancel (deleting still works)");
+    await page.waitForTimeout(350);
+    await page.screenshot({ path: "screenshots/delete-apple-subscription.png" });
+    await page.keyboard.press("Escape");
+    await deleting.waitFor({ state: "detached" });
 
-    // A phone: the card in Profile, with the renewal date once the trial is over.
+    // A phone: the card in Profile, with the renewal date once the trial is over; Settings has the controls.
     SUBSCRIPTION = { source: "stripe", status: "active", interval: "month", renews_at: "2026-12-27T12:00:00Z", trial_available: false };
     await page.setViewportSize({ width: 390, height: 844 });
     await page.reload();
-    await manage.waitFor({ timeout: 15000 });
-    const [phoneText, phoneButton, phoneCard] = [await card.locator(".plan-card-text").boundingBox(), await manage.boundingBox(), await card.boundingBox()];
-    check(await line.innerText() === "$4.99/month, renews Dec 27." && phoneButton.x + phoneButton.width <= phoneCard.x + phoneCard.width
-      && phoneButton.x >= phoneText.x + phoneText.width - 1,
-      `phone, pro through Stripe: the renewal line, with Manage Subscription to its right (${await line.innerText()})`);
+    await card.waitFor({ timeout: 15000 });
+    check(await line.innerText() === "$4.99/month, renews Dec 27.", `phone, pro through Stripe: the renewal line (${await line.innerText()})`);
     await card.scrollIntoViewIfNeeded();
     await page.screenshot({ path: "screenshots/profile-subscription-phone.png" });
+    await page.getByRole("radio", { name: "Settings", exact: true }).click();
+    await settings.waitFor();
+    const buttonsFit = await settings.evaluate((el) => [...el.querySelectorAll("button")].every((b) => b.getBoundingClientRect().right <= el.getBoundingClientRect().right + 1));
+    check(buttonsFit && await settings.getByRole("button", { name: "Cancel Subscription" }).isVisible(),
+      "phone, Settings: Manage and Cancel Subscription fit inside the card");
+    await settings.scrollIntoViewIfNeeded();
+    await page.screenshot({ path: "screenshots/settings-subscription-phone.png" });
     PLAN = "free";
     SUBSCRIPTION = {};
     billingCalls = [];
