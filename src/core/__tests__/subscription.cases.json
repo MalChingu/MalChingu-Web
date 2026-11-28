@@ -1,0 +1,51 @@
+{
+  "_about": "Korimal Pro's subscription: reading my_plan(), the line under Pro in Profile, and the checkout words. The same file is in the iPhone/iPad/Mac app (KTalkTests/subscription-cases.json). Dates are noon UTC, so they read as the same day wherever the tests run; `price` is what one period costs, or null when it isn't known.",
+  "read": [
+    { "raw": "{\"plan\":\"free\",\"guides\":1}",
+      "expect": { "source": null, "status": null, "interval": null, "renewsAt": null, "trialEnd": null, "cancelAtPeriodEnd": false, "trialAvailable": true } },
+    { "raw": "{\"plan\":\"pro\",\"source\":\"apple\",\"status\":\"trialing\",\"interval\":\"year\",\"renews_at\":\"2026-12-04T12:00:00+00:00\",\"trial_end\":\"2026-12-04T12:00:00+00:00\",\"cancel_at_period_end\":true,\"trial_available\":false}",
+      "expect": { "source": "apple", "status": "trialing", "interval": "year", "renewsAt": "2026-12-04T12:00:00Z", "trialEnd": "2026-12-04T12:00:00Z", "cancelAtPeriodEnd": true, "trialAvailable": false } },
+    { "raw": "{\"plan\":\"pro\",\"source\":\"stripe\",\"status\":\"active\",\"interval\":\"week\",\"renews_at\":\"2026-12-27T12:00:00.250+00:00\",\"trial_end\":null}",
+      "expect": { "source": "stripe", "status": "active", "interval": null, "renewsAt": "2026-12-27T12:00:00.250Z", "trialEnd": null, "cancelAtPeriodEnd": false, "trialAvailable": true } }
+  ],
+  "lines": [
+    { "sub": { "source": "stripe", "status": "trialing", "interval": "month", "trialEnd": "2026-12-04T12:00:00Z", "renewsAt": "2026-12-04T12:00:00Z" },
+      "price": "$4.99/month", "expect": "Free trial until Dec 4, then $4.99/month." },
+    { "sub": { "source": "apple", "status": "trialing", "interval": "year", "trialEnd": "2026-12-04T12:00:00Z", "renewsAt": "2026-12-04T12:00:00Z" },
+      "price": null, "expect": "Free trial until Dec 4." },
+    { "sub": { "source": "stripe", "status": "trialing", "interval": "month", "trialEnd": "2026-12-04T12:00:00Z", "cancelAtPeriodEnd": true },
+      "price": "$4.99/month", "expect": "Free trial, ends Dec 4. It won't renew." },
+    { "sub": { "source": "stripe", "status": "active", "interval": "year", "renewsAt": "2027-11-27T12:00:00Z" },
+      "price": "$49.99/year", "expect": "$49.99/year, renews Nov 27." },
+    { "sub": { "source": "apple", "status": "active", "interval": "month", "renewsAt": "2026-12-27T12:00:00Z" },
+      "price": "₩6,500/month", "expect": "₩6,500/month, renews Dec 27." },
+    { "sub": { "source": "apple", "status": "active", "interval": "month", "renewsAt": "2026-12-27T12:00:00Z" },
+      "price": null, "expect": "Renews Dec 27." },
+    { "sub": { "source": "apple", "status": "active", "interval": "month", "renewsAt": "2026-12-27T12:00:00Z", "cancelAtPeriodEnd": true },
+      "price": "$4.99/month", "expect": "Ends Dec 27. It won't renew." },
+    { "sub": { "source": "stripe", "status": "past_due", "interval": "year", "renewsAt": "2027-11-28T12:00:00Z" },
+      "price": "$49.99/year", "expect": "Your last payment didn't go through. Update your card in Manage Subscription." },
+    { "sub": { "source": "apple", "status": "past_due", "interval": "month", "renewsAt": "2026-12-27T12:00:00Z" },
+      "price": null, "expect": "Your last payment didn't go through. Update your payment method in your Apple Account settings." },
+    { "sub": { "source": "stripe", "status": "canceled", "interval": "month", "renewsAt": "2026-12-27T12:00:00Z" },
+      "price": "$4.99/month", "expect": null },
+    { "sub": { "source": "manual", "status": null }, "price": null, "expect": null },
+    { "sub": { "source": null, "status": null }, "price": null, "expect": null }
+  ],
+  "terms": [
+    { "price": "$4.99/month", "trial": true, "expect": "Free for 7 days, then $4.99/month. Cancel anytime." },
+    { "price": "$49.99/year", "trial": false, "expect": "$49.99/year, renews automatically. Cancel anytime." }
+  ],
+  "labels": [
+    { "trial": true, "expect": "Start Free Trial" },
+    { "trial": false, "expect": "Upgrade to Pro" }
+  ],
+  "saving": [
+    { "monthly": 4.99, "yearly": 49.99, "expect": "2 months free" },
+    { "monthly": 6500, "yearly": 65000, "expect": "2 months free" },
+    { "monthly": 4.99, "yearly": 54.99, "expect": "1 month free" },
+    { "monthly": 4.99, "yearly": 59.88, "expect": null },
+    { "monthly": 4.99, "yearly": 69.99, "expect": null },
+    { "monthly": 0, "yearly": 10, "expect": null }
+  ]
+}

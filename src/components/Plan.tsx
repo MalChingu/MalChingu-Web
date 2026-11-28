@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { planLimit } from "../core/plan";
 import { useStore } from "../lib/store";
-import { subscriptionLine } from "../lib/subscription";
+import { priceText, subscriptionLine } from "../lib/subscription";
 import { hideProFeatures, showProFeatures, showUpgrade, upgradeToPro } from "../lib/upgrade";
 import { Icon } from "./Icon";
 import { Button } from "./ui";
@@ -9,8 +9,9 @@ import { Button } from "./ui";
 // Free accounts hold 2 study guides at a time; Pro has no limit. Wide screens show the plan at the bottom of the
 // sidebar, phones in Profile → About, and free accounts also on the Guides page.
 
-/** Pro shows a badge, where the subscription stands (trial, renewal or end date) and Manage Subscription (Stripe's
- *  portal); a free account shows its guide count and Upgrade to Pro. Nothing until the plan has loaded. */
+/** Pro shows a badge and where the subscription stands (trial, renewal or end date). A Stripe subscription has Manage
+ *  Subscription (Stripe's portal); one bought in the iPhone/iPad/Mac app is managed there, in Apple's settings. A free
+ *  account shows its guide count and Upgrade to Pro. Nothing until the plan has loaded. */
 export function PlanCard({ className = "" }: { className?: string }) {
   const store = useStore();
   const [busy, setBusy] = useState(false);
@@ -25,10 +26,17 @@ export function PlanCard({ className = "" }: { className?: string }) {
       if (message) { setError(message); setBusy(false); }
     };
     return (
-      <div className={`glass card plan-card pro ${className} ${sub?.source === "stripe" ? "subscribed" : ""}`}>
+      <div className={`glass card plan-card pro ${className} ${sub?.source === "stripe" || sub?.source === "apple" ? "subscribed" : ""}`}>
         <div className="plan-card-text">
           <ProBadge />
-          <span className="small muted">{(sub && subscriptionLine(sub)) ?? "No limit on study guides."}</span>
+          {/* The price is Stripe's; the App Store charges in each country's own currency, so its line goes without. */}
+          <span className="small muted">
+            {(sub && subscriptionLine(sub, sub.source === "stripe" && sub.interval ? priceText(sub.interval) : null))
+              ?? "No limit on study guides."}
+          </span>
+          {sub?.source === "apple" && (
+            <span className="small muted">Subscribed through the App Store. Manage it on your iPhone, iPad or Mac.</span>
+          )}
           {error && <span className="small error" role="alert">{error}</span>}
         </div>
         {sub?.source === "stripe" && (

@@ -97,7 +97,7 @@ Every button is a capsule (fully rounded). A screen has at most one prominent bu
 | Round icon | 36–60px circle, white icon | Red ✕ / green ✓ answer buttons, accent →, glass for neutral page actions (+, ?, ⋯, Back, the top bar's ✕): white glass with a black icon, never purple (on iPhone the bar's buttons get `.tint(.primary)`) | `RoundButton` | `RoundIconButton` + `RoundTint` | circle `.glass` / `roundButton` |
 | Quick mark | Outlined ✓ / ✕ circle icon, no fill, 40px target | Accept / decline / cancel beside a row's arrow; ✓ before ✕, and every ✕ in one column | `QuickButton` | `QuickButton` (Friends.kt) | `quickButton` |
 | Text link | Accent text, no box | Secondary navigation (Sign in with a Different Account, RezPoint Inc.) | `.link`, `<a>` | `TextButton` | `.buttonStyle(.plain)` + `.tint` |
-| Upgrade / checkout | Prominent with ⚡. Web: opens the popup, whose Start Free Trial goes to Stripe's checkout. Apps: **faded (60%) and inert until they can sell Pro** | Upgrade to Pro, Start Free Trial | `UpgradeButton`, `.upgrade-cta` | `CheckoutButton`, `UpgradeButton` | `CheckoutButton`, `UpgradeButton` |
+| Upgrade / checkout | Prominent with ⚡. Web: opens the popup, whose Start Free Trial goes to Stripe's checkout. iPhone, iPad, Mac: the same, through the App Store. Android: **faded (60%) and inert until it can sell Pro** | Upgrade to Pro, Start Free Trial | `UpgradeButton`, `.upgrade-cta` | `CheckoutButton`, `UpgradeButton` | `UpgradeButton`, `ProCheckout` |
 | Provider | Google: white, `#747775` edge, dark text. Apple: black, white text | Sign-in only | `.google-button`, `.apple-button` | sign-in screen | `SignInWithAppleButton`, Google capsule |
 
 Heights: default 44px/dp, large 52, compact 36. Icons in buttons are 18px/dp, with an 8px gap before the label.
@@ -116,24 +116,35 @@ Heights: default 44px/dp, large 52, compact 36. Icons in buttons are 18px/dp, wi
   (Friend Requests) so the item opens as the only sheet. A sheet has a header with ✕ on the left and a centered title.
   Its background is the page's wash over the base (web `.sheet`, Android `Modifier.sheetWash()`, Apple the system
   sheet's glass), never a flat colour.
-- **Upgrade to Pro popup (web):** Pro is sold on the website only, through Stripe.
+- **Upgrade to Pro popup (web, Mac):** Pro is sold through Stripe on the website and through the App Store in the
+  iPhone, iPad and Mac app; Android still says Coming Soon.
   - what Pro adds (outlined green ✓ per line) first, then the price at the bottom, centred;
-  - on hover (the sidebar's Upgrade to Pro), the price is both plans ("$4.99/mo or $39.99/yr") and "7-day free trial"
+  - on hover (the sidebar's Upgrade to Pro), the price is both plans ("$4.99/mo or $49.99/yr") and "7-day free trial"
     under it, with no button, because it closes when the pointer leaves;
   - clicked open (the Upgrade to Pro button, a locked Create Guide length, the Pro photo tile): a Monthly / Yearly
-    segmented control, the chosen price (Yearly adds a "Save 33%" pill), the compact Start Free Trial (Upgrade to Pro
-    once the account's trial is used), and the terms under it in small muted text ("Free for 7 days, then
-    $4.99/month. Cancel anytime."). An error shows in red under the terms;
+    segmented control, the chosen price (Yearly adds a "2 months free" pill, worked out from the two prices), the
+    compact Start Free Trial (Upgrade to Pro once the trial is used), and the terms under it in small muted text
+    ("Free for 7 days, then $4.99/month. Cancel anytime."). An error shows in red under the terms;
+  - the apps add Restore Purchases and the Terms and Privacy links under the terms (App Review asks for them), and
+    show the App Store's price for the person's country;
   - the Pro badge on hover: just what Pro adds.
-- **Upgrade to Pro popup (Mac):** what Pro adds, then **Coming Soon centered at the bottom**; clicked open, it also
-  gets the compact faded Upgrade to Pro. Hover popups have no button.
-- **Upgrade sheet (iPhone, Android):** the same order: features, Coming Soon, then the button.
+- **Upgrade sheet (iPhone, iPad):** the same as the clicked popup, in a sheet: features, then checkout.
+- **Upgrade sheet (Android):** features, Coming Soon, then the faded button.
 - **Pro card (Profile):** the Pro badge, then a small muted line on the subscription ("Free trial until Dec 4, then
-  $39.99/year.", "$4.99/month, renews Dec 27.", "Ends Dec 27. It won't renew."; a failed payment says to update the
-  card), with a compact glass Manage Subscription (Stripe's portal) on the right. Pro given by hand says "No limit on
-  study guides." with no button. The web shows the card on wide screens too when the subscription is through Stripe.
-- **Back from checkout (web):** a "Welcome to Korimal Pro" sheet: "Setting up Pro…" with a spinner until the plan says
-  Pro, then the trial's end date and price, what Pro adds, and a large Done.
+  $49.99/year.", "$4.99/month, renews Dec 27.", "Ends Dec 27. It won't renew."; a failed payment says where to update
+  the card). Where it was bought decides the rest:
+  - **Stripe (the website):** the web has a compact glass Manage Subscription (Stripe's portal) on the right; the
+    apps say "Subscribed on korimal.com. Manage it there." with no link (App Review doesn't allow one);
+  - **App Store:** the apps have a glass Manage Subscription (Apple's subscription settings); the web says
+    "Subscribed through the App Store. Manage it on your iPhone, iPad or Mac." with no button, and its line has no
+    price (the App Store charges each country its own);
+  - **given by hand:** "No limit on study guides.", nothing to manage.
+  The web shows the card on wide screens too when there's a subscription; the apps show it in Profile for every Pro
+  account (iPhone and iPad also keep the badge beside the level).
+- **After buying:** a "Welcome to Korimal Pro" sheet: the trial's end date and price, what Pro adds, and a large Done.
+  On the web it first says "Setting up Pro…" with a spinner until the plan says Pro.
+- **Delete Account (apps):** with an App Store subscription, the sheet also says that deleting the account doesn't
+  cancel it, and to cancel it first with Manage Subscription.
 
 ## 6. Controls
 
@@ -185,8 +196,8 @@ Heights: default 44px/dp, large 52, compact 36. Icons in buttons are 18px/dp, wi
 ## 9. Words
 
 - **Statuses:** Correct!, Correct after N misses., Incorrect, Didn't Know.
-- **Plan words:** Upgrade to Pro, Start Free Trial, Monthly, Yearly, Manage Subscription, Welcome to Korimal Pro,
-  Coming Soon (apps), Pro.
+- **Plan words:** Upgrade to Pro, Start Free Trial, Monthly, Yearly, 2 months free, Manage Subscription, Restore
+  Purchases, Welcome to Korimal Pro, Coming Soon (Android), Pro.
 - **Friends:** Incoming Friend Request, Sent Friend Request, Friend Requests (Incoming / Sent), Add Friend
   (usernames only).
 

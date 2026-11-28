@@ -316,3 +316,23 @@ import streakCases from "./streak.cases.json";
 describe("streak star colour (shared cases)", () => {
   it.each(streakCases.cases)("$days days → $heat", ({ days, heat }) => { expect(streakHeat(days)).toBe(heat); });
 });
+
+import { NO_SUBSCRIPTION, checkoutLabel, checkoutTerms, readSubscription, subscriptionLine, yearlySaving,
+  type Subscription } from "../subscription";
+import subscriptionCases from "./subscription.cases.json";
+
+describe("subscription (shared cases)", () => {
+  const ms = (iso: string | null | undefined) => (iso ? Date.parse(iso) : null);
+  it.each(subscriptionCases.read)("reads $raw", (c) => {
+    const sub = readSubscription(JSON.parse(c.raw));
+    expect({ ...sub, renewsAt: ms(sub.renewsAt), trialEnd: ms(sub.trialEnd) })
+      .toEqual({ ...c.expect, renewsAt: ms(c.expect.renewsAt), trialEnd: ms(c.expect.trialEnd) });
+  });
+  it.each(subscriptionCases.lines)("line for $sub.source $sub.status", (c) => {
+    const sub: Subscription = { ...NO_SUBSCRIPTION, ...(c.sub as Partial<Subscription>) };
+    expect(subscriptionLine(sub, c.price)).toBe(c.expect);
+  });
+  it.each(subscriptionCases.terms)("terms for $price", (c) => { expect(checkoutTerms(c.price, c.trial)).toBe(c.expect); });
+  it.each(subscriptionCases.labels)("label with trial $trial", (c) => { expect(checkoutLabel(c.trial)).toBe(c.expect); });
+  it.each(subscriptionCases.saving)("saving $monthly / $yearly", (c) => { expect(yearlySaving(c.monthly, c.yearly)).toBe(c.expect); });
+});

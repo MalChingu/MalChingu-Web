@@ -831,7 +831,7 @@ try {
       return { below: box.top >= list.bottom, centred: Math.abs((box.left + box.right) / 2 - (card.left + card.right) / 2) < 2, last: el.lastElementChild === price };
     });
     const priceText = (await upgrade.locator(".upgrade-price").innerText()).replace(/\s+/g, " ").replace(/ \//g, "/").trim();
-    check(priceText === "$4.99/mo or $39.99/yr" && (await upgrade.locator(".upgrade-trial").innerText()).trim() === "7-day free trial"
+    check(priceText === "$4.99/mo or $49.99/yr" && (await upgrade.locator(".upgrade-trial").innerText()).trim() === "7-day free trial"
       && await upgrade.getByText("Coming Soon").count() === 0
       && await upgrade.locator(".upgrade-benefits li").count() === 4 && await upgrade.getByRole("button").count() === 0
       && order.below && order.centred && order.last,
@@ -878,8 +878,8 @@ try {
       && await terms() === "Free for 7 days, then $4.99/month. Cancel anytime.",
       `clicked open: Monthly first, $4.99/month and the trial's terms (${await priceNow()})`);
     await billing.getByRole("radio", { name: "Yearly" }).click();
-    check(await priceNow() === "$39.99/year Save 33%" && await terms() === "Free for 7 days, then $39.99/year. Cancel anytime.",
-      `Yearly: $39.99/year with Save 33%, and the terms follow (${await priceNow()})`);
+    check(await priceNow() === "$49.99/year 2 months free" && await terms() === "Free for 7 days, then $49.99/year. Cancel anytime.",
+      `Yearly: $49.99/year with 2 months free, and the terms follow (${await priceNow()})`);
     await billing.getByRole("radio", { name: "Monthly" }).click();
     await page.screenshot({ path: "screenshots/upgrade-from-length.png" });
     // No ✕: a click outside closes it.
@@ -996,7 +996,7 @@ try {
     PLAN = "pro";
     SUBSCRIPTION = { source: "stripe", status: "trialing", interval: "year", renews_at: "2026-12-04T12:00:00Z", trial_end: "2026-12-04T12:00:00Z",
       trial_available: false };
-    await welcome.getByText("Your 7-day free trial has started. It ends Dec 4, then $39.99/year.").waitFor({ timeout: 8000 });
+    await welcome.getByText("Your 7-day free trial has started. It ends Dec 4, then $49.99/year.").waitFor({ timeout: 8000 });
     check(await welcome.locator(".upgrade-benefits li").count() === 4 && await welcome.getByText("Setting up Pro…").count() === 0,
       "once the plan says Pro: the welcome gives the trial's end and the price, then what Pro adds");
     await page.screenshot({ path: "screenshots/checkout-welcome.png" });
@@ -1007,7 +1007,7 @@ try {
     const card = page.locator(".plan-profile");
     const line = card.locator(".plan-card-text .small").first();
     const manage = card.getByRole("button", { name: "Manage Subscription" });
-    check(await card.isVisible() && await line.innerText() === "Free trial until Dec 4, then $39.99/year." && await page.locator(".tabs .pro-badge").isVisible(),
+    check(await card.isVisible() && await line.innerText() === "Free trial until Dec 4, then $49.99/year." && await page.locator(".tabs .pro-badge").isVisible(),
       `pro through Stripe, wide screen: Profile shows the trial's end and the price (${await line.innerText()})`);
     const [textBox, manageBox, cardBox] = [await card.locator(".plan-card-text").boundingBox(), await manage.boundingBox(), await card.boundingBox()];
     check(manageBox.x >= textBox.x + textBox.width - 1 && manageBox.x + manageBox.width <= cardBox.x + cardBox.width,
@@ -1027,6 +1027,18 @@ try {
     await page.locator(".tabs .pro-badge").waitFor({ timeout: 15000 });
     check(!(await card.isVisible()) && await page.getByRole("button", { name: "Manage Subscription" }).count() === 0,
       "Pro given by hand: no Manage Subscription, and Profile leaves the plan to the sidebar");
+
+    // Bought in the iPhone/iPad/Mac app (the App Store): the card shows on wide screens too, with the renewal (no price:
+    // the App Store charges each country its own) and where to manage it, and no Manage Subscription (that's Apple's).
+    SUBSCRIPTION = { source: "apple", status: "active", interval: "year", renews_at: "2027-11-28T12:00:00Z", trial_available: false };
+    await page.reload();
+    await card.waitFor({ timeout: 15000 });
+    check(await line.innerText() === "Renews Nov 28."
+      && await card.getByText("Subscribed through the App Store. Manage it on your iPhone, iPad or Mac.").isVisible()
+      && await card.getByRole("button", { name: "Manage Subscription" }).count() === 0,
+      `pro through the App Store: the renewal and where to manage it, no Manage Subscription (${await line.innerText()})`);
+    await card.scrollIntoViewIfNeeded();
+    await page.screenshot({ path: "screenshots/profile-subscription-apple.png" });
 
     // A phone: the card in Profile, with the renewal date once the trial is over.
     SUBSCRIPTION = { source: "stripe", status: "active", interval: "month", renews_at: "2026-12-27T12:00:00Z", trial_available: false };

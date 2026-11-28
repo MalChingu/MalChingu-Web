@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useStore } from "../lib/store";
-import { PRICES, TRIAL_DAYS, shortDate } from "../lib/subscription";
+import { TRIAL_DAYS, priceText, shortDate } from "../lib/subscription";
 import { PRO_BENEFITS } from "../lib/upgrade";
 import { Icon } from "./Icon";
 import { Button, Card, LoadingSpinner, Sheet } from "./ui";
@@ -41,7 +41,7 @@ export function CheckoutReturn() {
   if (!open) return null;
   const sub = store.subscription;
   const trialEnd = sub?.status === "trialing" && sub.trialEnd ? shortDate(sub.trialEnd) : null;
-  const price = sub?.interval ? `${PRICES[sub.interval].amount}/${PRICES[sub.interval].per}` : null;
+  const price = sub?.interval ? priceText(sub.interval) : null;
   return (
     <Sheet title="Welcome to Korimal Pro" onClose={() => setOpen(false)}>
       <Card className="checkout-welcome">

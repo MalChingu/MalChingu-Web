@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import { useStore } from "../lib/store";
-import { PRICES, TRIAL_DAYS, YEARLY_SAVING, checkoutLabel, checkoutTerms, type Interval } from "../lib/subscription";
+import { PRICES, TRIAL_DAYS, YEARLY_SAVING, checkoutLabel, checkoutTerms, priceText, type Interval } from "../lib/subscription";
 import { PRO_BENEFITS, setUpgradeOpener, type UpgradeMode } from "../lib/upgrade";
 import { pageZoom } from "../lib/zoom";
 import { Icon } from "./Icon";
@@ -117,12 +117,12 @@ export function UpgradeModal() {
               options={[{ value: "month", label: "Monthly" }, { value: "year", label: "Yearly" }]} />
             <div className="upgrade-price">
               <strong>{PRICES[billing].amount}</strong><span className="muted">/{PRICES[billing].per}</span>
-              {billing === "year" && <span className="upgrade-saving">{YEARLY_SAVING}</span>}
+              {billing === "year" && YEARLY_SAVING && <span className="upgrade-saving">{YEARLY_SAVING}</span>}
             </div>
             <button type="button" className="button prominent compact upgrade-button upgrade-cta" disabled={busy} onClick={checkout}>
-              <Icon name="bolt" size={16} /><span>{busy ? "Opening Checkout…" : checkoutLabel(sub)}</span>
+              <Icon name="bolt" size={16} /><span>{busy ? "Opening Checkout…" : checkoutLabel(trial)}</span>
             </button>
-            <p className="small muted upgrade-terms">{checkoutTerms(billing, sub)}</p>
+            <p className="small muted upgrade-terms">{checkoutTerms(priceText(billing), trial)}</p>
             {error && <p className="small error upgrade-error" role="alert">{error}</p>}
           </div>
         )}
