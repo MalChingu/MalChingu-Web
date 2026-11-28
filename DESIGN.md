@@ -130,13 +130,13 @@ Heights: default 44px/dp, large 52, compact 36. Icons in buttons are 18px/dp, wi
   - the Pro badge on hover: just what Pro adds.
 - **Upgrade sheet (iPhone, iPad):** the same as the clicked popup, in a sheet: features, then checkout.
 - **Upgrade sheet (Android):** features, Coming Soon, then the faded button.
-- **Pro card (Profile → About):** the Pro badge, then a small muted line on the subscription ("Free trial until Dec 4,
-  then $49.99/year.", "$4.99/month, renews Dec 27.", "Ends Dec 27. It won't renew."; a failed payment says where to
-  update the card), and where it was bought ("Subscribed through the App Store. Manage it on your iPhone, iPad or
-  Mac." on the web; "Subscribed through the App Store." / "Subscribed on korimal.com." in the Apple apps). No buttons:
-  the controls are in Settings. Pro given by hand: "No limit on study guides." The web shows the card on wide screens
-  too when there's a subscription; the Apple apps show it for every Pro account (iPhone and iPad also keep the badge
-  beside the level). App Store lines have no price on the web (the App Store charges each country its own).
+- **Pro in Profile → About:** iPhone, iPad and Android have no Pro card, only the Pro badge beside the level; the
+  Mac and the web on wide screens have the badge in the sidebar, so About has nothing. The subscription is in
+  Settings → Account. The web on phones (no sidebar) keeps a Pro card: the badge, then a small muted line on the
+  subscription ("Free trial until Dec 4, then $49.99/year.", "$4.99/month, renews Dec 27.", "Ends Dec 27. It won't
+  renew."; a failed payment says where to update the card), "Subscribed through the App Store. Manage it on your
+  iPhone, iPad or Mac." for an App Store one, or "No limit on study guides." for Pro given by hand. No buttons. App
+  Store lines have no price on the web (the App Store charges each country its own).
 - **Subscription (Profile → Settings → Account):** between Blocked and Delete Account, only while there's a
   subscription that hasn't ended. A "Subscription" row (seal icon), the same status line, then by where it was bought:
   - **Stripe (the website):** web: compact glass Manage Subscription (Stripe's portal: card, invoices, monthly or

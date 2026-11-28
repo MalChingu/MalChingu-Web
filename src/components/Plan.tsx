@@ -18,7 +18,7 @@ export function PlanCard({ className = "" }: { className?: string }) {
   if (store.plan === "pro") {
     const sub = store.subscription;
     return (
-      <div className={`glass card plan-card pro ${className} ${hasSubscription(sub) ? "subscribed" : ""}`}>
+      <div className={`glass card plan-card pro ${className}`}>
         <div className="plan-card-text">
           <ProBadge />
           {/* The price is Stripe's; the App Store charges in each country's own currency, so its line goes without. */}

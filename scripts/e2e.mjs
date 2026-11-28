@@ -1009,15 +1009,10 @@ try {
     await welcome.getByRole("button", { name: "Done" }).click();
     await welcome.waitFor({ state: "detached" });
 
-    // Profile on a wide screen: the Pro card says where the subscription stands (the sidebar keeps the Pro badge). Its
-    // controls are in Settings.
+    // Profile → About on a wide screen: no Pro card (the sidebar has the Pro badge, Settings the subscription).
     const card = page.locator(".plan-profile");
-    const line = card.locator(".plan-card-text .small").first();
-    check(await card.isVisible() && await line.innerText() === "Free trial until Dec 4, then $49.99/year." && await page.locator(".tabs .pro-badge").isVisible()
-      && await card.getByRole("button", { name: /Subscription/ }).count() === 0,
-      `pro through Stripe, wide screen: Profile shows the trial's end and the price, and no subscription buttons (${await line.innerText()})`);
-    await card.scrollIntoViewIfNeeded();
-    await page.screenshot({ path: "screenshots/profile-subscription.png" });
+    check(!(await card.isVisible()) && await page.locator(".tabs .pro-badge").isVisible(),
+      "pro through Stripe, wide screen: About has no Pro card, and the sidebar has the Pro badge");
 
     // Settings → Account: Blocked, then the subscription (Manage and Cancel Subscription), then Delete Account.
     await page.getByRole("radio", { name: "Settings", exact: true }).click();
@@ -1078,23 +1073,20 @@ try {
     check(!(await card.isVisible()) && await page.locator(".subscription-settings").count() === 0,
       "Pro given by hand: no Subscription in Settings, and Profile leaves the plan to the sidebar");
 
-    // Bought in the iPhone/iPad/Mac app (the App Store): the card shows on wide screens too, with the renewal (no price:
-    // the App Store charges each country its own) and where to manage it. Settings says where to cancel it (only Apple
-    // can), and Delete Account warns that it keeps billing.
+    // Bought in the iPhone/iPad/Mac app (the App Store): About still has no card on a wide screen. Settings has the
+    // renewal (no price: the App Store charges each country its own) and where to cancel it (only Apple can), and
+    // Delete Account warns that it keeps billing.
     const appleSteps = "Cancel it on your iPhone or iPad in Settings → your name → Subscriptions, or on a Mac in the App Store → your name → Account Settings → Subscriptions.";
     SUBSCRIPTION = { source: "apple", status: "active", interval: "year", renews_at: "2027-11-28T12:00:00Z", trial_available: false };
     await page.reload();
-    await card.waitFor({ timeout: 15000 });
-    check(await line.innerText() === "Renews Nov 28."
-      && await card.getByText("Subscribed through the App Store. Manage it on your iPhone, iPad or Mac.").isVisible()
-      && await card.getByRole("button", { name: /Subscription/ }).count() === 0,
-      `pro through the App Store: the renewal and where to manage it (${await line.innerText()})`);
-    await card.scrollIntoViewIfNeeded();
-    await page.screenshot({ path: "screenshots/profile-subscription-apple.png" });
+    await page.locator(".tabs .pro-badge").waitFor({ timeout: 15000 });
+    check(!(await card.isVisible()), "pro through the App Store, wide screen: About has no Pro card");
     await page.getByRole("radio", { name: "Settings", exact: true }).click();
     await settings.waitFor();
-    check(await settings.getByText(appleSteps).isVisible() && await settings.getByRole("button").count() === 0,
-      "Settings, App Store subscription: where to cancel it in Apple's settings, and no buttons");
+    check(await subLine.innerText() === "Renews Nov 28." && await settings.getByText(appleSteps).isVisible() && await settings.getByRole("button").count() === 0,
+      `Settings, App Store subscription: the renewal, where to cancel it in Apple's settings, and no buttons (${await subLine.innerText()})`);
+    await settings.scrollIntoViewIfNeeded();
+    await page.screenshot({ path: "screenshots/settings-subscription-apple.png" });
     await page.getByRole("button", { name: "Delete Account" }).click();
     await deleting.waitFor();
     check(await deleting.getByText("Deleting your account doesn't cancel your App Store subscription or free trial. Apple keeps billing until you cancel it.").isVisible()
@@ -1105,11 +1097,12 @@ try {
     await page.keyboard.press("Escape");
     await deleting.waitFor({ state: "detached" });
 
-    // A phone: the card in Profile, with the renewal date once the trial is over; Settings has the controls.
+    // A phone (no sidebar): the card in Profile, with the renewal date once the trial is over; Settings has the controls.
     SUBSCRIPTION = { source: "stripe", status: "active", interval: "month", renews_at: "2026-12-27T12:00:00Z", trial_available: false };
     await page.setViewportSize({ width: 390, height: 844 });
     await page.reload();
     await card.waitFor({ timeout: 15000 });
+    const line = card.locator(".plan-card-text .small").first();
     check(await line.innerText() === "$4.99/month, renews Dec 27.", `phone, pro through Stripe: the renewal line (${await line.innerText()})`);
     await card.scrollIntoViewIfNeeded();
     await page.screenshot({ path: "screenshots/profile-subscription-phone.png" });

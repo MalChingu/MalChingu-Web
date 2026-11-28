@@ -98,8 +98,8 @@ export function Profile() {
           </Card>
         )}
 
-        {/* Phones have no sidebar, so the plan shows here (wide screens show it at the bottom of the sidebar, and here only
-            for a subscription, with Manage Subscription). */}
+        {/* Phones have no sidebar, so the plan shows here (wide screens show it at the bottom of the sidebar, and the
+            subscription in Settings). */}
         <PlanCard className="plan-profile" />
 
         <FriendsCard />

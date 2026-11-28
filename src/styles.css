@@ -993,8 +993,8 @@ button.pro-badge:focus-visible { outline: 2px solid var(--accent); outline-offse
   .tabs-plan { display: flex; flex-direction: column; margin-top: auto; padding: 8px 2px 4px; }
   .tabs-plan .pro-badge { align-self: stretch; justify-content: center; }
   .tabs-plan + .tab.text-size { margin-top: 0; }
-  /* Wide screens: the sidebar has the plan, so Profile shows it only for a Stripe subscription (Manage Subscription). */
-  .plan-profile:not(.subscribed) { display: none; }
+  /* Wide screens: the sidebar has the plan (and Settings the subscription), so Profile leaves it out. */
+  .plan-profile { display: none; }
 }
 /* Guides, free accounts: how many of the 2 guides are used, with Upgrade to Pro. */
 .guide-limit { flex-direction: row; align-items: center; gap: 12px; padding: 18px; }
